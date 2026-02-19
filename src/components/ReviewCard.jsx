@@ -61,13 +61,21 @@ export default function ReviewCard({ problem, onReview, onDismiss, onUpdateNotes
         {/* Notes — click to reveal */}
         <div className="mb-3">
           {notesRevealed ? (
-            <textarea
-              value={localNotes}
-              onChange={(e) => setLocalNotes(e.target.value)}
-              onBlur={() => onUpdateNotes && onUpdateNotes(problem.id, localNotes)}
-              placeholder="Add notes..."
-              className="max-h-[120px] min-h-[60px] w-full resize-y rounded-md border border-pb-border bg-pb-bg px-3 py-2 text-[13px] font-[inherit] leading-relaxed text-pb-text-muted outline-none transition-colors duration-150 focus:border-pb-accent"
-            />
+            <div className="relative">
+              <textarea
+                value={localNotes}
+                onChange={(e) => setLocalNotes(e.target.value)}
+                onBlur={() => onUpdateNotes && onUpdateNotes(problem.id, localNotes)}
+                placeholder="Add notes..."
+                className="max-h-[120px] min-h-[60px] w-full resize-y rounded-md border border-pb-border bg-pb-bg px-3 py-2 pr-12 text-[13px] font-[inherit] leading-relaxed text-pb-text-muted outline-none transition-colors duration-150 focus:border-pb-accent"
+              />
+              <button
+                onClick={() => setNotesRevealed(false)}
+                className="absolute right-2 top-2 cursor-pointer rounded border-none bg-transparent text-xs text-pb-text-dim transition-colors duration-150 hover:text-pb-text-muted"
+              >
+                Hide
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => setNotesRevealed(true)}
