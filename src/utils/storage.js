@@ -58,6 +58,35 @@ export function countReviewedToday(problems) {
   return problems.filter((p) => p.lastReviewed === today).length;
 }
 
+export function importData(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        // Validate structure
+        if (!data.problems || !Array.isArray(data.problems)) {
+          reject(new Error("Invalid backup file: missing problems array"));
+          return;
+        }
+        // Validate each problem has required fields
+        const valid = data.problems.every(
+          (p) => p.id && p.title && p.difficulty && p.patterns
+        );
+        if (!valid) {
+          reject(new Error("Invalid backup file: problems have missing fields"));
+          return;
+        }
+        resolve(data);
+      } catch {
+        reject(new Error("Could not parse file. Is it a valid JSON backup?"));
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsText(file);
+  });
+}
+
 export function exportData() {
   const data = {
     exportedAt: new Date().toISOString(),

@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 export default function ConfirmDialog({
   isOpen,
   title,
@@ -7,6 +9,14 @@ export default function ConfirmDialog({
   confirmLabel = "Delete",
   destructive = true,
 }) {
+  // Escape key to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e) => e.key === "Escape" && onCancel();
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   return (

@@ -61,6 +61,21 @@ export default function ProblemCard({ problem, onEdit, onDelete }) {
         </span>
       </div>
 
+      {/* URL link */}
+      {problem.url && (
+        <div className={problem.notes ? "mb-2.5" : ""}>
+          <a
+            href={problem.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs text-pb-accent hover:text-pb-accent-hover transition-colors duration-150"
+          >
+            Open on LeetCode →
+          </a>
+        </div>
+      )}
+
       {/* Notes preview */}
       {problem.notes && (
         <div className="max-h-[60px] overflow-hidden whitespace-pre-wrap rounded-md bg-pb-bg px-3 py-2 text-[13px] leading-relaxed text-pb-text-muted">

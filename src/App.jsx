@@ -7,6 +7,8 @@ import {
   saveProblems,
   logReviewToday,
   exportData,
+  importData,
+  saveReviewLog,
 } from "./utils/storage";
 
 import Toast from "./components/Toast";
@@ -18,23 +20,17 @@ import DashboardView from "./components/DashboardView";
 import AllProblemsView from "./components/AllProblemsView";
 
 export default function App() {
-  const [problems, setProblems] = useState([]);
+  // Initialize directly from localStorage — no race condition
+  const [problems, setProblems] = useState(() => loadProblems());
   const [activeTab, setActiveTab] = useState("dashboard");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProblem, setEditingProblem] = useState(null);
   const [toast, setToast] = useState({ visible: false, message: "" });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Load problems from localStorage on mount
+  // Save problems to localStorage whenever they change
   useEffect(() => {
-    setProblems(loadProblems());
-  }, []);
-
-  // Save problems to localStorage on change
-  useEffect(() => {
-    if (problems.length > 0 || localStorage.getItem(STORAGE_KEY)) {
-      saveProblems(problems);
-    }
+    saveProblems(problems);
   }, [problems]);
 
   const showToast = useCallback(
@@ -48,13 +44,15 @@ export default function App() {
       if (idx >= 0) {
         const updated = [...prev];
         updated[idx] = problem;
+        showToast("Problem updated");
         return updated;
       }
+      showToast("Problem added");
       return [...prev, problem];
     });
     if (confidenceChanged) logReviewToday();
     setEditingProblem(null);
-  }, []);
+  }, [showToast]);
 
   const handleEdit = useCallback((problem) => {
     setEditingProblem(problem);
@@ -69,9 +67,10 @@ export default function App() {
   const handleDeleteConfirm = useCallback(() => {
     if (deleteTarget) {
       setProblems((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      showToast(`Deleted ${deleteTarget.title}`);
       setDeleteTarget(null);
     }
-  }, [deleteTarget]);
+  }, [deleteTarget, showToast]);
 
   const handleReview = useCallback(
     (problemId, newConfidence) => {
@@ -97,6 +96,14 @@ export default function App() {
     [showToast]
   );
 
+  const handleUpdateNotes = useCallback((problemId, newNotes) => {
+    setProblems((prev) =>
+      prev.map((p) =>
+        p.id === problemId ? { ...p, notes: newNotes.trim() } : p
+      )
+    );
+  }, []);
+
   const handleDismiss = useCallback((problemId) => {
     setProblems((prev) =>
       prev.map((p) =>
@@ -121,6 +128,36 @@ export default function App() {
     );
   }, []);
 
+  const handleImport = useCallback(
+    async (file) => {
+      try {
+        const data = await importData(file);
+        const existing = new Map(problems.map((p) => [p.id, p]));
+        let added = 0;
+        let updated = 0;
+        data.problems.forEach((p) => {
+          if (existing.has(p.id)) {
+            existing.set(p.id, p);
+            updated++;
+          } else {
+            existing.set(p.id, p);
+            added++;
+          }
+        });
+        setProblems(Array.from(existing.values()));
+        if (data.reviewLog) {
+          saveReviewLog(data.reviewLog);
+        }
+        showToast(
+          `Imported ${added} new, ${updated} updated`
+        );
+      } catch (err) {
+        showToast(err.message || "Import failed");
+      }
+    },
+    [problems, showToast]
+  );
+
   const openAddModal = () => {
     setEditingProblem(null);
     setModalOpen(true);
@@ -143,6 +180,7 @@ export default function App() {
       <Header
         onAddClick={openAddModal}
         onExport={exportData}
+        onImport={handleImport}
         problemCount={problems.length}
       />
 
@@ -151,6 +189,7 @@ export default function App() {
           problems={problems}
           onReview={handleReview}
           onDismiss={handleDismiss}
+          onUpdateNotes={handleUpdateNotes}
           onSetAllDue={handleSetAllDue}
           onRestoreDates={handleRestoreDates}
         />

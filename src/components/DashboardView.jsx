@@ -10,6 +10,7 @@ export default function DashboardView({
   problems,
   onReview,
   onDismiss,
+  onUpdateNotes,
   onSetAllDue,
   onRestoreDates,
 }) {
@@ -146,6 +147,7 @@ export default function DashboardView({
                 problem={p}
                 onReview={onReview}
                 onDismiss={onDismiss}
+                onUpdateNotes={onUpdateNotes}
               />
             ))}
           </div>
