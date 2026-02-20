@@ -33,7 +33,7 @@ import AllProblemsView from "./components/AllProblemsView";
 import SettingsModal from "./components/SettingsModal";
 
 export default function App() {
-  const { user, signInWithGoogle, signOut } = useAuth();
+  const { user, signInWithGoogle, signInWithGitHub, signOut } = useAuth();
 
   // Initialize directly from localStorage — no race condition
   const [problems, setProblems] = useState(() => loadProblems());
@@ -142,12 +142,13 @@ export default function App() {
 
       // Find the problem and compute updated version for cloud push
       const original = problems.find((p) => p.id === problemId);
+      const now = new Date().toISOString();
       const updatedProblem = original
-        ? { ...original, confidence: newConfidence, lastReviewed: today, nextReviewDate: addDays(today, intervalDays) }
+        ? { ...original, confidence: newConfidence, lastReviewed: today, nextReviewDate: addDays(today, intervalDays), updatedAt: now }
         : null;
 
       setProblems((prev) =>
-        prev.map((p) => (p.id === problemId ? { ...p, confidence: newConfidence, lastReviewed: today, nextReviewDate: addDays(today, intervalDays) } : p))
+        prev.map((p) => (p.id === problemId ? { ...p, confidence: newConfidence, lastReviewed: today, nextReviewDate: addDays(today, intervalDays), updatedAt: now } : p))
       );
       logReviewToday();
 
@@ -164,45 +165,39 @@ export default function App() {
   );
 
   const handleUpdateNotes = useCallback((problemId, newNotes) => {
+    const now = new Date().toISOString();
     setProblems((prev) =>
       prev.map((p) =>
-        p.id === problemId ? { ...p, notes: newNotes.trim() } : p
+        p.id === problemId ? { ...p, notes: newNotes.trim(), updatedAt: now } : p
       )
     );
     if (user) {
       const problem = problems.find((p) => p.id === problemId);
-      if (problem) pushProblemToCloud(user.id, { ...problem, notes: newNotes.trim() });
+      if (problem) pushProblemToCloud(user.id, { ...problem, notes: newNotes.trim(), updatedAt: now });
     }
   }, [user, problems]);
 
   const handleDismiss = useCallback((problemId) => {
     const tomorrow = addDays(todayStr(), 1);
+    const now = new Date().toISOString();
     setProblems((prev) =>
       prev.map((p) =>
         p.id === problemId
-          ? { ...p, nextReviewDate: tomorrow }
+          ? { ...p, nextReviewDate: tomorrow, updatedAt: now }
           : p
       )
     );
     if (user) {
       const problem = problems.find((p) => p.id === problemId);
-      if (problem) pushProblemToCloud(user.id, { ...problem, nextReviewDate: tomorrow });
+      if (problem) pushProblemToCloud(user.id, { ...problem, nextReviewDate: tomorrow, updatedAt: now });
     }
   }, [user, problems]);
 
   const handleSetAllDue = useCallback(() => {
     const today = todayStr();
+    const now = new Date().toISOString();
     setProblems((prev) =>
-      prev.map((p) => ({ ...p, nextReviewDate: today, lastReviewed: null }))
-    );
-  }, []);
-
-  const handleRestoreDates = useCallback((snapshot) => {
-    setProblems((prev) =>
-      prev.map((p) => ({
-        ...p,
-        nextReviewDate: snapshot[p.id] || p.nextReviewDate,
-      }))
+      prev.map((p) => ({ ...p, nextReviewDate: today, lastReviewed: null, updatedAt: now }))
     );
   }, []);
 
@@ -313,6 +308,7 @@ export default function App() {
         problemCount={problems.length}
         user={user}
         onSignInGoogle={signInWithGoogle}
+        onSignInGitHub={signInWithGitHub}
         onSignOut={signOut}
       />
       <Header

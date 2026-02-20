@@ -97,6 +97,7 @@ function mergeProblems(localProblems, cloudProblems) {
   const merged = new Map();
 
   // Start with all local problems (localStorage wins on conflict)
+  // TODO Sprint 5: use updatedAt for timestamp-based conflict resolution
   for (const [id, problem] of localMap) {
     merged.set(id, problem);
   }

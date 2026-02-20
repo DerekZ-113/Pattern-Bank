@@ -14,7 +14,7 @@ export function formatRelativeDate(dateStr) {
   const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Tomorrow";
-  if (diffDays < 0) return `${Math.abs(diffDays)}d overdue`;
+  if (diffDays < 0) return `${Math.abs(diffDays)}d ago`;
   return `${diffDays}d`;
 }
 

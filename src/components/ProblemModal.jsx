@@ -126,6 +126,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
       nextReviewDate: initialData
         ? addDays(today, getIntervalDays(form.confidence))
         : addDays(today, 1),
+      updatedAt: new Date().toISOString(),
     };
     onSave(problem, confidenceChanged);
     onClose();
