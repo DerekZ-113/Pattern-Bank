@@ -46,6 +46,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [problemsInitialSort, setProblemsInitialSort] = useState("dateAdded");
   const [clearDataConfirm, setClearDataConfirm] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("idle"); // idle | syncing | synced | error
 
   // Save problems to localStorage whenever they change
   useEffect(() => {
@@ -62,20 +63,24 @@ export default function App() {
   useEffect(() => {
     if (!user) {
       hasSyncedRef.current = false;
+      setSyncStatus("idle");
       return;
     }
     if (hasSyncedRef.current) return;
     hasSyncedRef.current = true;
+    setSyncStatus("syncing");
 
     syncOnSignIn(user.id, problems, loadReviewLog(), preferences).then(
       (result) => {
         if (result.error) {
+          setSyncStatus("error");
           showToast("Sync failed — working offline");
           return;
         }
         setProblems(result.problems);
         saveReviewLog(result.reviewLog);
         setPreferences(result.preferences);
+        setSyncStatus("synced");
         if (result.problems.length > 0) {
           showToast("Data synced");
         }
@@ -313,6 +318,7 @@ export default function App() {
       />
       <Header
         onSettingsClick={() => setSettingsOpen(true)}
+        syncStatus={syncStatus}
       />
 
       {activeTab === "dashboard" && (

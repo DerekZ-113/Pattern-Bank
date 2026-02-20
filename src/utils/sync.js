@@ -52,22 +52,26 @@ export async function syncOnSignIn(userId, localProblems, localReviewLog, localP
       await upsertPreferences(userId, localPreferences);
     }
 
-    // 5. Push merged problems to Supabase
-    // Problems only in localStorage need to be uploaded
+    // 5. Push merged problems to Supabase where needed
     const cloudIds = new Set(cloudProblems.map((p) => p.id));
-    const toUpload = mergedProblems.filter((p) => !cloudIds.has(p.id));
-    for (const problem of toUpload) {
-      await upsertProblem(userId, problem);
-    }
-
-    // Problems only in Supabase are already in mergedProblems (added during merge)
-    // Problems in both — localStorage wins, push local version to cloud
     const localIds = new Set(localProblems.map((p) => p.id));
-    const inBoth = mergedProblems.filter(
-      (p) => cloudIds.has(p.id) && localIds.has(p.id)
-    );
-    for (const problem of inBoth) {
-      await upsertProblem(userId, problem);
+    const cloudMap = new Map(cloudProblems.map((p) => [p.id, p]));
+
+    for (const problem of mergedProblems) {
+      if (!cloudIds.has(problem.id)) {
+        // Local-only — upload to cloud
+        await upsertProblem(userId, problem);
+      } else if (localIds.has(problem.id)) {
+        // Exists in both — only push if local version won (is the merged version)
+        const cloud = cloudMap.get(problem.id);
+        const cloudTime = cloud.updatedAt ? new Date(cloud.updatedAt).getTime() : 0;
+        const localTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
+        if (localTime >= cloudTime) {
+          await upsertProblem(userId, problem);
+        }
+        // If cloud won, it's already correct in Supabase — skip
+      }
+      // Cloud-only problems are already in Supabase — skip
     }
 
     return {
@@ -96,18 +100,27 @@ function mergeProblems(localProblems, cloudProblems) {
   const cloudMap = new Map(cloudProblems.map((p) => [p.id, p]));
   const merged = new Map();
 
-  // Start with all local problems (localStorage wins on conflict)
-  // TODO Sprint 5: use updatedAt for timestamp-based conflict resolution
+  // Add all local problems first
   for (const [id, problem] of localMap) {
     merged.set(id, problem);
   }
 
-  // Add problems only in cloud
+  // For cloud problems: add if local-only, or resolve conflict by updatedAt
   for (const [id, problem] of cloudMap) {
     if (!merged.has(id)) {
+      // Cloud-only — add it
       merged.set(id, problem);
+    } else {
+      // Exists in both — compare updatedAt timestamps
+      const local = localMap.get(id);
+      const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
+      const cloudTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
+
+      // If cloud is newer, it wins. If equal or local newer or either missing, local wins (fallback).
+      if (cloudTime > localTime) {
+        merged.set(id, problem);
+      }
     }
-    // If in both, localStorage version already in merged — skip
   }
 
   return Array.from(merged.values());
