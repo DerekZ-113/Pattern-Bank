@@ -151,6 +151,25 @@ export async function fetchPreferences(userId) {
   }
 }
 
+// ============================================================
+// FEEDBACK
+// ============================================================
+
+export async function submitFeedback(userId, message) {
+  if (!supabase) return { error: new Error("Supabase not configured") };
+  try {
+    const { error } = await supabase
+      .from("feedback")
+      .insert({
+        user_id: userId || null,
+        message: message.trim(),
+      });
+    return { error: error || null };
+  } catch (err) {
+    return { error: err };
+  }
+}
+
 export async function upsertPreferences(userId, prefs) {
   if (!supabase) return { data: null, error: null };
   try {

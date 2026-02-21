@@ -104,13 +104,13 @@ export default function PatternHeatmap({ problems, onPatternClick }) {
 
   // Legend color swatches
   const legendStops = [
-    "rgba(248,81,73,0.30)",
-    "rgba(240,136,62,0.25)",
-    "rgba(210,153,34,0.25)",
-    "rgba(210,153,34,0.30)",
-    "rgba(130,190,60,0.25)",
-    "rgba(63,185,80,0.28)",
-    "rgba(63,185,80,0.35)",
+    "rgba(235,75,70,0.70)",
+    "rgba(230,115,55,0.67)",
+    "rgba(218,150,45,0.64)",
+    "rgba(190,170,50,0.62)",
+    "rgba(140,180,55,0.64)",
+    "rgba(85,185,65,0.67)",
+    "rgba(55,185,80,0.72)",
   ];
 
   return (
