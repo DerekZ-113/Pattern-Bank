@@ -60,6 +60,14 @@ export default function DashboardView({
         streak={streak}
       />
 
+      {/* Pattern Confidence Heatmap */}
+      {problems.length > 0 && (
+        <div>
+          <SectionHeader title="Pattern Confidence" />
+          <PatternHeatmap problems={problems} onPatternClick={onPatternClick} />
+        </div>
+      )}
+
       {/* Today's Reviews section */}
       <div>
         <div className="mb-3 flex items-center gap-2">
@@ -120,13 +128,6 @@ export default function DashboardView({
         )}
       </div>
 
-      {/* Pattern Confidence Heatmap */}
-      {problems.length > 0 && (
-        <div>
-          <SectionHeader title="Pattern Confidence" />
-          <PatternHeatmap problems={problems} onPatternClick={onPatternClick} />
-        </div>
-      )}
     </div>
   );
 }

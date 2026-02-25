@@ -102,38 +102,10 @@ export default function PatternHeatmap({ problems, onPatternClick }) {
     });
   });
 
-  // Legend color swatches
-  const legendStops = [
-    "rgba(235,75,70,0.70)",
-    "rgba(230,115,55,0.67)",
-    "rgba(218,150,45,0.64)",
-    "rgba(190,170,50,0.62)",
-    "rgba(140,180,55,0.64)",
-    "rgba(85,185,65,0.67)",
-    "rgba(55,185,80,0.72)",
-  ];
-
   return (
     <div>
-      {/* Legend */}
-      <div className="mb-3 flex items-center gap-1">
-        <span className="mr-1 text-[11px] text-pb-text-dim">Weak</span>
-        {legendStops.map((c, i) => (
-          <div
-            key={i}
-            style={{
-              width: 18,
-              height: 10,
-              borderRadius: 2,
-              background: `linear-gradient(135deg, ${c}, rgba(13,17,23,0.3))`,
-            }}
-          />
-        ))}
-        <span className="ml-1 text-[11px] text-pb-text-dim">Strong</span>
-      </div>
-
-      {/* 3-column grid */}
-      <div className="grid grid-cols-3 gap-1.5 max-[480px]:grid-cols-2">
+      {/* 6-column grid on desktop, 3-column on narrow */}
+      <div className="grid grid-cols-3 gap-1.5 lg:grid-cols-6">
         {PATTERNS.map((pattern) => {
           const data = statsMap[pattern];
           const avgConf = data.count > 0 ? data.totalConf / data.count : 0;
