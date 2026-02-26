@@ -33,6 +33,7 @@ export default function AllProblemsView({ problems, onEdit, onDelete, initialSor
     { value: "dateAdded", label: "Date Added (Newest)" },
     { value: "confidence", label: "Confidence (Low → High)" },
     { value: "nextReview", label: "Next Review (Soonest)" },
+    { value: "leetcodeNumber", label: "Problem Index (Low → High)" },
   ];
 
   const filtered = problems.filter((p) => {
@@ -62,6 +63,12 @@ export default function AllProblemsView({ problems, onEdit, onDelete, initialSor
     if (sortBy === "confidence") return a.confidence - b.confidence;
     if (sortBy === "nextReview")
       return a.nextReviewDate > b.nextReviewDate ? 1 : -1;
+    if (sortBy === "leetcodeNumber") {
+      if (a.leetcodeNumber == null && b.leetcodeNumber == null) return 0;
+      if (a.leetcodeNumber == null) return 1;
+      if (b.leetcodeNumber == null) return -1;
+      return a.leetcodeNumber - b.leetcodeNumber;
+    }
     return 0;
   });
 
