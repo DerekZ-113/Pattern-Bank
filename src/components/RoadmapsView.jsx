@@ -26,10 +26,11 @@ export default function RoadmapsView({ userProblems, onBulkAdd }) {
                 </p>
                 <div className="flex flex-col gap-3">
                     {ROADMAPS.map(roadmap => {
-                        const totalProblems = roadmap.groups.reduce((acc, g) => acc + g.problems.length, 0);
-
                         const roadmapProblemIds = new Set(roadmap.groups.flatMap(g => g.problems));
-                        const readyCount = userProblems.filter(p => roadmapProblemIds.has(p.leetcodeNumber) && p.confidence >= 4).length;
+                        const totalProblems = roadmapProblemIds.size;
+                        const readyCount = userProblems.filter(
+                            p => roadmapProblemIds.has(p.leetcodeNumber) && p.confidence >= 4
+                        ).length;
 
                         const progressPercent = totalProblems > 0 ? Math.round((readyCount / totalProblems) * 100) : 0;
 
