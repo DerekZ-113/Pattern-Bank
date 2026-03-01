@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="css/popup.css" />
+    <script src="scripts/jquery-3.3.1.min.js"></script>
+
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"
+      rel="stylesheet"
+    />
+    <script src="scripts/semantic-2.4.1.min.js"></script>
+  </head>
+
+  <body>
+    <div class="ui grid container">
+      <div class="sixteen wide center aligned column">
+        <h1 id="title">Leet<span style="color: #ff6c0a">Hub</span> v2</h1>
+        <p id="caption">Sync your code from LeetCode to GitHub</p>
+        <br />
+        <!-- Authentication mode -->
+        <div id="auth_mode" hidden>
+          <p class="onboarding">
+            <br />
+            Authenticate with GitHub to use
+            <strong>Leet<span style="color: #ff6c0a">Hub</span></strong>
+          </p>
+          <button id="authenticate" class="ui secondary button">
+            <i class="icon github"></i>
+            Authenticate
+          </button>
+        </div>
+
+        <!-- Repo Hook mode -->
+        <div id="hook_mode" hidden>
+          <p class="onboarding">
+            <br />
+            Set up repository hook to use
+            <strong>Leet<span style="color: #ff6c0a">Hub</span></strong>
+          </p>
+          <a id="hook_URL" href="" target="blank" class="ui secondary button">
+            <i class="icon github"></i>
+            Set up Hook
+          </a>
+        </div>
+
+        <!-- PatternBank Connection Option -->
+        <div id="pb_mode" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+          <p class="ui small header" style="margin-bottom: 5px;">PatternBank Sync</p>
+          <div class="ui fluid action input">
+            <input type="text" id="pb_user_id" placeholder="Your PatternBank User ID...">
+            <button id="save_pb_id" class="ui button">Save</button>
+          </div>
+          <p id="pb_status_msg" style="color: green; font-size: 11px; display: none; margin-top: 4px;">Saved!</p>
+        </div>
+
+        <!-- Commit mode -->
+        <div id="commit_mode" hidden>
+          <p id="repo_url" class="ui small header"></p>
+          <p class="onboarding">Problems Solved: <span id="p_solved">0</span></p>
+          <p class="ui small header">
+            <span style="color: #5cb85c">Easy:</span>
+            <span id="p_solved_easy" style="color: #000000; opacity: 0.75">0 </span>
+            <span style="color: #f0ad4e">&ensp; &ensp; Medium:</span>
+            <span id="p_solved_medium" style="color: #000000; opacity: 0.75">0 </span>
+            <span style="color: #d9534f">&ensp; &ensp; Hard:</span>
+            <span id="p_solved_hard" style="color: #000000; opacity: 0.75">0 </span>
+          </p>
+          <button id="reset_stats" type="button">Reset all stats</button>
+          <div id="reset_confirmation" style="position:absolute; display:none; top:200px; left:50%; width:500px; margin-left:-250px; border:1px solid blue; padding:20px; background-color:white;">
+            <p>Are you sure you want to delete your stats?</p>
+            <p>
+                <button id="reset_yes" type="button">
+                    Yes
+                </button>
+                <button id="reset_no" type="button">
+                    No
+                </button>
+            </p>
+          </div>
+
+          <div class="ui small header">
+            Want more features?
+            <a
+              style="color: cadetblue !important"
+              target="_blank"
+              href="https://github.com/arunbhardwaj/LeetHub-2.0/labels/feature"
+              >Request a feature!</a
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Generate Socials -->
+      <div id="socials" class="sixteen wide column">
+        <a href="https://github.com/arunbhardwaj/LeetHub-2.0" target="_blank" aria-label="GitHub"
+          ><i class="ui black github icon"></i
+        ></a>
+        <a href="https://www.linkedin.com/in/bhardwaj-arun/" target="_blank" aria-label="LinkedIn"
+          ><i class="ui linkedin icon"></i
+        ></a>
+        <a href="mailto:devkaisel@gmail.com" target="_blank" aria-label="Email"
+          ><i class="ui red envelope icon"></i
+        ></a>
+        <a id="welcome_URL" href="" target="_blank" aria-label="Homepage"><i class="ui grey globe icon"></i></a>
+      </div>
+    </div>
+
+    <script src="scripts/oauth2.js"></script>
+    <script type="text/javascript" src="scripts/popup.js"></script>
+  </body>
+</html>
