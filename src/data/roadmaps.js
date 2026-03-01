@@ -14,13 +14,13 @@ export const ROADMAPS = [
       { name: "Tries", problems: [208, 211, 212] },
       { name: "Heap / Priority Queue", problems: [703, 1046, 973, 215, 621, 355, 295] },
       { name: "Backtracking", problems: [78, 39, 46, 90, 40, 79, 131, 51] },
-      { name: "Graphs", problems: [200, 695, 133, 994, 417, 130, 207, 210, 684, 127] },
+      { name: "Graphs", problems: [200, 695, 133, 994, 417, 130, 207, 210, 684, 127, 286, 1334, 1462, 1584, 2127, 269] },
       { name: "Advanced Graphs", problems: [332, 1584, 743, 787, 778, 269] },
       { name: "1-D Dynamic Programming", problems: [70, 746, 198, 213, 5, 647, 91, 322, 152, 139, 300, 416] },
-      { name: "2-D Dynamic Programming", problems: [62, 1143, 309, 518, 494, 97, 312, 10, 115] },
+      { name: "2-D Dynamic Programming", problems: [62, 1143, 309, 518, 494, 97, 312, 10, 115, 329, 72] },
       { name: "Greedy", problems: [53, 55, 45, 134, 846, 763, 678] },
       { name: "Intervals", problems: [57, 56, 435, 252, 253, 1851] },
-      { name: "Math & Geometry", problems: [48, 54, 73, 202, 66, 50, 2013] },
+      { name: "Math & Geometry", problems: [48, 54, 73, 202, 66, 50, 2013, 43, 9] },
       { name: "Bit Manipulation", problems: [136, 191, 338, 268, 190, 371, 7] }
     ]
   },
@@ -47,7 +47,7 @@ export const ROADMAPS = [
     description: "High-frequency Meta interview questions.",
     groups: [
       { name: "Arrays & Strings", problems: [1, 15, 560, 408, 314, 1249, 953, 680, 227, 42, 56] },
-      { name: "Trees & Graphs", problems: [1650, 236, 199, 1091, 314, 124, 543]}
+      { name: "Trees & Graphs", problems: [1650, 236, 199, 1091, 314, 124, 543] }
     ]
   },
   {
