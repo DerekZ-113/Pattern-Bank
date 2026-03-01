@@ -4,48 +4,47 @@ import { getProblemByNumber, buildLeetCodeUrl } from "../utils/leetcodeProblems"
 import DifficultyBadge from "./DifficultyBadge";
 
 export default function RoadmapDetail({
-    roadmap,
-    userProblems,
-    onBack,
-    onBulkAdd
+  roadmap,
+  userProblems,
+  onBack,
+  onBulkAdd
 }) {
-    const userProblemIds = useMemo(() => new Set(userProblems.map(p => p.leetcodeNumber).filter(Boolean)), [userProblems]);
+  const userProblemIds = useMemo(() => new Set(userProblems.map(p => p.leetcodeNumber).filter(Boolean)), [userProblems]);
 
-    // Find all problems in this roadmap that are NOT in the user's library
-    const missingProblems = useMemo(() => {
-        const missing = [];
-        roadmap.groups.forEach(group => {
-            group.problems.forEach(num => {
-                if (!userProblemIds.has(num)) {
-                    const lcProb = getProblemByNumber(num);
-                    if (lcProb) missing.push(lcProb);
-                }
-            });
-        });
-        return missing;
-    }, [roadmap, userProblemIds]);
-
-    const handleAddMissing = () => {
-        if (missingProblems.length > 0) {
-            onBulkAdd(missingProblems);
+  // Find all problems in this roadmap that are NOT in the user's library
+  const missingProblems = useMemo(() => {
+    const missing = [];
+    roadmap.groups.forEach(group => {
+      group.problems.forEach(num => {
+        if (!userProblemIds.has(num)) {
+          const lcProb = getProblemByNumber(num);
+          if (lcProb) missing.push(lcProb);
         }
-    };
+      });
+    });
+    return missing;
+  }, [roadmap, userProblemIds]);
 
-    const totalProblems = useMemo(() =>
-        roadmap.groups.reduce((acc, g) => acc + g.problems.length, 0)
-        , [roadmap]);
+  const handleAddMissing = () => {
+    if (missingProblems.length > 0) {
+      onBulkAdd(missingProblems);
+    }
+  };
 
-    const readyProblems = useMemo(() => {
-        const roadmapProblemIds = new Set(roadmap.groups.flatMap(g => g.problems));
-        return userProblems.filter(p => roadmapProblemIds.has(p.leetcodeNumber) && p.confidence >= 4).length;
-    }, [roadmap, userProblems]);
+  const totalProblems = useMemo(() =>
+    roadmap.groups.reduce((acc, g) => acc + g.problems.length, 0)
+    , [roadmap]);
 
-    const progressPercent = totalProblems > 0 ? Math.round((readyProblems / totalProblems) * 100) : 0;
-
-    // Count how many roadmap problems the user has imported
+  const readyProblems = useMemo(() => {
     const roadmapProblemIds = new Set(roadmap.groups.flatMap(g => g.problems));
-    const importedCount = userProblems.filter(p => roadmapProblemIds.has(p.leetcodeNumber)).length;
+    return userProblems.filter(p => roadmapProblemIds.has(p.leetcodeNumber) && p.confidence >= 4).length;
+  }, [roadmap, userProblems]);
 
+  const progressPercent = totalProblems > 0 ? Math.round((readyProblems / totalProblems) * 100) : 0;
+
+  // Count how many roadmap problems the user has imported
+  const roadmapProblemIds = new Set(roadmap.groups.flatMap(g => g.problems));
+  const importedCount = userProblems.filter(p => roadmapProblemIds.has(p.leetcodeNumber)).length;
     return (
         <div className="flex flex-col gap-6 p-5">
             <div className="flex items-center gap-3">
