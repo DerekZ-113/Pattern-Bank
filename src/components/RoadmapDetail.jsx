@@ -118,7 +118,7 @@ export default function RoadmapDetail({
                                                 <a
                                                     href={buildLeetCodeUrl(lcProb.s)}
                                                     target="_blank"
-                                                    rel="noreferrer"
+                                                    rel="noopener noreferrer"
                                                     className="line-clamp-1 text-[15px] font-medium text-pb-text transition-colors hover:text-pb-accent"
                                                 >
                                                     {lcProb.t}
