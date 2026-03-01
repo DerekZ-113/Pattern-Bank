@@ -41,7 +41,11 @@ function handleMessage(request, sender, sendResponse) {
   } else if (request.type === 'LEETCODE_SUBMISSION') {
     api.webNavigation.onHistoryStateUpdated.addListener(
       (e = function (details) {
-        const submissionId = details.url.match(/\/submissions\/(\d+)\//)[1];
+        const match = details.url && details.url.match(/\/submissions\/(\d+)(?:\/|$)/);
+        if (!match) {
+          return;
+        }
+        const submissionId = match[1];
         sendResponse({ submissionId });
         api.webNavigation.onHistoryStateUpdated.removeListener(e);
       }),
