@@ -52,6 +52,8 @@ export default function RoadmapDetail({
                 <button
                     onClick={onBack}
                     className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-pb-bg text-pb-text-dim transition-colors hover:bg-pb-surface hover:text-pb-text"
+                    aria-label="Go back"
+                    title="Go back"
                 >
                     &larr;
                 </button>
