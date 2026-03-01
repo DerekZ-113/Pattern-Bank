@@ -31,6 +31,7 @@ import NavBar from "./components/NavBar";
 import ProblemModal from "./components/ProblemModal";
 import DashboardView from "./components/DashboardView";
 import AllProblemsView from "./components/AllProblemsView";
+import RoadmapsView from "./components/RoadmapsView";
 import SettingsModal from "./components/SettingsModal";
 
 export default function App() {
@@ -417,6 +418,12 @@ export default function App() {
           onDelete={handleDeleteRequest}
           initialSort={problemsInitialSort}
           initialPatternFilter={problemsInitialPatternFilter}
+        />
+      )}
+      {activeTab === "roadmaps" && (
+        <RoadmapsView
+          userProblems={problems}
+          onBulkAdd={handleBulkAdd}
         />
       )}
 

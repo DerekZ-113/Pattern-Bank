@@ -2,6 +2,7 @@ export default function NavBar({ activeTab, onTabChange, onAddClick }) {
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: "◫" },
     { id: "problems", label: "All Problems", icon: "☰" },
+    { id: "roadmaps", label: "Roadmaps", icon: "◈" },
   ];
 
   return (
@@ -12,11 +13,10 @@ export default function NavBar({ activeTab, onTabChange, onAddClick }) {
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex max-w-[160px] flex-1 flex-col items-center gap-0.5 border-none bg-transparent pb-3 pt-2.5 text-[11px] transition-colors duration-150 ${
-              active
+            className={`flex max-w-[160px] flex-1 flex-col items-center gap-0.5 border-none bg-transparent pb-3 pt-2.5 text-[11px] transition-colors duration-150 ${active
                 ? "border-t-2 border-t-pb-accent font-semibold text-pb-accent"
                 : "border-t-2 border-t-transparent font-medium text-pb-text-dim"
-            } cursor-pointer`}
+              } cursor-pointer`}
           >
             <span className="flex h-7 items-center justify-center text-lg leading-none">{tab.icon}</span>
             {tab.label}
