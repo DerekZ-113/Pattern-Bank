@@ -30,7 +30,7 @@ export const ROADMAPS = [
     description: "The classic list of 75 essential Leetcode questions.",
     groups: [
       { name: "Arrays", problems: [1, 121, 217, 238, 53, 152, 153, 33, 15, 11] },
-      { name: "Binary", problems: [371, 191, 338, 268, 322, 383] }, /* Some added here */
+      { name: "Binary", problems: [371, 191, 338, 268, 383, 190] }, /* Some added here */
       { name: "Dynamic Programming", problems: [70, 322, 300, 1143, 139, 377, 198, 213, 91, 62, 55] },
       { name: "Graphs", problems: [133, 207, 417, 200, 128, 684] },
       { name: "Intervals", problems: [57, 56, 435, 252, 253] },
@@ -38,12 +38,12 @@ export const ROADMAPS = [
       { name: "Matrix", problems: [73, 54, 48, 79] },
       { name: "String", problems: [3, 424, 76, 242, 49, 20, 125, 5, 647] },
       { name: "Tree", problems: [104, 100, 226, 124, 102, 105, 98, 230, 235, 236, 297, 208, 211, 212] },
-      { name: "Heap", problems: [23, 347, 295] }
+      { name: "Heap", problems: [347, 295, 215, 269] }
     ]
   },
   {
-    id: "meta50",
-    title: "Meta Top 50",
+    id: "meta_highfreq",
+    title: "Meta Top High-Freq",
     description: "High-frequency Meta interview questions.",
     groups: [
       { name: "Arrays & Strings", problems: [1, 15, 560, 408, 314, 1249, 953, 680, 227, 42, 56] },
@@ -51,8 +51,8 @@ export const ROADMAPS = [
     ]
   },
   {
-    id: "google50",
-    title: "Google Top 50",
+    id: "google_highfreq",
+    title: "Google Top High-Freq",
     description: "High-frequency Google interview questions.",
     groups: [
       { name: "Trees & Graphs", problems: [226, 778, 127, 200] },
