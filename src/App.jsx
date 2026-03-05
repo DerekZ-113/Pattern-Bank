@@ -23,6 +23,7 @@ import {
   pushPreferencesToCloud,
 } from "./utils/sync";
 
+import posthog from "posthog-js";
 import useAuth from "./hooks/useAuth";
 import Toast from "./components/Toast";
 import ConfirmDialog from "./components/ConfirmDialog";
@@ -104,9 +105,11 @@ export default function App() {
         const updated = [...prev];
         updated[idx] = problem;
         showToast("Problem updated");
+        posthog.capture("problem_edited", { confidence_changed: !!confidenceChanged, platform: "web" });
         return updated;
       }
       showToast("Problem added");
+      posthog.capture("problem_added", { difficulty: problem.difficulty, pattern_count: problem.patterns.length, platform: "web" });
       return [...prev, problem];
     });
     if (confidenceChanged) logReviewToday();
@@ -128,6 +131,7 @@ export default function App() {
     if (deleteTarget) {
       setProblems((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       showToast(`Deleted ${deleteTarget.title}`);
+      posthog.capture("problem_deleted", { platform: "web" });
       if (user) deleteProblemFromCloud(deleteTarget.id);
       setDeleteTarget(null);
     }
@@ -158,6 +162,7 @@ export default function App() {
         prev.map((p) => (p.id === problemId ? { ...p, confidence: newConfidence, lastReviewed: today, nextReviewDate: addDays(today, intervalDays), updatedAt: now } : p))
       );
       logReviewToday();
+      posthog.capture("problem_reviewed", { old_confidence: original?.confidence, new_confidence: newConfidence, platform: "web" });
 
       if (user && updatedProblem) {
         pushProblemToCloud(user.id, updatedProblem);
@@ -194,6 +199,7 @@ export default function App() {
           : p
       )
     );
+    posthog.capture("problem_dismissed", { platform: "web" });
     if (user) {
       const problem = problems.find((p) => p.id === problemId);
       if (problem) pushProblemToCloud(user.id, { ...problem, nextReviewDate: tomorrow, updatedAt: now });
@@ -235,6 +241,7 @@ export default function App() {
             pushProblemToCloud(user.id, p);
           }
         }
+        posthog.capture("data_imported", { added, updated, platform: "web" });
         showToast(
           `Imported ${added} new, ${updated} updated`
         );
@@ -328,6 +335,7 @@ export default function App() {
     const msg = skipped > 0
       ? `Added ${newLc.length} problems (${skipped} already existed)`
       : `Added ${newLc.length} problems`;
+    posthog.capture("bulk_import", { count: newLc.length, had_pattern_map: !!patternMap, platform: "web" });
     showToast(msg);
   }, [problems, preferences.dailyReviewGoal, user, showToast]);
 

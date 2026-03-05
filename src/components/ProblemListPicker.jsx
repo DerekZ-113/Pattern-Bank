@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import posthog from "posthog-js";
 import { getListSummaries, getListProblems } from "../utils/problemLists";
 
 export default function ProblemListPicker({ existingIds, onBulkAdd }) {
@@ -19,6 +20,7 @@ export default function ProblemListPicker({ existingIds, onBulkAdd }) {
     const { lcProblems, patternMap } = getListProblems(selectedId, existingIds);
     if (lcProblems.length === 0) return;
 
+    posthog.capture("curated_list_imported", { list_name: selected.name, count: lcProblems.length, platform: "web" });
     onBulkAdd(lcProblems, patternMap);
     setSelectedId("");
   };

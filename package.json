@@ -13,6 +13,7 @@
     "@sentry/react": "^10.40.0",
     "@supabase/supabase-js": "^2.97.0",
     "@vercel/analytics": "^1.6.1",
+    "posthog-js": "^1.358.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

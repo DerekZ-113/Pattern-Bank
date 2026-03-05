@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
+import posthog from "posthog-js";
 import { Analytics } from "@vercel/analytics/react";
 import "./index.css";
 import AuthProvider from "./contexts/AuthContext.jsx";
@@ -12,6 +13,13 @@ Sentry.init({
   environment: window.location.hostname === "localhost" ? "development" : "production",
   enabled: window.location.hostname !== "localhost",
 });
+
+if (window.location.hostname !== "localhost") {
+  posthog.init("phc_HX5ZMKOZmhrY0dfWKQGlqF6IylCz0CJyOP1kgV5v2IC", {
+    api_host: "https://us.i.posthog.com",
+    autocapture: true,
+  });
+}
 
 const isPrivacy = window.location.pathname === "/privacy";
 

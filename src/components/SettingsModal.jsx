@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import posthog from "posthog-js";
 import BulkAddSection from "./BulkAddSection";
 import ProblemListPicker from "./ProblemListPicker";
 import { submitFeedback } from "../utils/supabaseData";
@@ -311,7 +312,7 @@ export default function SettingsModal({
               />
               {problemCount > 0 && (
                 <button
-                  onClick={() => { onExport(); onClose(); }}
+                  onClick={() => { posthog.capture("data_exported", { problem_count: problemCount, platform: "web" }); onExport(); onClose(); }}
                   className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-pb-border bg-transparent px-3.5 py-2.5 text-[13px] font-medium text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text"
                 >
                   <span className="text-sm">↓</span>
@@ -407,6 +408,7 @@ function FeedbackSection({ user }) {
       console.error("Feedback submit failed:", error);
       setTimeout(() => setStatus("idle"), 3000);
     } else {
+      posthog.capture("feedback_submitted", { platform: "web" });
       setStatus("sent");
       setMessage("");
       setTimeout(() => {
