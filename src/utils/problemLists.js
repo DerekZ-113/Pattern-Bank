@@ -46,6 +46,20 @@ const PATTERN_MAP = {
   202: "Hash Table",   // Happy Number
   371: "Hash Table",   // Sum of Two Integers
   2013: "Hash Table",  // Detect Squares
+  27: "Hash Table",     // Remove Element
+  122: "Hash Table",    // Best Time to Buy And Sell Stock II
+  168: "Hash Table",    // Excel Sheet Column Title
+  201: "Hash Table",    // Bitwise AND of Numbers Range
+  229: "Hash Table",    // Majority Element II
+  304: "Hash Table",    // Range Sum Query 2D Immutable
+  705: "Hash Table",    // Design HashSet
+  706: "Hash Table",    // Design HashMap
+  867: "Hash Table",    // Transpose Matrix
+  912: "Hash Table",    // Sort an Array
+  1071: "Hash Table",   // Greatest Common Divisor of Strings
+  1929: "Hash Table",   // Concatenation of Array
+  2807: "Hash Table",   // Insert Greatest Common Divisors in Linked List
+  3133: "Hash Table",   // Minimum Array End
 
   // Two Pointers
   11: "Two Pointers",  // Container With Most Water
@@ -58,6 +72,13 @@ const PATTERN_MAP = {
   283: "Two Pointers", // Move Zeroes
   287: "Two Pointers", // Find the Duplicate Number
   977: "Two Pointers", // Squares of a Sorted Array
+  18: "Two Pointers",   // 4Sum
+  26: "Two Pointers",   // Remove Duplicates From Sorted Array
+  88: "Two Pointers",   // Merge Sorted Array
+  344: "Two Pointers",  // Reverse String
+  680: "Two Pointers",  // Valid Palindrome II
+  881: "Two Pointers",  // Boats to Save People
+  1768: "Two Pointers", // Merge Strings Alternately
 
   // Sliding Window
   3: "Sliding Window",   // Longest Substring Without Repeating Characters
@@ -66,6 +87,8 @@ const PATTERN_MAP = {
   424: "Sliding Window", // Longest Repeating Character Replacement
   438: "Sliding Window", // Find All Anagrams in a String
   567: "Sliding Window", // Permutation in String
+  209: "Sliding Window", // Minimum Size Subarray Sum
+  219: "Sliding Window", // Contains Duplicate II
 
   // Binary Search
   4: "Binary Search",    // Median of Two Sorted Arrays
@@ -82,6 +105,12 @@ const PATTERN_MAP = {
   704: "Binary Search",  // Binary Search
   875: "Binary Search",  // Koko Eating Bananas
   981: "Binary Search",  // Time Based Key-Value Store
+  69: "Binary Search",    // Sqrt(x)
+  81: "Binary Search",    // Search In Rotated Sorted Array II
+  374: "Binary Search",   // Guess Number Higher Or Lower
+  410: "Binary Search",   // Split Array Largest Sum
+  1011: "Binary Search",  // Capacity to Ship Packages Within D Days
+  1095: "Binary Search",  // Find in Mountain Array
 
   // Sorting
   48: "Sorting",   // Rotate Image
@@ -95,6 +124,7 @@ const PATTERN_MAP = {
   435: "Sorting",  // Non-overlapping Intervals
   759: "Sorting",  // Employee Free Time
   1851: "Sorting", // Minimum Interval to Include Each Query
+  2402: "Sorting",  // Meeting Rooms III
 
   // Linked List
   2: "Linked List",    // Add Two Numbers
@@ -114,6 +144,9 @@ const PATTERN_MAP = {
   234: "Linked List",  // Palindrome Linked List
   328: "Linked List",  // Odd Even Linked List
   876: "Linked List",  // Middle of the Linked List
+  92: "Linked List",   // Reverse Linked List II
+  460: "Linked List",  // LFU Cache
+  622: "Linked List",  // Design Circular Queue
 
   // Stack
   20: "Stack",   // Valid Parentheses
@@ -129,6 +162,10 @@ const PATTERN_MAP = {
   844: "Stack",  // Backspace String Compare
   895: "Stack",  // Maximum Frequency Stack
   853: "Stack",  // Car Fleet
+  71: "Stack",    // Simplify Path
+  225: "Stack",   // Implement Stack Using Queues
+  682: "Stack",   // Baseball Game
+  901: "Stack",   // Online Stock Span
 
   // Tree
   94: "Tree",    // Binary Tree Inorder Traversal
@@ -152,6 +189,13 @@ const PATTERN_MAP = {
   543: "Tree",   // Diameter of Binary Tree
   572: "Tree",   // Subtree of Another Tree
   1448: "Tree",  // Count Good Nodes in Binary Tree
+  144: "Tree",   // Binary Tree Preorder Traversal
+  145: "Tree",   // Binary Tree Postorder Traversal
+  337: "Tree",   // House Robber III
+  427: "Tree",   // Construct Quad Tree
+  450: "Tree",   // Delete Node in a BST
+  701: "Tree",   // Insert into a Binary Search Tree
+  1325: "Tree",  // Delete Leaves With a Given Value
 
   // BFS
   102: "BFS",    // Binary Tree Level Order Traversal
@@ -171,6 +215,8 @@ const PATTERN_MAP = {
   1730: "BFS",   // Shortest Path to Get Food
   286: "BFS",    // Walls and Gates
   695: "BFS",    // Max Area of Island
+  463: "BFS",    // Island Perimeter
+  752: "BFS",    // Open The Lock
 
   // DFS
   329: "DFS",    // Longest Increasing Path in a Matrix
@@ -187,6 +233,11 @@ const PATTERN_MAP = {
   355: "Heap",   // Design Twitter
   703: "Heap",   // Kth Largest Element in a Stream
   1046: "Heap",  // Last Stone Weight
+  502: "Heap",    // IPO
+  767: "Heap",    // Reorganize String
+  1094: "Heap",   // Car Pooling
+  1405: "Heap",   // Longest Happy String
+  1834: "Heap",   // Single Threaded CPU
 
   // Greedy
   45: "Greedy",    // Jump Game II
@@ -197,6 +248,12 @@ const PATTERN_MAP = {
   678: "Greedy",   // Valid Parenthesis String
   846: "Greedy",   // Hand of Straights
   1899: "Greedy",  // Merge Triplets to Form Target Triplet
+  135: "Greedy",    // Candy
+  649: "Greedy",    // Dota2 Senate
+  860: "Greedy",    // Lemonade Change
+  918: "Greedy",    // Maximum Sum Circular Subarray
+  978: "Greedy",    // Longest Turbulent Subarray
+  1871: "Greedy",   // Jump Game VII
 
   // Backtracking
   17: "Backtracking",  // Letter Combinations of a Phone Number
@@ -210,6 +267,13 @@ const PATTERN_MAP = {
   131: "Backtracking", // Palindrome Partitioning
   40: "Backtracking",  // Combination Sum II
   90: "Backtracking",  // Subsets II
+  47: "Backtracking",    // Permutations II
+  52: "Backtracking",    // N Queens II
+  77: "Backtracking",    // Combinations
+  140: "Backtracking",   // Word Break II
+  473: "Backtracking",   // Matchsticks to Square
+  698: "Backtracking",   // Partition to K Equal Sum Subsets
+  1863: "Backtracking",  // Sum of All Subsets XOR Total
 
   // Graph
   133: "Graph",  // Clone Graph
@@ -227,6 +291,14 @@ const PATTERN_MAP = {
   743: "Graph",  // Network Delay Time
   778: "Graph",  // Swim in Rising Water
   1584: "Graph", // Min Cost to Connect All Points
+  399: "Graph",   // Evaluate Division
+  953: "Graph",   // Verifying An Alien Dictionary
+  997: "Graph",   // Find the Town Judge
+  1462: "Graph",  // Course Schedule IV
+  1489: "Graph",  // Find Critical and Pseudo Critical Edges in MST
+  1631: "Graph",  // Path with Minimum Effort
+  2392: "Graph",  // Build a Matrix With Conditions
+  2709: "Graph",  // Greatest Common Divisor Traversal
 
   // Union Find
   // (none exclusively in these lists)
@@ -236,6 +308,7 @@ const PATTERN_MAP = {
   211: "Trie",   // Design Add and Search Words
   212: "Trie",   // Word Search II
   588: "Trie",   // Design In-Memory File System
+  2707: "Trie",   // Extra Characters in a String
 
   // DP
   5: "DP",       // Longest Palindromic Substring
@@ -268,6 +341,13 @@ const PATTERN_MAP = {
   518: "DP",     // Coin Change II
   647: "DP",     // Palindromic Substrings
   746: "DP",     // Min Cost Climbing Stairs
+  63: "DP",      // Unique Paths II
+  343: "DP",     // Integer Break
+  877: "DP",     // Stone Game
+  1049: "DP",    // Last Stone Weight II
+  1137: "DP",    // N-th Tribonacci Number
+  1140: "DP",    // Stone Game II
+  1406: "DP",    // Stone Game III
 };
 
 // ============================================================
@@ -308,6 +388,32 @@ const PROBLEM_LISTS = [
       355, 371, 416, 417, 424, 435, 494, 518, 543, 567, 572, 621, 647,
       678, 684, 695, 703, 704, 739, 743, 746, 763, 778, 787, 846, 853,
       875, 973, 981, 994, 1046, 1143, 1448, 1584, 1851, 1899, 2013,
+    ],
+  },
+  {
+    id: "neetcode250",
+    name: "NeetCode 250",
+    nameZh: "NeetCode 250",
+    description: "NeetCode 150 + 100 more problems. Comprehensive interview prep across 18 patterns.",
+    source: "https://neetcode.io/practice/neetcode250",
+    numbers: [
+      1, 2, 3, 4, 5, 7, 10, 11, 13, 14, 15, 17, 18, 19, 20,
+      21, 22, 23, 25, 26, 27, 33, 35, 36, 39, 40, 41, 42, 43, 45,
+      46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 62, 63, 64,
+      66, 67, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 81, 84,
+      88, 90, 91, 92, 94, 97, 98, 100, 102, 104, 105, 110, 115, 121, 122,
+      124, 125, 127, 128, 130, 131, 133, 134, 135, 136, 138, 139, 140, 141, 143,
+      144, 145, 146, 150, 152, 153, 155, 167, 168, 169, 189, 190, 191, 198, 199,
+      200, 201, 202, 206, 207, 208, 209, 210, 211, 212, 213, 215, 217, 219, 225,
+      226, 229, 230, 232, 235, 238, 239, 242, 252, 253, 261, 268, 269, 271, 279,
+      286, 287, 295, 297, 300, 304, 309, 310, 312, 322, 323, 329, 332, 337, 338,
+      343, 344, 347, 355, 371, 374, 377, 394, 399, 410, 416, 417, 424, 427, 435,
+      450, 460, 463, 473, 494, 502, 518, 543, 560, 567, 572, 621, 622, 647, 649,
+      658, 678, 680, 682, 684, 695, 698, 701, 703, 704, 705, 706, 721, 735, 739,
+      743, 746, 752, 763, 767, 778, 787, 846, 853, 860, 867, 875, 877, 881, 895,
+      901, 912, 918, 953, 973, 978, 981, 994, 997, 1011, 1046, 1049, 1071, 1094, 1095,
+      1137, 1140, 1143, 1325, 1405, 1406, 1448, 1462, 1489, 1584, 1631, 1768, 1834, 1851, 1863,
+      1871, 1899, 1929, 2013, 2392, 2402, 2707, 2709, 2807, 3133,
     ],
   },
   {
