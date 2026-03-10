@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { PATTERNS, PATTERN_COLORS, DIFFICULTIES } from "../utils/constants";
 import { todayStr, addDays, generateId } from "../utils/dateHelpers";
 import { getIntervalDays } from "../utils/spacedRepetition";
@@ -28,6 +28,14 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
   });
   const [errors, setErrors] = useState({});
   const [attempted, setAttempted] = useState(false);
+  const notesRef = useRef(null);
+
+  const autoResize = () => {
+    const el = notesRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  };
 
   useEffect(() => {
     if (initialData) {
@@ -57,6 +65,10 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
     setErrors({});
     setAttempted(false);
   }, [initialData, isOpen]);
+
+  useEffect(() => {
+    autoResize();
+  }, [form.notes]);
 
   const validate = () => {
     const e = {};
@@ -380,7 +392,8 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
               Notes
             </label>
             <textarea
-              className={`${inputNormal} min-h-[80px] resize-y font-[inherit] leading-relaxed`}
+              ref={notesRef}
+              className={`${inputNormal} min-h-[80px] resize-none overflow-hidden font-[inherit] leading-relaxed`}
               placeholder="Key insight, approach, time/space complexity..."
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
