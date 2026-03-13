@@ -20,11 +20,19 @@ import {
   deleteProblemFromCloud,
   pushReviewToCloud,
   pushPreferencesToCloud,
+  deduplicateProblems,
 } from "../utils/sync";
 import posthog from "posthog-js";
 
 export default function useProblems({ user, showToast }) {
-  const [problems, setProblems] = useState(() => loadProblems());
+  const [problems, setProblems] = useState(() => {
+    const loaded = loadProblems();
+    const { problems: deduped, removedIds } = deduplicateProblems(loaded);
+    if (removedIds.length > 0) {
+      saveProblems(deduped);
+    }
+    return deduped;
+  });
   const [preferences, setPreferences] = useState(() => loadPreferences());
   const [syncStatus, setSyncStatus] = useState("idle");
 
@@ -63,6 +71,7 @@ export default function useProblems({ user, showToast }) {
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSaveProblem = useCallback((problem, confidenceChanged) => {
+    let rejected = false;
     setProblems((prev) => {
       const idx = prev.findIndex((p) => p.id === problem.id);
       if (idx >= 0) {
@@ -72,10 +81,19 @@ export default function useProblems({ user, showToast }) {
         posthog.capture("problem_edited", { confidence_changed: !!confidenceChanged, platform: "web" });
         return updated;
       }
+      if (problem.leetcodeNumber) {
+        const duplicate = prev.find((p) => p.leetcodeNumber === problem.leetcodeNumber);
+        if (duplicate) {
+          showToast(`Problem #${problem.leetcodeNumber} already in your library`);
+          rejected = true;
+          return prev;
+        }
+      }
       showToast("Problem added");
       posthog.capture("problem_added", { difficulty: problem.difficulty, pattern_count: problem.patterns.length, platform: "web" });
       return [...prev, problem];
     });
+    if (rejected) return;
     if (confidenceChanged) logReviewToday();
     if (user) pushProblemToCloud(user.id, problem);
   }, [showToast, user]);

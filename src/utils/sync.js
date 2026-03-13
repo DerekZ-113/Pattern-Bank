@@ -3,6 +3,7 @@ import {
   upsertProblem,
   upsertProblems,
   deleteProblem as deleteFromSupabase,
+  deleteProblems as deleteMultipleFromSupabase,
   fetchReviewLog,
   logReview,
   fetchPreferences,
@@ -35,8 +36,14 @@ export async function syncOnSignIn(userId, localProblems, localReviewLog, localP
     const cloudLog = cloudLogRes.data || [];
     const cloudPrefs = cloudPrefsRes.data;
 
-    // 2. Merge problems
-    const mergedProblems = mergeProblems(localProblems, cloudProblems);
+    // 2. Merge problems, then deduplicate by leetcodeNumber
+    const merged = mergeProblems(localProblems, cloudProblems);
+    const { problems: mergedProblems, removedIds: dupIds } = deduplicateProblems(merged);
+
+    // Delete duplicate rows from Supabase
+    if (dupIds.length > 0) {
+      await deleteMultipleFromSupabase(dupIds);
+    }
 
     // 3. Merge review log (deduplicate by date)
     const mergedLog = mergeReviewLog(localReviewLog, cloudLog);
@@ -127,6 +134,36 @@ function mergeProblems(localProblems, cloudProblems) {
   }
 
   return Array.from(merged.values());
+}
+
+export function deduplicateProblems(problems) {
+  const seen = new Map(); // leetcodeNumber → problem
+  const kept = [];
+  const removedIds = [];
+
+  for (const problem of problems) {
+    if (!problem.leetcodeNumber) {
+      kept.push(problem);
+      continue;
+    }
+    const existing = seen.get(problem.leetcodeNumber);
+    if (!existing) {
+      seen.set(problem.leetcodeNumber, problem);
+      kept.push(problem);
+    } else {
+      const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+      const currentTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
+      if (currentTime > existingTime) {
+        const idx = kept.indexOf(existing);
+        kept[idx] = problem;
+        seen.set(problem.leetcodeNumber, problem);
+        removedIds.push(existing.id);
+      } else {
+        removedIds.push(problem.id);
+      }
+    }
+  }
+  return { problems: kept, removedIds };
 }
 
 function mergeReviewLog(localLog, cloudLog) {

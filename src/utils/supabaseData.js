@@ -95,6 +95,19 @@ export async function upsertProblems(userId, problems) {
   }
 }
 
+export async function deleteProblems(problemIds) {
+  if (!supabase || !problemIds.length) return { error: null };
+  try {
+    const { error } = await supabase
+      .from("problems")
+      .delete()
+      .in("id", problemIds);
+    return { error: error || null };
+  } catch (err) {
+    return { error: err };
+  }
+}
+
 export async function deleteProblem(problemId) {
   if (!supabase) return { data: null, error: null };
   try {
