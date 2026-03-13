@@ -120,6 +120,7 @@ export default function App() {
           ui.closeModal();
         }}
         initialData={ui.editingProblem}
+        existingProblemNumbers={new Set(problems.map((p) => p.leetcodeNumber).filter(Boolean))}
       />
     </div>
   );

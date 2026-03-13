@@ -23,7 +23,7 @@ const EMPTY_FORM = {
   excludeFromReview: false,
 };
 
-export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
+export default function ProblemModal({ isOpen, onClose, onSave, initialData, existingProblemNumbers = new Set() }) {
   useEffect(() => {
     if (!isOpen) return;
     const handleEsc = (e) => e.key === "Escape" && onClose();
@@ -172,6 +172,13 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
                 })
               }
             />
+          )}
+
+          {!isEdit && form.leetcodeNumber && existingProblemNumbers.has(Number(form.leetcodeNumber)) && (
+            <div className="flex items-center gap-2 rounded-lg border border-pb-star/30 bg-pb-star/10 px-4 py-2.5 text-[13px] text-pb-star">
+              <span>⚠</span>
+              <span>This problem is already in your library.</span>
+            </div>
           )}
 
           {mode === "leetcode" && !form.title && attempted && (
