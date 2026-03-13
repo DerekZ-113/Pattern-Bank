@@ -20,6 +20,7 @@ const EMPTY_FORM = {
   patterns: [],
   confidence: 3,
   notes: "",
+  excludeFromReview: false,
 };
 
 export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
@@ -46,6 +47,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
         patterns: initialData.patterns || [],
         confidence: initialData.confidence || 3,
         notes: initialData.notes || "",
+        excludeFromReview: initialData.excludeFromReview || false,
       });
       setMode(initialData.leetcodeNumber ? "leetcode" : "custom");
     } else {
@@ -109,6 +111,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
       patterns: form.patterns,
       confidence: form.confidence,
       notes: form.notes.trim(),
+      excludeFromReview: form.excludeFromReview,
       dateAdded: initialData?.dateAdded || today,
       lastReviewed: confidenceChanged
         ? today
@@ -288,6 +291,32 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
             onChange={(notes) => updateForm({ notes })}
             inputClassName={inputNormal}
           />
+
+          {isEdit && (
+            <div className="flex items-center justify-between rounded-lg border border-pb-border bg-pb-bg px-4 py-3">
+              <div>
+                <div className="text-[13px] font-semibold text-pb-text-muted">
+                  Exclude from Review
+                </div>
+                <div className="text-[12px] text-pb-text-dim">
+                  Keep in library but skip daily reviews
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => updateForm({ excludeFromReview: !form.excludeFromReview })}
+                className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full border-none transition-colors duration-200 ${
+                  form.excludeFromReview ? "bg-pb-accent" : "bg-pb-border"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200 ${
+                    form.excludeFromReview ? "translate-x-5" : ""
+                  }`}
+                />
+              </button>
+            </div>
+          )}
 
           {isEdit && (
             <ReviewHistory problemId={initialData?.id} isOpen={isOpen} />

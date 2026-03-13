@@ -262,6 +262,7 @@ export default function useProblems({ user, showToast }) {
       patterns: patternMap?.get(lc.n) || [],
       confidence: 1,
       notes: "",
+      excludeFromReview: false,
       dateAdded: today,
       lastReviewed: null,
       nextReviewDate: addDays(today, Math.floor(i / dailyGoal)),
@@ -282,6 +283,21 @@ export default function useProblems({ user, showToast }) {
     showToast(msg);
   }, [problems, preferences.dailyReviewGoal, user, showToast]);
 
+  const handleToggleExclude = useCallback((problemId) => {
+    const now = new Date().toISOString();
+    setProblems((prev) =>
+      prev.map((p) =>
+        p.id === problemId
+          ? { ...p, excludeFromReview: !p.excludeFromReview, updatedAt: now }
+          : p
+      )
+    );
+    if (user) {
+      const problem = problems.find((p) => p.id === problemId);
+      if (problem) pushProblemToCloud(user.id, { ...problem, excludeFromReview: !problem.excludeFromReview, updatedAt: now });
+    }
+  }, [user, problems]);
+
   const handleClearAllData = useCallback(() => {
     setProblems([]);
     saveReviewLog([]);
@@ -301,6 +317,7 @@ export default function useProblems({ user, showToast }) {
     handleImport,
     handleUpdatePreferences,
     handleBulkAdd,
+    handleToggleExclude,
     handleClearAllData,
   };
 }

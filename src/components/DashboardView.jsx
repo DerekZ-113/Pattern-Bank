@@ -17,8 +17,8 @@ export default function DashboardView({
 }) {
   const today = todayStr();
 
-  // All problems past their review date
-  const allDueProblems = problems.filter((p) => p.nextReviewDate <= today);
+  // All problems past their review date (excluding excluded ones)
+  const allDueProblems = problems.filter((p) => p.nextReviewDate <= today && !p.excludeFromReview);
   const totalDueCount = allDueProblems.length;
 
   // How many the user has reviewed today

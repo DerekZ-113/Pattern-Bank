@@ -30,6 +30,7 @@ export default function App() {
     handleImport,
     handleUpdatePreferences,
     handleBulkAdd,
+    handleToggleExclude,
     handleClearAllData,
   } = useProblems({ user, showToast: ui.showToast });
 
@@ -100,6 +101,7 @@ export default function App() {
           problems={problems}
           onEdit={ui.handleEdit}
           onDelete={ui.handleDeleteRequest}
+          onToggleExclude={handleToggleExclude}
           initialSort={ui.problemsInitialSort}
           initialPatternFilter={ui.problemsInitialPatternFilter}
         />

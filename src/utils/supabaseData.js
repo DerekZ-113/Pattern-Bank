@@ -18,6 +18,7 @@ function toSnakeCase(problem) {
     last_reviewed: problem.lastReviewed || null,
     next_review_date: problem.nextReviewDate,
     updated_at: problem.updatedAt || new Date().toISOString(),
+    exclude_from_review: problem.excludeFromReview || false,
   };
 }
 
@@ -35,6 +36,7 @@ function toCamelCase(row) {
     lastReviewed: row.last_reviewed || null,
     nextReviewDate: row.next_review_date,
     updatedAt: row.updated_at || null,
+    excludeFromReview: row.exclude_from_review || false,
   };
 }
 

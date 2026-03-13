@@ -3,11 +3,12 @@ import { PATTERNS, DIFFICULTIES } from "../utils/constants";
 import ProblemCard from "./ProblemCard";
 import FilterSelect from "./FilterSelect";
 
-export default function AllProblemsView({ problems, onEdit, onDelete, initialSort = "dateAdded", initialPatternFilter = "all" }) {
+export default function AllProblemsView({ problems, onEdit, onDelete, onToggleExclude, initialSort = "dateAdded", initialPatternFilter = "all" }) {
   const [search, setSearch] = useState("");
   const [filterPattern, setFilterPattern] = useState(initialPatternFilter);
   const [filterDifficulty, setFilterDifficulty] = useState("all");
   const [filterConfidence, setFilterConfidence] = useState("all");
+  const [filterReviewStatus, setFilterReviewStatus] = useState("all");
   const [sortBy, setSortBy] = useState(initialSort);
 
   // Sync with parent-driven filter/sort changes
@@ -28,6 +29,11 @@ export default function AllProblemsView({ problems, onEdit, onDelete, initialSor
       value: String(c),
       label: `${"★".repeat(c)}${"☆".repeat(5 - c)} (${c})`,
     })),
+  ];
+  const reviewStatusOptions = [
+    { value: "all", label: "All Status" },
+    { value: "active", label: "Active" },
+    { value: "excluded", label: "Excluded" },
   ];
   const sortOptions = [
     { value: "dateAdded", label: "Date Added (Newest)" },
@@ -54,6 +60,8 @@ export default function AllProblemsView({ problems, onEdit, onDelete, initialSor
       p.confidence !== parseInt(filterConfidence, 10)
     )
       return false;
+    if (filterReviewStatus === "active" && p.excludeFromReview) return false;
+    if (filterReviewStatus === "excluded" && !p.excludeFromReview) return false;
     return true;
   });
 
@@ -76,13 +84,15 @@ export default function AllProblemsView({ problems, onEdit, onDelete, initialSor
     search ||
     filterPattern !== "all" ||
     filterDifficulty !== "all" ||
-    filterConfidence !== "all";
+    filterConfidence !== "all" ||
+    filterReviewStatus !== "all";
 
   const clearFilters = () => {
     setSearch("");
     setFilterPattern("all");
     setFilterDifficulty("all");
     setFilterConfidence("all");
+    setFilterReviewStatus("all");
   };
 
   // Empty state
@@ -135,6 +145,11 @@ export default function AllProblemsView({ problems, onEdit, onDelete, initialSor
           onChange={setFilterConfidence}
           options={confidenceOptions}
         />
+        <FilterSelect
+          value={filterReviewStatus}
+          onChange={setFilterReviewStatus}
+          options={reviewStatusOptions}
+        />
         <FilterSelect value={sortBy} onChange={setSortBy} options={sortOptions} />
       </div>
 
@@ -172,6 +187,7 @@ export default function AllProblemsView({ problems, onEdit, onDelete, initialSor
               problem={problem}
               onEdit={onEdit}
               onDelete={onDelete}
+              onToggleExclude={onToggleExclude}
             />
           ))}
         </div>
