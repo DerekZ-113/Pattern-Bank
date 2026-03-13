@@ -115,7 +115,7 @@ export default function App() {
         onClose={ui.closeModal}
         onSave={(problem, confidenceChanged) => {
           handleSaveProblem(problem, confidenceChanged);
-          ui.setEditingProblem(null);
+          ui.closeModal();
         }}
         initialData={ui.editingProblem}
       />

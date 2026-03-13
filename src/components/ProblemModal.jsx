@@ -119,7 +119,6 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
       updatedAt: new Date().toISOString(),
     };
     onSave(problem, confidenceChanged);
-    onClose();
   };
 
   if (!isOpen) return null;
