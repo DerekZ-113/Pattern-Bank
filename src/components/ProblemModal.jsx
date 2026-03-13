@@ -1,41 +1,40 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { PATTERNS, PATTERN_COLORS, DIFFICULTIES } from "../utils/constants";
+import { useState, useEffect, useCallback } from "react";
+import { DIFFICULTIES } from "../utils/constants";
 import { todayStr, addDays, generateId } from "../utils/dateHelpers";
 import { getIntervalDays } from "../utils/spacedRepetition";
 import StarRating from "./StarRating";
 import InlineError from "./InlineError";
 import LeetCodeSearch from "./LeetCodeSearch";
 import ReviewHistory from "./ReviewHistory";
+import ModeToggle from "./ModeToggle";
+import ProblemInfo from "./ProblemInfo";
+import PatternSelector from "./PatternSelector";
+import NotesEditor from "./NotesEditor";
+import ConfidenceInfo from "./ConfidenceInfo";
+
+const EMPTY_FORM = {
+  title: "",
+  leetcodeNumber: "",
+  url: "",
+  difficulty: "Medium",
+  patterns: [],
+  confidence: 3,
+  notes: "",
+};
 
 export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
-  // Escape key to close
   useEffect(() => {
     if (!isOpen) return;
     const handleEsc = (e) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
+
   const isEdit = !!initialData;
-  const [mode, setMode] = useState("leetcode"); // "leetcode" or "custom"
-  const [form, setForm] = useState({
-    title: "",
-    leetcodeNumber: "",
-    url: "",
-    difficulty: "Medium",
-    patterns: [],
-    confidence: 3,
-    notes: "",
-  });
+  const [mode, setMode] = useState("leetcode");
+  const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [attempted, setAttempted] = useState(false);
-  const notesRef = useRef(null);
-
-  const autoResize = () => {
-    const el = notesRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = el.scrollHeight + "px";
-  };
 
   useEffect(() => {
     if (initialData) {
@@ -48,29 +47,16 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
         confidence: initialData.confidence || 3,
         notes: initialData.notes || "",
       });
-      // If editing, figure out which mode makes sense
       setMode(initialData.leetcodeNumber ? "leetcode" : "custom");
     } else {
-      setForm({
-        title: "",
-        leetcodeNumber: "",
-        url: "",
-        difficulty: "Medium",
-        patterns: [],
-        confidence: 3,
-        notes: "",
-      });
+      setForm(EMPTY_FORM);
       setMode("leetcode");
     }
     setErrors({});
     setAttempted(false);
   }, [initialData, isOpen]);
 
-  useEffect(() => {
-    autoResize();
-  }, [form.notes]);
-
-  const validate = () => {
+  const validate = useCallback(() => {
     const e = {};
     if (!form.title.trim()) e.title = "Title is required";
     if (form.patterns.length === 0) e.patterns = "Select at least one pattern";
@@ -82,30 +68,21 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
       e.url = "URL must start with http";
     setErrors(e);
     return Object.keys(e).length === 0;
-  };
+  }, [form, mode]);
 
   useEffect(() => {
     if (attempted) validate();
-  }, [form, attempted]);
+  }, [form, attempted, validate]);
 
-  const togglePattern = (pattern) => {
-    setForm((prev) => ({
-      ...prev,
-      patterns: prev.patterns.includes(pattern)
-        ? prev.patterns.filter((p) => p !== pattern)
-        : [...prev.patterns, pattern],
-    }));
-  };
+  const updateForm = (updates) => setForm((prev) => ({ ...prev, ...updates }));
 
   const handleLeetCodeSelect = (selected) => {
-    setForm((prev) => ({
-      ...prev,
+    updateForm({
       title: selected.title,
       leetcodeNumber: selected.leetcodeNumber,
       url: selected.url,
       difficulty: selected.difficulty,
-    }));
-    // Clear title error if it was showing
+    });
     if (errors.title) {
       setErrors((prev) => {
         const next = { ...prev };
@@ -174,82 +151,31 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
 
         {/* Form */}
         <div className="flex flex-col gap-[18px] px-6 py-5">
-          {/* Mode Toggle — only show when adding new */}
-          {!isEdit && (
-            <div className="flex gap-1 rounded-lg bg-pb-bg p-1">
-              <button
-                onClick={() => setMode("leetcode")}
-                className={`flex-1 cursor-pointer rounded-md border-none py-1.5 text-[13px] font-semibold transition-all duration-150 ${
-                  mode === "leetcode"
-                    ? "bg-pb-accent-subtle text-pb-accent"
-                    : "bg-transparent text-pb-text-dim hover:text-pb-text-muted"
-                }`}
-              >
-                LeetCode
-              </button>
-              <button
-                onClick={() => setMode("custom")}
-                className={`flex-1 cursor-pointer rounded-md border-none py-1.5 text-[13px] font-semibold transition-all duration-150 ${
-                  mode === "custom"
-                    ? "bg-pb-accent-subtle text-pb-accent"
-                    : "bg-transparent text-pb-text-dim hover:text-pb-text-muted"
-                }`}
-              >
-                Custom
-              </button>
-            </div>
-          )}
+          {!isEdit && <ModeToggle mode={mode} onModeChange={setMode} />}
 
-          {/* LeetCode mode: search field */}
           {mode === "leetcode" && !isEdit && (
             <LeetCodeSearch onSelect={handleLeetCodeSelect} />
           )}
 
-          {/* Show selected problem info or manual fields */}
           {mode === "leetcode" && form.title && (
-            <div className="flex items-center gap-3 rounded-lg border border-pb-border bg-pb-bg px-3 py-2.5">
-              <span className="text-xs font-semibold text-pb-text-muted">
-                #{form.leetcodeNumber}
-              </span>
-              <span className="flex-1 text-sm font-medium text-pb-text">
-                {form.title}
-              </span>
-              <span
-                className={`text-[11px] font-semibold uppercase ${
-                  form.difficulty === "Easy"
-                    ? "text-pb-easy"
-                    : form.difficulty === "Medium"
-                      ? "text-pb-medium"
-                      : "text-pb-hard"
-                }`}
-              >
-                {form.difficulty}
-              </span>
-              {!isEdit && (
-                <button
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      title: "",
-                      leetcodeNumber: "",
-                      url: "",
-                      difficulty: "Medium",
-                    }))
-                  }
-                  className="cursor-pointer border-none bg-transparent text-xs text-pb-text-dim hover:text-pb-text-muted"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+            <ProblemInfo
+              form={form}
+              isEdit={isEdit}
+              onClear={() =>
+                updateForm({
+                  title: "",
+                  leetcodeNumber: "",
+                  url: "",
+                  difficulty: "Medium",
+                })
+              }
+            />
           )}
 
-          {/* Title required error for LeetCode mode */}
           {mode === "leetcode" && !form.title && attempted && (
             <InlineError message="Select a problem from the search above" />
           )}
 
-          {/* Custom mode: manual title, number, URL fields */}
           {(mode === "custom" || isEdit) && (
             <>
               <div>
@@ -260,7 +186,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
                   className={errors.title ? inputError : inputNormal}
                   placeholder="e.g. Two Sum"
                   value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  onChange={(e) => updateForm({ title: e.target.value })}
                 />
                 <InlineError message={errors.title} />
               </div>
@@ -276,7 +202,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
                     placeholder="1"
                     value={form.leetcodeNumber}
                     onChange={(e) =>
-                      setForm({ ...form, leetcodeNumber: e.target.value })
+                      updateForm({ leetcodeNumber: e.target.value })
                     }
                   />
                 </div>
@@ -288,13 +214,12 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
                     className={errors.url ? inputError : inputNormal}
                     placeholder="https://..."
                     value={form.url}
-                    onChange={(e) => setForm({ ...form, url: e.target.value })}
+                    onChange={(e) => updateForm({ url: e.target.value })}
                   />
                   <InlineError message={errors.url} />
                 </div>
               </div>
 
-              {/* Difficulty — only editable in custom mode for non-LC problems */}
               {mode === "custom" && !form.leetcodeNumber && (
                 <div>
                   <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
@@ -324,7 +249,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
                       return (
                         <button
                           key={d}
-                          onClick={() => setForm({ ...form, difficulty: d })}
+                          onClick={() => updateForm({ difficulty: d })}
                           className={`flex-1 cursor-pointer rounded-lg border py-2 text-[13px] font-semibold transition-all duration-150 ${
                             active
                               ? `${c.border} ${c.bg} ${c.text}`
@@ -341,66 +266,30 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData }) {
             </>
           )}
 
-          {/* Patterns — always shown */}
-          <div>
-            <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-              Patterns * (select at least one)
-            </label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {PATTERNS.map((p) => {
-                const active = form.patterns.includes(p);
-                const pc = PATTERN_COLORS[p];
-                return (
-                  <button
-                    key={p}
-                    onClick={() => togglePattern(p)}
-                    className="cursor-pointer rounded-md border px-2.5 py-1.5 text-left text-xs font-medium transition-all duration-150"
-                    style={{
-                      borderColor: active
-                        ? pc.text
-                        : errors.patterns
-                          ? "rgba(248,81,73,0.37)"
-                          : "#30363d",
-                      backgroundColor: active ? pc.bg : "transparent",
-                      color: active ? pc.text : "#8b949e",
-                    }}
-                  >
-                    {active ? "✓ " : ""}
-                    {p}
-                  </button>
-                );
-              })}
-            </div>
-            <InlineError message={errors.patterns} />
-          </div>
+          <PatternSelector
+            selected={form.patterns}
+            onChange={(patterns) => updateForm({ patterns })}
+            error={errors.patterns}
+          />
 
-          {/* Confidence — always shown */}
           <div>
-            <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+            <label className="mb-1.5 flex items-center text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
               Confidence
+              <span className="ml-[15px]"><ConfidenceInfo /></span>
             </label>
             <StarRating
               value={form.confidence}
-              onChange={(v) => setForm({ ...form, confidence: v })}
+              onChange={(v) => updateForm({ confidence: v })}
               size={24}
             />
           </div>
 
-          {/* Notes — always shown */}
-          <div>
-            <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-              Notes
-            </label>
-            <textarea
-              ref={notesRef}
-              className={`${inputNormal} min-h-[80px] resize-none overflow-hidden font-[inherit] leading-relaxed`}
-              placeholder="Key insight, approach, time/space complexity..."
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            />
-          </div>
+          <NotesEditor
+            value={form.notes}
+            onChange={(notes) => updateForm({ notes })}
+            inputClassName={inputNormal}
+          />
 
-          {/* Review History — only in edit mode */}
           {isEdit && (
             <ReviewHistory problemId={initialData?.id} isOpen={isOpen} />
           )}
