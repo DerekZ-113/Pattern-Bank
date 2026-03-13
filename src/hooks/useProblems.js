@@ -16,6 +16,7 @@ import {
 import {
   syncOnSignIn,
   pushProblemToCloud,
+  pushProblemsToCloud,
   deleteProblemFromCloud,
   pushReviewToCloud,
   pushPreferencesToCloud,
@@ -185,9 +186,7 @@ export default function useProblems({ user, showToast }) {
           saveReviewLog(data.reviewLog);
         }
         if (user) {
-          for (const p of data.problems) {
-            pushProblemToCloud(user.id, p);
-          }
+          pushProblemsToCloud(user.id, data.problems);
         }
         posthog.capture("data_imported", { added, updated, platform: "web" });
         showToast(`Imported ${added} new, ${updated} updated`);
@@ -254,9 +253,7 @@ export default function useProblems({ user, showToast }) {
     setProblems((prev) => [...prev, ...newProblems]);
 
     if (user) {
-      for (const p of newProblems) {
-        pushProblemToCloud(user.id, p);
-      }
+      pushProblemsToCloud(user.id, newProblems);
     }
 
     const skipped = lcProblems.length - newLc.length;

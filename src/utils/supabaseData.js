@@ -76,6 +76,25 @@ export async function upsertProblem(userId, problem) {
   }
 }
 
+export async function upsertProblems(userId, problems) {
+  if (!supabase || !problems.length) return { data: [], error: null };
+  try {
+    const rows = problems.map((p) => ({
+      ...toSnakeCase(p),
+      user_id: userId,
+      updated_at: new Date().toISOString(),
+    }));
+    const { data, error } = await supabase
+      .from("problems")
+      .upsert(rows, { onConflict: "id" })
+      .select();
+    if (error) return { data: null, error };
+    return { data: data.map(toCamelCase), error: null };
+  } catch (err) {
+    return { data: null, error: err };
+  }
+}
+
 export async function deleteProblem(problemId) {
   if (!supabase) return { data: null, error: null };
   try {

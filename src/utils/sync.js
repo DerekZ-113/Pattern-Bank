@@ -1,6 +1,7 @@
 import {
   fetchProblems,
   upsertProblem,
+  upsertProblems,
   deleteProblem as deleteFromSupabase,
   fetchReviewLog,
   logReview,
@@ -52,26 +53,28 @@ export async function syncOnSignIn(userId, localProblems, localReviewLog, localP
       await upsertPreferences(userId, localPreferences);
     }
 
-    // 5. Push merged problems to Supabase where needed
+    // 5. Push merged problems to Supabase where needed (batched)
     const cloudIds = new Set(cloudProblems.map((p) => p.id));
     const localIds = new Set(localProblems.map((p) => p.id));
     const cloudMap = new Map(cloudProblems.map((p) => [p.id, p]));
 
+    const problemsToPush = [];
     for (const problem of mergedProblems) {
       if (!cloudIds.has(problem.id)) {
         // Local-only — upload to cloud
-        await upsertProblem(userId, problem);
+        problemsToPush.push(problem);
       } else if (localIds.has(problem.id)) {
         // Exists in both — only push if local version won (is the merged version)
         const cloud = cloudMap.get(problem.id);
         const cloudTime = cloud.updatedAt ? new Date(cloud.updatedAt).getTime() : 0;
         const localTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
         if (localTime >= cloudTime) {
-          await upsertProblem(userId, problem);
+          problemsToPush.push(problem);
         }
-        // If cloud won, it's already correct in Supabase — skip
       }
-      // Cloud-only problems are already in Supabase — skip
+    }
+    if (problemsToPush.length > 0) {
+      await upsertProblems(userId, problemsToPush);
     }
 
     return {
@@ -153,6 +156,12 @@ function mergeReviewLog(localLog, cloudLog) {
 // ============================================================
 // Called after every local write when authenticated.
 // Errors are logged but never thrown — localStorage is the source of truth.
+
+export async function pushProblemsToCloud(userId, problems) {
+  if (!problems.length) return;
+  const { error } = await upsertProblems(userId, problems);
+  if (error) console.error("Cloud batch push failed:", error);
+}
 
 export async function pushProblemToCloud(userId, problem) {
   const { error } = await upsertProblem(userId, problem);
