@@ -81,7 +81,6 @@ export async function upsertProblem(userId: string, problem: Problem): Promise<{
     const row = {
       ...toSnakeCase(problem),
       user_id: userId,
-      updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase
       .from("problems")
@@ -101,7 +100,6 @@ export async function upsertProblems(userId: string, problems: Problem[]): Promi
     const rows = problems.map((p) => ({
       ...toSnakeCase(p),
       user_id: userId,
-      updated_at: new Date().toISOString(),
     }));
     const { data, error } = await supabase
       .from("problems")
