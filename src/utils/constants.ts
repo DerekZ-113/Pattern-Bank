@@ -1,3 +1,5 @@
+import type { PatternColor, Preferences } from "../types";
+
 export const PATTERNS = [
   "Two Pointers", "Hash Table", "Sliding Window",
   "Binary Search", "Sorting", "Linked List",
@@ -5,9 +7,9 @@ export const PATTERNS = [
   "BFS", "DFS", "Heap",
   "Greedy", "Backtracking", "Graph",
   "Union Find", "Trie", "DP",
-];
+] as const;
 
-export const PATTERN_COLORS = {
+export const PATTERN_COLORS: Record<string, PatternColor> = {
   "Two Pointers":       { text: "#7ee8c7", bg: "rgba(126,232,199,0.12)" },
   "Hash Table":         { text: "#e8a87e", bg: "rgba(232,168,126,0.12)" },
   "Sliding Window":     { text: "#7ecbe8", bg: "rgba(126,203,232,0.12)" },
@@ -28,12 +30,12 @@ export const PATTERN_COLORS = {
   "DP":                  { text: "#c57ee8", bg: "rgba(197,126,232,0.12)" },
 };
 
-export const DIFFICULTIES = ["Easy", "Medium", "Hard"];
+export const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
 
 export const STORAGE_KEY = "patternbank-problems";
 export const REVIEW_LOG_KEY = "patternbank-review-log";
 export const PREFERENCES_KEY = "patternbank-preferences";
 
-export const DEFAULT_PREFERENCES = {
+export const DEFAULT_PREFERENCES: Preferences = {
   dailyReviewGoal: 5,
 };

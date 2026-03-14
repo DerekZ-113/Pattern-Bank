@@ -2,11 +2,22 @@ import { todayStr, addDays, generateId } from "./dateHelpers";
 import { getIntervalDays } from "./spacedRepetition";
 import { countReviewedToday } from "./storage";
 import { buildLeetCodeUrl } from "./leetcodeProblems";
+import type { Problem, LeetCodeProblem, Confidence } from "../types";
+
+interface BuildNewProblemsOptions {
+  today: string;
+  now: string;
+  dailyGoal: number;
+  patternMap: Map<number, string[]> | null;
+}
 
 /**
  * Filter out LC problems that already exist in the user's library.
  */
-export function filterExistingProblems(lcProblems, existingProblems) {
+export function filterExistingProblems(
+  lcProblems: LeetCodeProblem[],
+  existingProblems: Problem[]
+): { newProblems: LeetCodeProblem[]; skippedCount: number } {
   const existingNums = new Set(
     existingProblems.map((p) => p.leetcodeNumber).filter(Boolean)
   );
@@ -17,20 +28,20 @@ export function filterExistingProblems(lcProblems, existingProblems) {
 /**
  * Round-robin interleave problems by difficulty (Easy, Medium, Hard).
  */
-export function interleaveByDifficulty(lcProblems) {
-  const buckets = { Easy: [], Medium: [], Hard: [] };
+export function interleaveByDifficulty(lcProblems: LeetCodeProblem[]): LeetCodeProblem[] {
+  const buckets: Record<string, LeetCodeProblem[]> = { Easy: [], Medium: [], Hard: [] };
   lcProblems.forEach((lc) => {
     const bucket = buckets[lc.d] || buckets.Medium;
     bucket.push(lc);
   });
-  const interleaved = [];
+  const interleaved: LeetCodeProblem[] = [];
   const keys = Object.keys(buckets).filter((k) => buckets[k].length > 0);
   let exhausted = false;
   while (!exhausted) {
     exhausted = true;
     for (const key of keys) {
       if (buckets[key].length > 0) {
-        interleaved.push(buckets[key].shift());
+        interleaved.push(buckets[key].shift()!);
         exhausted = false;
       }
     }
@@ -41,7 +52,10 @@ export function interleaveByDifficulty(lcProblems) {
 /**
  * Build full problem objects from LC problem data, distributing review dates.
  */
-export function buildNewProblems(lcProblems, { today, now, dailyGoal, patternMap }) {
+export function buildNewProblems(
+  lcProblems: LeetCodeProblem[],
+  { today, now, dailyGoal, patternMap }: BuildNewProblemsOptions
+): Problem[] {
   return lcProblems.map((lc, i) => ({
     id: generateId(),
     title: lc.t,
@@ -49,7 +63,7 @@ export function buildNewProblems(lcProblems, { today, now, dailyGoal, patternMap
     url: buildLeetCodeUrl(lc.s),
     difficulty: lc.d,
     patterns: patternMap?.get(lc.n) || [],
-    confidence: 1,
+    confidence: 1 as Confidence,
     notes: "",
     excludeFromReview: false,
     dateAdded: today,
@@ -62,7 +76,10 @@ export function buildNewProblems(lcProblems, { today, now, dailyGoal, patternMap
 /**
  * Merge imported problems with existing ones by id.
  */
-export function mergeImportedProblems(existingProblems, importedProblems) {
+export function mergeImportedProblems(
+  existingProblems: Problem[],
+  importedProblems: Problem[]
+): { mergedProblems: Problem[]; addedCount: number; updatedCount: number } {
   const existing = new Map(existingProblems.map((p) => [p.id, p]));
   let added = 0;
   let updated = 0;
@@ -85,7 +102,10 @@ export function mergeImportedProblems(existingProblems, importedProblems) {
 /**
  * Compute review progress toward the daily goal.
  */
-export function computeReviewProgress(problems, dailyReviewGoal) {
+export function computeReviewProgress(
+  problems: Problem[],
+  dailyReviewGoal: number
+): { currentReviewed: number; totalDue: number; effectiveGoal: number } {
   const today = todayStr();
   const currentReviewed = countReviewedToday(problems);
   const totalDue = problems.filter((p) => p.nextReviewDate <= today).length;
@@ -96,7 +116,7 @@ export function computeReviewProgress(problems, dailyReviewGoal) {
 /**
  * Build an updated problem after a review with new confidence and dates.
  */
-export function buildReviewedProblem(problem, newConfidence) {
+export function buildReviewedProblem(problem: Problem, newConfidence: Confidence): Problem {
   const today = todayStr();
   const intervalDays = getIntervalDays(newConfidence);
   return {

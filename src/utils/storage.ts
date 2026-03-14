@@ -1,16 +1,17 @@
 import { STORAGE_KEY, REVIEW_LOG_KEY, PREFERENCES_KEY, DEFAULT_PREFERENCES } from "./constants";
 import { todayStr, addDays } from "./dateHelpers";
+import type { Problem, ReviewLogEntry, Preferences, BackupData } from "../types";
 
-export function loadProblems() {
+export function loadProblems(): Problem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return raw ? (JSON.parse(raw) as Problem[]) : [];
   } catch {
     return [];
   }
 }
 
-export function saveProblems(problems) {
+export function saveProblems(problems: Problem[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(problems));
   } catch (e) {
@@ -18,16 +19,16 @@ export function saveProblems(problems) {
   }
 }
 
-export function loadReviewLog() {
+export function loadReviewLog(): ReviewLogEntry[] {
   try {
     const raw = localStorage.getItem(REVIEW_LOG_KEY);
-    return raw ? JSON.parse(raw) : [];
+    return raw ? (JSON.parse(raw) as ReviewLogEntry[]) : [];
   } catch {
     return [];
   }
 }
 
-export function saveReviewLog(log) {
+export function saveReviewLog(log: ReviewLogEntry[]): void {
   try {
     localStorage.setItem(REVIEW_LOG_KEY, JSON.stringify(log));
   } catch (e) {
@@ -35,7 +36,7 @@ export function saveReviewLog(log) {
   }
 }
 
-export function logReviewToday() {
+export function logReviewToday(): void {
   const log = loadReviewLog();
   const today = todayStr();
   if (!log.some((entry) => entry.date === today)) {
@@ -44,7 +45,7 @@ export function logReviewToday() {
   }
 }
 
-export function calculateStreak() {
+export function calculateStreak(): number {
   const log = loadReviewLog();
   if (log.length === 0) return 0;
   const dates = new Set(log.map((e) => e.date));
@@ -61,23 +62,23 @@ export function calculateStreak() {
   return streak;
 }
 
-export function countReviewedToday(problems) {
+export function countReviewedToday(problems: Problem[]): number {
   const today = todayStr();
   return problems.filter((p) => p.lastReviewed === today).length;
 }
 
-export function loadPreferences() {
+export function loadPreferences(): Preferences {
   try {
     const raw = localStorage.getItem(PREFERENCES_KEY);
     if (!raw) return { ...DEFAULT_PREFERENCES };
     // Merge with defaults so new preference keys get picked up
-    return { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) };
+    return { ...DEFAULT_PREFERENCES, ...(JSON.parse(raw) as Partial<Preferences>) };
   } catch {
     return { ...DEFAULT_PREFERENCES };
   }
 }
 
-export function savePreferences(prefs) {
+export function savePreferences(prefs: Preferences): void {
   try {
     localStorage.setItem(PREFERENCES_KEY, JSON.stringify(prefs));
   } catch (e) {
@@ -85,12 +86,12 @@ export function savePreferences(prefs) {
   }
 }
 
-export function importData(file) {
+export function importData(file: File): Promise<BackupData> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target.result);
+        const data = JSON.parse((e.target as FileReader).result as string) as BackupData;
         // Validate structure
         if (!data.problems || !Array.isArray(data.problems)) {
           reject(new Error("Invalid backup file: missing problems array"));
@@ -114,8 +115,8 @@ export function importData(file) {
   });
 }
 
-export function exportData() {
-  const data = {
+export function exportData(): void {
+  const data: BackupData = {
     exportedAt: new Date().toISOString(),
     problems: loadProblems(),
     reviewLog: loadReviewLog(),

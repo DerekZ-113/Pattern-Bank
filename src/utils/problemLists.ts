@@ -3,6 +3,7 @@
 // Pattern assignments use PatternBank's 18 patterns from constants.js
 
 import { getProblemByNumber } from "./leetcodeProblems";
+import type { LeetCodeProblem } from "../types";
 
 // ============================================================
 // SHARED PATTERN MAP
@@ -10,7 +11,7 @@ import { getProblemByNumber } from "./leetcodeProblems";
 // One source of truth — shared across all lists
 // ============================================================
 
-const PATTERN_MAP = {
+const PATTERN_MAP: Record<number, string> = {
   // Hash Table
   1: "Hash Table",     // Two Sum
   7: "Hash Table",     // Reverse Integer
@@ -354,7 +355,16 @@ const PATTERN_MAP = {
 // LIST DEFINITIONS
 // ============================================================
 
-const PROBLEM_LISTS = [
+interface ProblemList {
+  id: string;
+  name: string;
+  nameZh: string;
+  description: string;
+  source: string;
+  numbers: number[];
+}
+
+const PROBLEM_LISTS: ProblemList[] = [
   {
     id: "neetcode75",
     name: "NeetCode 75",
@@ -475,12 +485,20 @@ const PROBLEM_LISTS = [
 // PUBLIC API
 // ============================================================
 
+interface ListSummary {
+  id: string;
+  name: string;
+  nameZh: string;
+  description: string;
+  total: number;
+  existing: number;
+  newCount: number;
+}
+
 /**
  * Get all available lists with computed counts.
- * @param {Set<number>} existingNumbers - LC numbers already in user's library
- * @returns {Array<{ id, name, nameZh, description, total, existing, newCount }>}
  */
-export function getListSummaries(existingNumbers) {
+export function getListSummaries(existingNumbers: Set<number>): ListSummary[] {
   return PROBLEM_LISTS.map((list) => {
     const validNumbers = list.numbers.filter((n) => getProblemByNumber(n));
     const existing = validNumbers.filter((n) => existingNumbers.has(n)).length;
@@ -500,16 +518,16 @@ export function getListSummaries(existingNumbers) {
  * Get the problems to add for a specific list.
  * Returns only problems NOT already in the user's library.
  * Each problem gets its pattern from PATTERN_MAP.
- * @param {string} listId
- * @param {Set<number>} existingNumbers - LC numbers already in user's library
- * @returns {{ lcProblems: Array, patternMap: Map<number, string[]> }}
  */
-export function getListProblems(listId, existingNumbers) {
+export function getListProblems(
+  listId: string,
+  existingNumbers: Set<number>
+): { lcProblems: LeetCodeProblem[]; patternMap: Map<number, string[]> } {
   const list = PROBLEM_LISTS.find((l) => l.id === listId);
   if (!list) return { lcProblems: [], patternMap: new Map() };
 
-  const lcProblems = [];
-  const patternMap = new Map();
+  const lcProblems: LeetCodeProblem[] = [];
+  const patternMap = new Map<number, string[]>();
 
   for (const num of list.numbers) {
     // Skip if already in library

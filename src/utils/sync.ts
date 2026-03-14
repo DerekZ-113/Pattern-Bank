@@ -9,6 +9,14 @@ import {
   fetchPreferences,
   upsertPreferences,
 } from "./supabaseData";
+import type { Problem, ReviewLogEntry, Preferences, Confidence } from "../types";
+
+interface SyncResult {
+  problems: Problem[];
+  reviewLog: ReviewLogEntry[];
+  preferences: Preferences;
+  error: unknown;
+}
 
 // ============================================================
 // SYNC ON SIGN-IN
@@ -17,7 +25,12 @@ import {
 // Pulls from Supabase, merges with localStorage, pushes merged result to both.
 // Returns { problems, reviewLog, preferences } — the merged data.
 
-export async function syncOnSignIn(userId, localProblems, localReviewLog, localPreferences) {
+export async function syncOnSignIn(
+  userId: string,
+  localProblems: Problem[],
+  localReviewLog: ReviewLogEntry[],
+  localPreferences: Preferences
+): Promise<SyncResult> {
   try {
     // 1. Fetch everything from Supabase in parallel
     const [cloudProblemsRes, cloudLogRes, cloudPrefsRes] = await Promise.all([
@@ -51,7 +64,7 @@ export async function syncOnSignIn(userId, localProblems, localReviewLog, localP
     // 4. Merge preferences
     // If Supabase has preferences, use those (cloud state).
     // If not (first sign-in), push localStorage preferences to Supabase.
-    let mergedPreferences;
+    let mergedPreferences: Preferences;
     if (cloudPrefs) {
       mergedPreferences = cloudPrefs;
     } else {
@@ -65,14 +78,14 @@ export async function syncOnSignIn(userId, localProblems, localReviewLog, localP
     const localIds = new Set(localProblems.map((p) => p.id));
     const cloudMap = new Map(cloudProblems.map((p) => [p.id, p]));
 
-    const problemsToPush = [];
+    const problemsToPush: Problem[] = [];
     for (const problem of mergedProblems) {
       if (!cloudIds.has(problem.id)) {
         // Local-only — upload to cloud
         problemsToPush.push(problem);
       } else if (localIds.has(problem.id)) {
         // Exists in both — only push if local version won (is the merged version)
-        const cloud = cloudMap.get(problem.id);
+        const cloud = cloudMap.get(problem.id)!;
         const cloudTime = cloud.updatedAt ? new Date(cloud.updatedAt).getTime() : 0;
         const localTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
         if (localTime >= cloudTime) {
@@ -105,10 +118,10 @@ export async function syncOnSignIn(userId, localProblems, localReviewLog, localP
 // MERGE HELPERS
 // ============================================================
 
-function mergeProblems(localProblems, cloudProblems) {
+function mergeProblems(localProblems: Problem[], cloudProblems: Problem[]): Problem[] {
   const localMap = new Map(localProblems.map((p) => [p.id, p]));
   const cloudMap = new Map(cloudProblems.map((p) => [p.id, p]));
-  const merged = new Map();
+  const merged = new Map<string, Problem>();
 
   // Add all local problems first
   for (const [id, problem] of localMap) {
@@ -122,7 +135,7 @@ function mergeProblems(localProblems, cloudProblems) {
       merged.set(id, problem);
     } else {
       // Exists in both — compare updatedAt timestamps
-      const local = localMap.get(id);
+      const local = localMap.get(id)!;
       const localTime = local.updatedAt ? new Date(local.updatedAt).getTime() : 0;
       const cloudTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
 
@@ -136,10 +149,10 @@ function mergeProblems(localProblems, cloudProblems) {
   return Array.from(merged.values());
 }
 
-export function deduplicateProblems(problems) {
-  const seen = new Map(); // leetcodeNumber → problem
-  const kept = [];
-  const removedIds = [];
+export function deduplicateProblems(problems: Problem[]): { problems: Problem[]; removedIds: string[] } {
+  const seen = new Map<number, Problem>(); // leetcodeNumber → problem
+  const kept: Problem[] = [];
+  const removedIds: string[] = [];
 
   for (const problem of problems) {
     if (!problem.leetcodeNumber) {
@@ -166,10 +179,10 @@ export function deduplicateProblems(problems) {
   return { problems: kept, removedIds };
 }
 
-function mergeReviewLog(localLog, cloudLog) {
+function mergeReviewLog(localLog: ReviewLogEntry[], cloudLog: ReviewLogEntry[]): ReviewLogEntry[] {
   // Deduplicate by date — we only need one entry per date for streak calculation
-  const dates = new Set();
-  const merged = [];
+  const dates = new Set<string>();
+  const merged: ReviewLogEntry[] = [];
 
   for (const entry of localLog) {
     if (!dates.has(entry.date)) {
@@ -194,28 +207,33 @@ function mergeReviewLog(localLog, cloudLog) {
 // Called after every local write when authenticated.
 // Errors are logged but never thrown — localStorage is the source of truth.
 
-export async function pushProblemsToCloud(userId, problems) {
+export async function pushProblemsToCloud(userId: string, problems: Problem[]): Promise<void> {
   if (!problems.length) return;
   const { error } = await upsertProblems(userId, problems);
   if (error) console.error("Cloud batch push failed:", error);
 }
 
-export async function pushProblemToCloud(userId, problem) {
+export async function pushProblemToCloud(userId: string, problem: Problem): Promise<void> {
   const { error } = await upsertProblem(userId, problem);
   if (error) console.error("Cloud push failed (problem):", error);
 }
 
-export async function deleteProblemFromCloud(problemId) {
+export async function deleteProblemFromCloud(problemId: string): Promise<void> {
   const { error } = await deleteFromSupabase(problemId);
   if (error) console.error("Cloud push failed (delete):", error);
 }
 
-export async function pushReviewToCloud(userId, problemId, oldConfidence, newConfidence) {
+export async function pushReviewToCloud(
+  userId: string,
+  problemId: string,
+  oldConfidence: Confidence,
+  newConfidence: Confidence
+): Promise<void> {
   const { error } = await logReview(userId, problemId, oldConfidence, newConfidence);
   if (error) console.error("Cloud push failed (review):", error);
 }
 
-export async function pushPreferencesToCloud(userId, prefs) {
+export async function pushPreferencesToCloud(userId: string, prefs: Preferences): Promise<void> {
   const { error } = await upsertPreferences(userId, prefs);
   if (error) console.error("Cloud push failed (preferences):", error);
 }
