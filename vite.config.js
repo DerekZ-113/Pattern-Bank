@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   test: {
     globals: true,
-    include: ["tests/**/*.test.js"],
+    include: ["tests/**/*.test.{js,ts}"],
   },
 });
