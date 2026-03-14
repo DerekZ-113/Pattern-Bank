@@ -1,30 +1,35 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { todayStr, addDays, generateId } from "../utils/dateHelpers";
+import { useState, useEffect, useCallback } from "react";
+import { todayStr, addDays } from "../utils/dateHelpers";
 import { getIntervalDays } from "../utils/spacedRepetition";
-import { buildLeetCodeUrl } from "../utils/leetcodeProblems";
 import {
   loadProblems,
   saveProblems,
-  loadPreferences,
-  savePreferences,
-  loadReviewLog,
   saveReviewLog,
   logReviewToday,
-  countReviewedToday,
   importData,
 } from "../utils/storage";
+import usePreferences from "./usePreferences";
+import useCloudSync from "./useCloudSync";
 import {
-  syncOnSignIn,
+  filterExistingProblems,
+  interleaveByDifficulty,
+  buildNewProblems,
+  mergeImportedProblems,
+  computeReviewProgress,
+  buildReviewedProblem,
+} from "../utils/problemTransforms";
+import {
   pushProblemToCloud,
   pushProblemsToCloud,
   deleteProblemFromCloud,
   pushReviewToCloud,
-  pushPreferencesToCloud,
   deduplicateProblems,
 } from "../utils/sync";
 import posthog from "posthog-js";
 
 export default function useProblems({ user, showToast }) {
+  const { preferences, handleUpdatePreferences, replacePreferences } = usePreferences({ user });
+
   const [problems, setProblems] = useState(() => {
     const loaded = loadProblems();
     const { problems: deduped, removedIds } = deduplicateProblems(loaded);
@@ -33,42 +38,20 @@ export default function useProblems({ user, showToast }) {
     }
     return deduped;
   });
-  const [preferences, setPreferences] = useState(() => loadPreferences());
-  const [syncStatus, setSyncStatus] = useState("idle");
-
   // Persist to localStorage on change
   useEffect(() => { saveProblems(problems); }, [problems]);
-  useEffect(() => { savePreferences(preferences); }, [preferences]);
 
   // Sync with Supabase on sign-in
-  const hasSyncedRef = useRef(false);
-  useEffect(() => {
-    if (!user) {
-      hasSyncedRef.current = false;
-      setSyncStatus("idle");
-      return;
-    }
-    if (hasSyncedRef.current) return;
-    hasSyncedRef.current = true;
-    setSyncStatus("syncing");
+  const handleSyncComplete = useCallback((result) => {
+    setProblems(result.problems);
+    saveReviewLog(result.reviewLog);
+    replacePreferences(result.preferences);
+  }, [replacePreferences]);
 
-    syncOnSignIn(user.id, problems, loadReviewLog(), preferences).then(
-      (result) => {
-        if (result.error) {
-          setSyncStatus("error");
-          showToast("Sync failed — working offline");
-          return;
-        }
-        setProblems(result.problems);
-        saveReviewLog(result.reviewLog);
-        setPreferences(result.preferences);
-        setSyncStatus("synced");
-        if (result.problems.length > 0) {
-          showToast("Data synced");
-        }
-      }
-    );
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { syncStatus } = useCloudSync({
+    user, problems, preferences, showToast,
+    onSyncComplete: handleSyncComplete,
+  });
 
   const handleSaveProblem = useCallback((problem, confidenceChanged) => {
     let rejected = false;
@@ -109,25 +92,14 @@ export default function useProblems({ user, showToast }) {
 
   const handleReview = useCallback(
     (problemId, newConfidence) => {
-      const today = todayStr();
-      const intervalDays = getIntervalDays(newConfidence);
-
-      const currentReviewed = countReviewedToday(problems);
-      const totalDue = problems.filter((p) => p.nextReviewDate <= today).length;
-      const effectiveGoal = Math.min(
-        preferences.dailyReviewGoal,
-        totalDue + currentReviewed
-      );
+      const { currentReviewed, effectiveGoal } = computeReviewProgress(problems, preferences.dailyReviewGoal);
       const newReviewedCount = currentReviewed + 1;
 
       const original = problems.find((p) => p.id === problemId);
-      const now = new Date().toISOString();
-      const updatedProblem = original
-        ? { ...original, confidence: newConfidence, lastReviewed: today, nextReviewDate: addDays(today, intervalDays), updatedAt: now }
-        : null;
+      const updatedProblem = original ? buildReviewedProblem(original, newConfidence) : null;
 
       setProblems((prev) =>
-        prev.map((p) => (p.id === problemId ? { ...p, confidence: newConfidence, lastReviewed: today, nextReviewDate: addDays(today, intervalDays), updatedAt: now } : p))
+        prev.map((p) => (p.id === problemId ? buildReviewedProblem(p, newConfidence) : p))
       );
       logReviewToday();
       posthog.capture("problem_reviewed", { old_confidence: original?.confidence, new_confidence: newConfidence, platform: "web" });
@@ -137,6 +109,7 @@ export default function useProblems({ user, showToast }) {
         pushReviewToCloud(user.id, problemId, original.confidence, newConfidence);
       }
 
+      const intervalDays = getIntervalDays(newConfidence);
       const progress = `${newReviewedCount} of ${effectiveGoal} done`;
       const interval = `Next review in ${intervalDays} day${intervalDays !== 1 ? "s" : ""}`;
       showToast(`${progress} · ${interval}`);
@@ -186,19 +159,7 @@ export default function useProblems({ user, showToast }) {
     async (file) => {
       try {
         const data = await importData(file);
-        const existing = new Map(problems.map((p) => [p.id, p]));
-        let added = 0;
-        let updated = 0;
-        data.problems.forEach((p) => {
-          if (existing.has(p.id)) {
-            existing.set(p.id, p);
-            updated++;
-          } else {
-            existing.set(p.id, p);
-            added++;
-          }
-        });
-        const mergedProblems = Array.from(existing.values());
+        const { mergedProblems, addedCount, updatedCount } = mergeImportedProblems(problems, data.problems);
         setProblems(mergedProblems);
         if (data.reviewLog) {
           saveReviewLog(data.reviewLog);
@@ -206,8 +167,8 @@ export default function useProblems({ user, showToast }) {
         if (user) {
           pushProblemsToCloud(user.id, data.problems);
         }
-        posthog.capture("data_imported", { added, updated, platform: "web" });
-        showToast(`Imported ${added} new, ${updated} updated`);
+        posthog.capture("data_imported", { added: addedCount, updated: updatedCount, platform: "web" });
+        showToast(`Imported ${addedCount} new, ${updatedCount} updated`);
       } catch (err) {
         showToast(err.message || "Import failed");
       }
@@ -215,69 +176,29 @@ export default function useProblems({ user, showToast }) {
     [problems, showToast, user]
   );
 
-  const handleUpdatePreferences = useCallback((updates) => {
-    setPreferences((prev) => {
-      const next = { ...prev, ...updates };
-      if (user) pushPreferencesToCloud(user.id, next);
-      return next;
-    });
-  }, [user]);
-
   const handleBulkAdd = useCallback((lcProblems, patternMap = null) => {
-    const today = todayStr();
-    const now = new Date().toISOString();
-    const dailyGoal = preferences.dailyReviewGoal;
-
-    const existingNums = new Set(problems.map((p) => p.leetcodeNumber).filter(Boolean));
-    const newLc = lcProblems.filter((lc) => !existingNums.has(lc.n));
+    const { newProblems: newLc, skippedCount } = filterExistingProblems(lcProblems, problems);
     if (newLc.length === 0) {
       showToast("All problems already in your library");
       return;
     }
 
-    const buckets = { Easy: [], Medium: [], Hard: [] };
-    newLc.forEach((lc) => {
-      const bucket = buckets[lc.d] || buckets.Medium;
-      bucket.push(lc);
+    const interleaved = interleaveByDifficulty(newLc);
+    const built = buildNewProblems(interleaved, {
+      today: todayStr(),
+      now: new Date().toISOString(),
+      dailyGoal: preferences.dailyReviewGoal,
+      patternMap,
     });
-    const interleaved = [];
-    const keys = Object.keys(buckets).filter((k) => buckets[k].length > 0);
-    let exhausted = false;
-    while (!exhausted) {
-      exhausted = true;
-      for (const key of keys) {
-        if (buckets[key].length > 0) {
-          interleaved.push(buckets[key].shift());
-          exhausted = false;
-        }
-      }
-    }
 
-    const newProblems = interleaved.map((lc, i) => ({
-      id: generateId(),
-      title: lc.t,
-      leetcodeNumber: lc.n,
-      url: buildLeetCodeUrl(lc.s),
-      difficulty: lc.d,
-      patterns: patternMap?.get(lc.n) || [],
-      confidence: 1,
-      notes: "",
-      excludeFromReview: false,
-      dateAdded: today,
-      lastReviewed: null,
-      nextReviewDate: addDays(today, Math.floor(i / dailyGoal)),
-      updatedAt: now,
-    }));
-
-    setProblems((prev) => [...prev, ...newProblems]);
+    setProblems((prev) => [...prev, ...built]);
 
     if (user) {
-      pushProblemsToCloud(user.id, newProblems);
+      pushProblemsToCloud(user.id, built);
     }
 
-    const skipped = lcProblems.length - newLc.length;
-    const msg = skipped > 0
-      ? `Added ${newLc.length} problems (${skipped} already existed)`
+    const msg = skippedCount > 0
+      ? `Added ${newLc.length} problems (${skippedCount} already existed)`
       : `Added ${newLc.length} problems`;
     posthog.capture("bulk_import", { count: newLc.length, had_pattern_map: !!patternMap, platform: "web" });
     showToast(msg);

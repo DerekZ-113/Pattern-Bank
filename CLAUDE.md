@@ -23,7 +23,8 @@ React app for tracking LeetCode problems with spaced repetition. localStorage-fi
 - Functional React components with hooks (no classes)
 - Components: PascalCase `.jsx` — Utils: camelCase `.js` — Hooks: `use*.js`
 - Tests: `tests/*.test.js` using Vitest with globals
-- State hooks: `useProblems` (data), `useUI` (UI state), `useAuth` (auth) — wired together in `App.jsx`
+- State hooks: `useProblems` (coordinator), `usePreferences` (preferences state + persistence), `useCloudSync` (sign-in sync + status), `useUI` (UI state), `useAuth` (auth) — wired together in `App.jsx`
+- Pure business logic in `src/utils/problemTransforms.js` (bulk add, import merge, review progress)
 - No TypeScript — plain JS + JSX
 - Tailwind CSS for all styling, custom `pb-*` color tokens
 - Props passed explicitly (no global state except AuthContext)
