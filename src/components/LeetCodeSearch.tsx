@@ -1,13 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { searchProblems, buildLeetCodeUrl } from "../utils/leetcodeProblems";
+import type { LeetCodeProblem, Difficulty } from "../types";
 
-export default function LeetCodeSearch({ onSelect }) {
+interface Props {
+  onSelect: (selected: { title: string; leetcodeNumber: number; difficulty: Difficulty; url: string }) => void;
+}
+
+export default function LeetCodeSearch({ onSelect }: Props) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<LeetCodeProblem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
-  const containerRef = useRef(null);
-  const inputRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (query.trim()) {
@@ -23,8 +28,8 @@ export default function LeetCodeSearch({ onSelect }) {
 
   // Close dropdown on outside click
   useEffect(() => {
-    const handleClick = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -32,7 +37,7 @@ export default function LeetCodeSearch({ onSelect }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const handleSelect = (problem) => {
+  const handleSelect = (problem: LeetCodeProblem) => {
     onSelect({
       title: problem.t,
       leetcodeNumber: problem.n,
@@ -44,7 +49,7 @@ export default function LeetCodeSearch({ onSelect }) {
     setIsOpen(false);
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isOpen || results.length === 0) return;
 
     if (e.key === "ArrowDown") {
@@ -61,7 +66,7 @@ export default function LeetCodeSearch({ onSelect }) {
     }
   };
 
-  const diffColor = { Easy: "text-pb-easy", Medium: "text-pb-medium", Hard: "text-pb-hard" };
+  const diffColor: Record<Difficulty, string> = { Easy: "text-pb-easy", Medium: "text-pb-medium", Hard: "text-pb-hard" };
 
   return (
     <div ref={containerRef} className="relative">

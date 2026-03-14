@@ -6,6 +6,27 @@ import ProblemListPicker from "./ProblemListPicker";
 import BulkAddSection from "./BulkAddSection";
 import DataSection from "./DataSection";
 import FeedbackSection from "./FeedbackSection";
+import type { User } from "@supabase/supabase-js";
+import type { Preferences, LeetCodeProblem } from "../types";
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  preferences: Preferences;
+  onUpdatePreferences: (updates: Partial<Preferences>) => void;
+  onExport: () => void;
+  onImport: (file: File) => void;
+  onSetAllDue: () => void;
+  onClearAllData: () => void;
+  onBulkAdd: (problems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
+  problemCount: number;
+  existingProblemNumbers: Set<number>;
+  user: User | null;
+  onSignInGoogle: () => Promise<{ error: Error | null }>;
+  onSignInGitHub: () => Promise<{ error: Error | null }>;
+  onSignInApple: () => Promise<{ error: Error | null }>;
+  onSignOut: () => Promise<void>;
+}
 
 export default function SettingsModal({
   isOpen,
@@ -24,11 +45,11 @@ export default function SettingsModal({
   onSignInGitHub,
   onSignInApple,
   onSignOut,
-}) {
+}: Props) {
   // Escape key to close
   useEffect(() => {
     if (!isOpen) return;
-    const handleEsc = (e) => e.key === "Escape" && onClose();
+    const handleEsc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);

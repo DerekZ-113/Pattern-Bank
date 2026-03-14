@@ -11,8 +11,28 @@ import ProblemInfo from "./ProblemInfo";
 import PatternSelector from "./PatternSelector";
 import NotesEditor from "./NotesEditor";
 import ConfidenceInfo from "./ConfidenceInfo";
+import type { Problem, Difficulty, Confidence } from "../types";
 
-const EMPTY_FORM = {
+interface ProblemFormState {
+  title: string;
+  leetcodeNumber: string | number;
+  url: string;
+  difficulty: Difficulty;
+  patterns: string[];
+  confidence: Confidence;
+  notes: string;
+  excludeFromReview: boolean;
+}
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (problem: Problem, confidenceChanged: boolean) => void;
+  initialData: Problem | null;
+  existingProblemNumbers?: Set<number>;
+}
+
+const EMPTY_FORM: ProblemFormState = {
   title: "",
   leetcodeNumber: "",
   url: "",
@@ -23,18 +43,18 @@ const EMPTY_FORM = {
   excludeFromReview: false,
 };
 
-export default function ProblemModal({ isOpen, onClose, onSave, initialData, existingProblemNumbers = new Set() }) {
+export default function ProblemModal({ isOpen, onClose, onSave, initialData, existingProblemNumbers = new Set() }: Props) {
   useEffect(() => {
     if (!isOpen) return;
-    const handleEsc = (e) => e.key === "Escape" && onClose();
+    const handleEsc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
 
   const isEdit = !!initialData;
   const [mode, setMode] = useState("leetcode");
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState({});
+  const [form, setForm] = useState<ProblemFormState>(EMPTY_FORM);
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
@@ -59,7 +79,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
   }, [initialData, isOpen]);
 
   const validate = useCallback(() => {
-    const e = {};
+    const e: Record<string, string> = {};
     if (!form.title.trim()) e.title = "Title is required";
     if (form.patterns.length === 0) e.patterns = "Select at least one pattern";
     if (
@@ -76,9 +96,9 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
     if (attempted) validate();
   }, [form, attempted, validate]);
 
-  const updateForm = (updates) => setForm((prev) => ({ ...prev, ...updates }));
+  const updateForm = (updates: Partial<ProblemFormState>) => setForm((prev) => ({ ...prev, ...updates }));
 
-  const handleLeetCodeSelect = (selected) => {
+  const handleLeetCodeSelect = (selected: { title: string; leetcodeNumber: number; difficulty: Difficulty; url: string }) => {
     updateForm({
       title: selected.title,
       leetcodeNumber: selected.leetcodeNumber,
@@ -100,11 +120,11 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
     const today = todayStr();
     const confidenceChanged =
       initialData && form.confidence !== initialData.confidence;
-    const problem = {
+    const problem: Problem = {
       id: initialData?.id || generateId(),
       title: form.title.trim(),
       leetcodeNumber: form.leetcodeNumber
-        ? parseInt(form.leetcodeNumber, 10)
+        ? parseInt(form.leetcodeNumber as string, 10)
         : null,
       url: form.url.trim() || null,
       difficulty: form.difficulty,
@@ -121,7 +141,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
         : addDays(today, 1),
       updatedAt: new Date().toISOString(),
     };
-    onSave(problem, confidenceChanged);
+    onSave(problem, !!confidenceChanged);
   };
 
   if (!isOpen) return null;
@@ -288,7 +308,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
             </label>
             <StarRating
               value={form.confidence}
-              onChange={(v) => updateForm({ confidence: v })}
+              onChange={(v) => updateForm({ confidence: v as Confidence })}
               size={24}
             />
           </div>

@@ -2,19 +2,27 @@ import StarRating from "./StarRating";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTag from "./PatternTag";
 import { todayStr, formatRelativeDate } from "../utils/dateHelpers";
+import type { Problem } from "../types";
 
-export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude }) {
+interface Props {
+  problem: Problem;
+  onEdit: (problem: Problem) => void;
+  onDelete: (problem: Problem) => void;
+  onToggleExclude?: (id: string) => void;
+}
+
+export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude }: Props) {
   const isDue = problem.nextReviewDate <= todayStr();
   const isExcluded = problem.excludeFromReview;
 
-  const handleDelete = (e) => {
+  const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete(problem);
   };
 
-  const handleToggleExclude = (e) => {
+  const handleToggleExclude = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onToggleExclude(problem.id);
+    onToggleExclude!(problem.id);
   };
 
   const getReviewStatusText = () => {

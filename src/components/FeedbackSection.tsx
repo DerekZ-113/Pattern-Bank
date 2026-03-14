@@ -1,16 +1,21 @@
 import { useState } from "react";
 import posthog from "posthog-js";
 import { submitFeedback } from "../utils/supabaseData";
+import type { User } from "@supabase/supabase-js";
 
-export default function FeedbackSection({ user }) {
+interface Props {
+  user: User | null;
+}
+
+export default function FeedbackSection({ user }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   const handleSubmit = async () => {
     if (!message.trim()) return;
     setStatus("sending");
-    const { error } = await submitFeedback(user?.id, message);
+    const { error } = await submitFeedback(user?.id ?? null, message);
     if (error) {
       setStatus("error");
       console.error("Feedback submit failed:", error);

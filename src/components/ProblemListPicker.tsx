@@ -1,8 +1,14 @@
 import { useState, useMemo } from "react";
 import posthog from "posthog-js";
 import { getListSummaries, getListProblems } from "../utils/problemLists";
+import type { LeetCodeProblem } from "../types";
 
-export default function ProblemListPicker({ existingIds, onBulkAdd }) {
+interface Props {
+  existingIds: Set<number>;
+  onBulkAdd: (problems: LeetCodeProblem[], patternMap: Map<number, string[]> | null) => void;
+}
+
+export default function ProblemListPicker({ existingIds, onBulkAdd }: Props) {
   const [selectedId, setSelectedId] = useState("");
 
   // Compute summaries for all lists based on current library
@@ -26,7 +32,7 @@ export default function ProblemListPicker({ existingIds, onBulkAdd }) {
   };
 
   // Progress bar color
-  const getBarColor = (existing, total) => {
+  const getBarColor = (existing: number, total: number) => {
     if (total === 0) return "#3fb950";
     const pct = existing / total;
     if (pct >= 0.8) return "#3fb950";

@@ -3,10 +3,18 @@ import StarRating from "./StarRating";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTag from "./PatternTag";
 import { formatRelativeDate } from "../utils/dateHelpers";
+import type { Problem, Confidence } from "../types";
 
-export default function ReviewCard({ problem, onReview, onDismiss, onUpdateNotes }) {
+interface Props {
+  problem: Problem;
+  onReview: (id: string, confidence: Confidence) => void;
+  onDismiss: (id: string) => void;
+  onUpdateNotes?: (id: string, notes: string) => void;
+}
+
+export default function ReviewCard({ problem, onReview, onDismiss, onUpdateNotes }: Props) {
   const [reviewing, setReviewing] = useState(false);
-  const [newConfidence, setNewConfidence] = useState(problem.confidence);
+  const [newConfidence, setNewConfidence] = useState<Confidence>(problem.confidence);
   const [notesRevealed, setNotesRevealed] = useState(false);
   const [localNotes, setLocalNotes] = useState(problem.notes || "");
 
@@ -93,7 +101,7 @@ export default function ReviewCard({ problem, onReview, onDismiss, onUpdateNotes
               <div className="mb-1.5 text-xs text-pb-text-muted">
                 Rate your confidence:
               </div>
-              <StarRating value={newConfidence} onChange={setNewConfidence} size={22} />
+              <StarRating value={newConfidence} onChange={(v) => setNewConfidence(v as Confidence)} size={22} />
             </div>
             <div className="flex items-center gap-2">
               {problem.url && (

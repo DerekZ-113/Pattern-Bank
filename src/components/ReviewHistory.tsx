@@ -2,8 +2,14 @@ import { useState, useEffect } from "react";
 import useAuth from "../hooks/useAuth";
 import { fetchProblemReviewHistory } from "../utils/supabaseData";
 import { formatRelativeDate, utcToLocalDateStr } from "../utils/dateHelpers";
+import type { ReviewHistoryEntry } from "../types";
 
-function MiniStars({ count }) {
+interface Props {
+  problemId: string;
+  isOpen: boolean;
+}
+
+function MiniStars({ count }: { count: number }) {
   return (
     <span className="text-xs tracking-wide">
       {[1, 2, 3, 4, 5].map((i) => (
@@ -15,9 +21,9 @@ function MiniStars({ count }) {
   );
 }
 
-export default function ReviewHistory({ problemId, isOpen }) {
+export default function ReviewHistory({ problemId, isOpen }: Props) {
   const { user } = useAuth();
-  const [history, setHistory] = useState([]);
+  const [history, setHistory] = useState<ReviewHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
 

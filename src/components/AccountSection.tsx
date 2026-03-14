@@ -1,4 +1,13 @@
 import { useState } from "react";
+import type { User } from "@supabase/supabase-js";
+
+interface Props {
+  user: User | null;
+  onSignInGoogle: () => Promise<{ error: Error | null }>;
+  onSignInGitHub: () => Promise<{ error: Error | null }>;
+  onSignInApple: () => Promise<{ error: Error | null }>;
+  onSignOut: () => Promise<void>;
+}
 
 export default function AccountSection({
   user,
@@ -6,7 +15,7 @@ export default function AccountSection({
   onSignInGitHub,
   onSignInApple,
   onSignOut,
-}) {
+}: Props) {
   const [authLoading, setAuthLoading] = useState(false);
 
   const handleSignInGoogle = async () => {

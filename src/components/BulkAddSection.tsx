@@ -1,34 +1,46 @@
 import { useState, useRef } from "react";
 import { getProblemByNumber, buildLeetCodeUrl } from "../utils/leetcodeProblems";
+import type { Difficulty, LeetCodeProblem } from "../types";
 
-const DIFF_COLORS = { Easy: "#3fb950", Medium: "#d29922", Hard: "#f85149" };
+const DIFF_COLORS: Record<Difficulty, string> = { Easy: "#3fb950", Medium: "#d29922", Hard: "#f85149" };
 
-export default function BulkAddSection({ onBulkAdd, existingIds }) {
-  const [chips, setChips] = useState([]); // [{ num, problem, exists }]
+interface Chip {
+  num: number;
+  problem: LeetCodeProblem | null;
+  exists: boolean;
+}
+
+interface Props {
+  onBulkAdd: (problems: LeetCodeProblem[]) => void;
+  existingIds: Set<number>;
+}
+
+export default function BulkAddSection({ onBulkAdd, existingIds }: Props) {
+  const [chips, setChips] = useState<Chip[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Dedup set of numbers already in chips
   const chipNums = new Set(chips.map((c) => c.num));
 
-  const addNumbers = (raw) => {
+  const addNumbers = (raw: string) => {
     // Parse comma/space/newline separated numbers
     const nums = raw
       .split(/[\s,]+/)
-      .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => !isNaN(n) && n > 0);
+      .map((s: string) => parseInt(s.trim(), 10))
+      .filter((n: number) => !isNaN(n) && n > 0);
 
     if (nums.length === 0) return;
 
-    const newChips = [];
+    const newChips: Chip[] = [];
     for (const num of nums) {
       if (chipNums.has(num) || newChips.some((c) => c.num === num)) continue;
       const problem = getProblemByNumber(num);
       const exists = problem
         ? existingIds.has(num)
         : false;
-      newChips.push({ num, problem, exists });
+      newChips.push({ num, problem: problem ?? null, exists });
     }
 
     if (newChips.length > 0) {
@@ -36,7 +48,7 @@ export default function BulkAddSection({ onBulkAdd, existingIds }) {
     }
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === "," || e.key === "Tab") {
       e.preventDefault();
       if (inputValue.trim()) {
@@ -50,21 +62,21 @@ export default function BulkAddSection({ onBulkAdd, existingIds }) {
     }
   };
 
-  const handlePaste = (e) => {
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text");
     addNumbers(pasted);
     setInputValue("");
   };
 
-  const removeChip = (num) => {
+  const removeChip = (num: number) => {
     setChips((prev) => prev.filter((c) => c.num !== num));
   };
 
   const handleAdd = () => {
     const validChips = chips.filter((c) => c.problem && !c.exists);
     if (validChips.length === 0) return;
-    onBulkAdd(validChips.map((c) => c.problem));
+    onBulkAdd(validChips.map((c) => c.problem as LeetCodeProblem));
     setChips([]);
     setInputValue("");
     setIsOpen(false);
@@ -162,7 +174,7 @@ export default function BulkAddSection({ onBulkAdd, existingIds }) {
                   >
                     {chip.problem.t}
                   </span>
-                  <span style={{ color: diffColor, fontWeight: 600, fontSize: 10, flexShrink: 0 }}>
+                  <span style={{ color: diffColor ?? undefined, fontWeight: 600, fontSize: 10, flexShrink: 0 }}>
                     {chip.problem.d[0]}
                   </span>
                 </>
@@ -181,8 +193,8 @@ export default function BulkAddSection({ onBulkAdd, existingIds }) {
                   lineHeight: 1,
                   flexShrink: 0,
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "#e6edf3")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "#484f58")}
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.color = "#e6edf3")}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.color = "#484f58")}
               >
                 ✕
               </button>

@@ -5,6 +5,17 @@ import StatsBar from "./StatsBar";
 import { todayStr } from "../utils/dateHelpers";
 import { calculateStreak, countReviewedToday } from "../utils/storage";
 import { prioritizeProblems } from "../utils/spacedRepetition";
+import type { Problem, Confidence } from "../types";
+
+interface Props {
+  problems: Problem[];
+  dailyGoal: number;
+  onReview: (id: string, confidence: Confidence) => void;
+  onDismiss: (id: string) => void;
+  onUpdateNotes: (id: string, notes: string) => void;
+  onViewAllDue: () => void;
+  onPatternClick: (pattern: string) => void;
+}
 
 export default function DashboardView({
   problems,
@@ -14,7 +25,7 @@ export default function DashboardView({
   onUpdateNotes,
   onViewAllDue,
   onPatternClick,
-}) {
+}: Props) {
   const today = todayStr();
 
   // All problems past their review date (excluding excluded ones)

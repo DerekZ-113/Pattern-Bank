@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { PATTERNS } from "../utils/constants";
+import type { Problem } from "../types";
+
+interface Props {
+  problems: Problem[];
+  onPatternClick: (pattern: string) => void;
+}
 
 // 9-stop color scale: confidence → radial gradient + border + glow
-function getHeatGradient(avgConf, count) {
+function getHeatGradient(avgConf: number, count: number): { background: string; border: string; glow: string } {
   if (count === 0)
     return {
       background:
@@ -75,7 +81,7 @@ function getHeatGradient(avgConf, count) {
   };
 }
 
-function getConfTextColor(avgConf, count) {
+function getConfTextColor(avgConf: number, count: number): string {
   if (count === 0) return "#30363d";
   if (avgConf < 2.0) return "#f85149";
   if (avgConf < 2.5) return "#f0883e";
@@ -85,11 +91,11 @@ function getConfTextColor(avgConf, count) {
   return "#3fb950";
 }
 
-export default function PatternHeatmap({ problems, onPatternClick }) {
-  const [hovered, setHovered] = useState(null);
+export default function PatternHeatmap({ problems, onPatternClick }: Props) {
+  const [hovered, setHovered] = useState<string | null>(null);
 
   // Compute stats per pattern
-  const statsMap = {};
+  const statsMap: Record<string, { count: number; totalConf: number }> = {};
   PATTERNS.forEach((p) => {
     statsMap[p] = { count: 0, totalConf: 0 };
   });

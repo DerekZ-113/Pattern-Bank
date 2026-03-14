@@ -2,8 +2,18 @@ import { useState, useEffect } from "react";
 import { PATTERNS, DIFFICULTIES } from "../utils/constants";
 import ProblemCard from "./ProblemCard";
 import FilterSelect from "./FilterSelect";
+import type { Problem } from "../types";
 
-export default function AllProblemsView({ problems, onEdit, onDelete, onToggleExclude, initialSort = "dateAdded", initialPatternFilter = "all" }) {
+interface Props {
+  problems: Problem[];
+  onEdit: (problem: Problem) => void;
+  onDelete: (problem: Problem) => void;
+  onToggleExclude: (id: string) => void;
+  initialSort?: string;
+  initialPatternFilter?: string;
+}
+
+export default function AllProblemsView({ problems, onEdit, onDelete, onToggleExclude, initialSort = "dateAdded", initialPatternFilter = "all" }: Props) {
   const [search, setSearch] = useState("");
   const [filterPattern, setFilterPattern] = useState(initialPatternFilter);
   const [filterDifficulty, setFilterDifficulty] = useState("all");
