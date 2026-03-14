@@ -1,4 +1,9 @@
-export default function ModeToggle({ mode, onModeChange }) {
+interface Props {
+  mode: string;
+  onModeChange: (mode: string) => void;
+}
+
+export default function ModeToggle({ mode, onModeChange }: Props) {
   return (
     <div className="flex gap-1 rounded-lg bg-pb-bg p-1">
       <button

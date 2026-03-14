@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { INTERVALS } from "../utils/spacedRepetition";
+import type { Confidence } from "../types";
 
 export default function ConfidenceInfo() {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const handleClose = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    const handleClose = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const handleEsc = (e) => { if (e.key === "Escape") setOpen(false); };
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
     document.addEventListener("mousedown", handleClose);
     document.addEventListener("keydown", handleEsc);
     return () => {
@@ -34,7 +35,7 @@ export default function ConfidenceInfo() {
             Review Schedule
           </p>
           <div className="flex flex-col gap-1">
-            {[1, 2, 3, 4, 5].map((stars) => (
+            {([1, 2, 3, 4, 5] as Confidence[]).map((stars) => (
               <div key={stars} className="flex items-center justify-between text-xs">
                 <span className="text-pb-star">
                   {"★".repeat(stars)}

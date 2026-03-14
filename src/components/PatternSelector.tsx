@@ -1,8 +1,14 @@
 import { PATTERNS, PATTERN_COLORS } from "../utils/constants";
 import InlineError from "./InlineError";
 
-export default function PatternSelector({ selected, onChange, error }) {
-  const toggle = (pattern) => {
+interface Props {
+  selected: string[];
+  onChange: (patterns: string[]) => void;
+  error?: string;
+}
+
+export default function PatternSelector({ selected, onChange, error }: Props) {
+  const toggle = (pattern: string) => {
     onChange(
       selected.includes(pattern)
         ? selected.filter((p) => p !== pattern)

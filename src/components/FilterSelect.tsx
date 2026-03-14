@@ -1,4 +1,15 @@
-export default function FilterSelect({ value, onChange, options }) {
+interface FilterOption {
+  value: string;
+  label: string;
+}
+
+interface Props {
+  value: string;
+  onChange: (value: string) => void;
+  options: FilterOption[];
+}
+
+export default function FilterSelect({ value, onChange, options }: Props) {
   return (
     <div className="relative min-w-[130px] flex-1">
       <select

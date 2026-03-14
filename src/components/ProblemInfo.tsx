@@ -1,4 +1,18 @@
-export default function ProblemInfo({ form, isEdit, onClear }) {
+import type { Difficulty } from "../types";
+
+interface ProblemInfoForm {
+  leetcodeNumber: string | number;
+  title: string;
+  difficulty: Difficulty;
+}
+
+interface Props {
+  form: ProblemInfoForm;
+  isEdit: boolean;
+  onClear: () => void;
+}
+
+export default function ProblemInfo({ form, isEdit, onClear }: Props) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-pb-border bg-pb-bg px-3 py-2.5">
       <span className="text-xs font-semibold text-pb-text-muted">

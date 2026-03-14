@@ -1,5 +1,13 @@
-export default function NavBar({ activeTab, onTabChange, onAddClick }) {
-  const tabs = [
+import type { ActiveTab } from "../types";
+
+interface Props {
+  activeTab: ActiveTab;
+  onTabChange: (tab: ActiveTab) => void;
+  onAddClick: () => void;
+}
+
+export default function NavBar({ activeTab, onTabChange, onAddClick }: Props) {
+  const tabs: { id: ActiveTab; label: string; icon: string }[] = [
     { id: "dashboard", label: "Dashboard", icon: "◫" },
     { id: "problems", label: "All Problems", icon: "☰" },
   ];

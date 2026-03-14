@@ -1,4 +1,11 @@
-export default function StatsBar({ total, due, reviewedToday, streak }) {
+interface Props {
+  total: number;
+  due: number;
+  reviewedToday: number;
+  streak: number;
+}
+
+export default function StatsBar({ total, due, reviewedToday, streak }: Props) {
   const stats = [
     { label: "Total", value: total, color: "text-pb-text" },
     { label: "Due", value: due, color: due > 0 ? "text-pb-star" : "text-pb-text-muted" },

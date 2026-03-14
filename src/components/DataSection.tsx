@@ -1,10 +1,17 @@
 import { useRef } from "react";
 import posthog from "posthog-js";
 
-export default function DataSection({ problemCount, onExport, onImport, onClose }) {
-  const fileInputRef = useRef(null);
+interface Props {
+  problemCount: number;
+  onExport: () => void;
+  onImport: (file: File) => void;
+  onClose: () => void;
+}
 
-  const handleFileChange = (e) => {
+export default function DataSection({ problemCount, onExport, onImport, onClose }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       onImport(file);

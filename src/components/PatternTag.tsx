@@ -1,6 +1,10 @@
 import { PATTERN_COLORS } from "../utils/constants";
 
-export default function PatternTag({ name }) {
+interface Props {
+  name: string;
+}
+
+export default function PatternTag({ name }: Props) {
   const pc = PATTERN_COLORS[name] || { text: "#7c6bf5", bg: "rgba(124,107,245,0.12)" };
 
   return (

@@ -1,5 +1,15 @@
 import { useEffect } from "react";
 
+interface Props {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  confirmLabel?: string;
+  destructive?: boolean;
+}
+
 export default function ConfirmDialog({
   isOpen,
   title,
@@ -8,11 +18,11 @@ export default function ConfirmDialog({
   onCancel,
   confirmLabel = "Delete",
   destructive = true,
-}) {
+}: Props) {
   // Escape key to close
   useEffect(() => {
     if (!isOpen) return;
-    const handleEsc = (e) => e.key === "Escape" && onCancel();
+    const handleEsc = (e: KeyboardEvent) => e.key === "Escape" && onCancel();
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onCancel]);

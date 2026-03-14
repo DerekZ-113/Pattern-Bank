@@ -1,4 +1,9 @@
-export default function SectionHeader({ title, count }) {
+interface Props {
+  title: string;
+  count?: number;
+}
+
+export default function SectionHeader({ title, count }: Props) {
   return (
     <div className="mb-3 flex items-center gap-2">
       <h2 className="text-[15px] font-semibold text-pb-text">{title}</h2>

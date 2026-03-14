@@ -1,6 +1,12 @@
 import { useState } from "react";
 
-export default function StarRating({ value, onChange, size = 20 }) {
+interface Props {
+  value: number;
+  onChange?: (value: number) => void;
+  size?: number;
+}
+
+export default function StarRating({ value, onChange, size = 20 }: Props) {
   const [hover, setHover] = useState(0);
   const interactive = !!onChange;
 

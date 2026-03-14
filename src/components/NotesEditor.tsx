@@ -1,7 +1,13 @@
 import { useRef, useEffect } from "react";
 
-export default function NotesEditor({ value, onChange, inputClassName }) {
-  const notesRef = useRef(null);
+interface Props {
+  value: string;
+  onChange: (value: string) => void;
+  inputClassName?: string;
+}
+
+export default function NotesEditor({ value, onChange, inputClassName }: Props) {
+  const notesRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const el = notesRef.current;

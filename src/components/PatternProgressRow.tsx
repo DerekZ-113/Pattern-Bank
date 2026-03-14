@@ -1,6 +1,12 @@
 import { PATTERN_COLORS } from "../utils/constants";
 
-export default function PatternProgressRow({ pattern, count, avgConfidence }) {
+interface Props {
+  pattern: string;
+  count: number;
+  avgConfidence: number;
+}
+
+export default function PatternProgressRow({ pattern, count, avgConfidence }: Props) {
   const barWidth = Math.min((avgConfidence / 5) * 100, 100);
   const barColor =
     avgConfidence >= 4 ? "#3fb950" : avgConfidence >= 2.5 ? "#e3b341" : "#f85149";

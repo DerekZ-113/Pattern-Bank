@@ -1,5 +1,18 @@
-export default function Header({ onSettingsClick, syncStatus }) {
-  const dot = {
+import type { SyncStatus } from "../types";
+
+interface DotInfo {
+  color: string;
+  title: string;
+  animation: string;
+}
+
+interface Props {
+  onSettingsClick: () => void;
+  syncStatus: SyncStatus;
+}
+
+export default function Header({ onSettingsClick, syncStatus }: Props) {
+  const dot: Partial<Record<SyncStatus, DotInfo>> = {
     syncing: { color: "#d29922", title: "Syncing...", animation: "sync-pulse 1.5s ease-in-out infinite" },
     synced: { color: "#3fb950", title: "Synced", animation: "none" },
     error: { color: "#f85149", title: "Sync error", animation: "none" },

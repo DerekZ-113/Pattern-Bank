@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 
-export default function Toast({ message, isVisible, onDone }) {
+interface Props {
+  message: string;
+  isVisible: boolean;
+  onDone: () => void;
+}
+
+export default function Toast({ message, isVisible, onDone }: Props) {
   useEffect(() => {
     if (isVisible) {
       const timer = setTimeout(onDone, 2500);

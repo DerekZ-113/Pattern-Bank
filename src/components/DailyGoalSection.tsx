@@ -1,5 +1,12 @@
-export default function DailyGoalSection({ preferences, onUpdatePreferences }) {
-  const adjustGoal = (delta) => {
+import { Preferences } from "../types";
+
+interface Props {
+  preferences: Preferences;
+  onUpdatePreferences: (updates: Partial<Preferences>) => void;
+}
+
+export default function DailyGoalSection({ preferences, onUpdatePreferences }: Props) {
+  const adjustGoal = (delta: number) => {
     const current = preferences.dailyReviewGoal;
     const next = Math.min(10, Math.max(1, current + delta));
     if (next !== current) {

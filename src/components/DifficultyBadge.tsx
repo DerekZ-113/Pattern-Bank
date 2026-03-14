@@ -1,10 +1,16 @@
-const COLOR_MAP = {
+import type { Difficulty } from "../types";
+
+const COLOR_MAP: Record<Difficulty, string> = {
   Easy: "text-pb-easy bg-pb-easy/10",
   Medium: "text-pb-medium bg-pb-medium/10",
   Hard: "text-pb-hard bg-pb-hard/10",
 };
 
-export default function DifficultyBadge({ difficulty }) {
+interface Props {
+  difficulty: Difficulty;
+}
+
+export default function DifficultyBadge({ difficulty }: Props) {
   return (
     <span
       className={`rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
