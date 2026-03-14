@@ -73,7 +73,7 @@ export default function App() {
         onClearAllData={ui.requestClearData}
         onBulkAdd={handleBulkAdd}
         problemCount={problems.length}
-        existingProblemNumbers={new Set(problems.map((p) => p.leetcodeNumber).filter(Boolean))}
+        existingProblemNumbers={new Set(problems.map((p) => p.leetcodeNumber).filter((n): n is number => Boolean(n)))}
         user={user}
         onSignInGoogle={signInWithGoogle}
         onSignInGitHub={signInWithGitHub}
@@ -120,7 +120,7 @@ export default function App() {
           ui.closeModal();
         }}
         initialData={ui.editingProblem}
-        existingProblemNumbers={new Set(problems.map((p) => p.leetcodeNumber).filter(Boolean))}
+        existingProblemNumbers={new Set(problems.map((p) => p.leetcodeNumber).filter((n): n is number => Boolean(n)))}
       />
     </div>
   );

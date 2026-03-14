@@ -1,11 +1,13 @@
 import { createContext, useState, useEffect, useCallback } from "react";
+import type { User } from "@supabase/supabase-js";
 import posthog from "posthog-js";
 import { supabase } from "../utils/supabaseClient";
+import type { AuthContextValue } from "../hooks/useAuth";
 
-export const AuthContext = createContext(null);
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
-export default function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+export default function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (): Promise<{ error: Error | null }> => {
     if (!supabase) return { error: new Error("Supabase not configured") };
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -47,7 +49,7 @@ export default function AuthProvider({ children }) {
     return { error };
   }, []);
 
-  const signInWithGitHub = useCallback(async () => {
+  const signInWithGitHub = useCallback(async (): Promise<{ error: Error | null }> => {
     if (!supabase) return { error: new Error("Supabase not configured") };
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
@@ -58,7 +60,7 @@ export default function AuthProvider({ children }) {
     return { error };
   }, []);
 
-  const signInWithApple = useCallback(async () => {
+  const signInWithApple = useCallback(async (): Promise<{ error: Error | null }> => {
     if (!supabase) return { error: new Error("Supabase not configured") };
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "apple",
@@ -69,13 +71,13 @@ export default function AuthProvider({ children }) {
     return { error };
   }, []);
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (): Promise<void> => {
     if (!supabase) return;
     await supabase.auth.signOut();
     setUser(null);
   }, []);
 
-  const value = {
+  const value: AuthContextValue = {
     user,
     loading,
     isAuthenticated: !!user,
