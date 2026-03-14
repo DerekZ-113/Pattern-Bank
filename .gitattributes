@@ -1,0 +1,2 @@
+# Mark static LeetCode database as generated so GitHub excludes it from language stats
+src/utils/leetcodeProblems.js linguist-generated
