@@ -124,7 +124,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
       id: initialData?.id || generateId(),
       title: form.title.trim(),
       leetcodeNumber: form.leetcodeNumber
-        ? parseInt(form.leetcodeNumber as string, 10)
+        ? Number(form.leetcodeNumber)
         : null,
       url: form.url.trim() || null,
       difficulty: form.difficulty,

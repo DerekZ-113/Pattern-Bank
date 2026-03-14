@@ -22,7 +22,7 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
 
   const handleToggleExclude = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onToggleExclude!(problem.id);
+    onToggleExclude?.(problem.id);
   };
 
   const getReviewStatusText = () => {
