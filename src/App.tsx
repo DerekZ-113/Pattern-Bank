@@ -86,6 +86,7 @@ export default function App() {
         <DashboardView
           problems={problems}
           dailyGoal={preferences.dailyReviewGoal}
+          hidePatterns={preferences.hidePatternsDuringReview}
           onReview={handleReview}
           onDismiss={handleDismiss}
           onUpdateNotes={handleUpdateNotes}

@@ -10,6 +10,7 @@ import type { Problem, Confidence } from "../types";
 interface Props {
   problems: Problem[];
   dailyGoal: number;
+  hidePatterns?: boolean;
   onReview: (id: string, confidence: Confidence) => void;
   onDismiss: (id: string) => void;
   onUpdateNotes: (id: string, notes: string) => void;
@@ -20,6 +21,7 @@ interface Props {
 export default function DashboardView({
   problems,
   dailyGoal,
+  hidePatterns,
   onReview,
   onDismiss,
   onUpdateNotes,
@@ -120,6 +122,7 @@ export default function DashboardView({
               <ReviewCard
                 key={p.id}
                 problem={p}
+                hidePatterns={hidePatterns}
                 onReview={onReview}
                 onDismiss={onDismiss}
                 onUpdateNotes={onUpdateNotes}

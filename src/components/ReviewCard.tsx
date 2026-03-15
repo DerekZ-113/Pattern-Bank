@@ -7,15 +7,17 @@ import type { Problem, Confidence } from "../types";
 
 interface Props {
   problem: Problem;
+  hidePatterns?: boolean;
   onReview: (id: string, confidence: Confidence) => void;
   onDismiss: (id: string) => void;
   onUpdateNotes?: (id: string, notes: string) => void;
 }
 
-export default function ReviewCard({ problem, onReview, onDismiss, onUpdateNotes }: Props) {
+export default function ReviewCard({ problem, hidePatterns, onReview, onDismiss, onUpdateNotes }: Props) {
   const [reviewing, setReviewing] = useState(false);
   const [newConfidence, setNewConfidence] = useState<Confidence>(problem.confidence);
   const [notesRevealed, setNotesRevealed] = useState(false);
+  const [patternsRevealed, setPatternsRevealed] = useState(false);
   const [localNotes, setLocalNotes] = useState(problem.notes || "");
 
   const handleStartReview = () => {
@@ -54,10 +56,21 @@ export default function ReviewCard({ problem, onReview, onDismiss, onUpdateNotes
         </div>
 
         {/* Pattern tags */}
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {problem.patterns.map((p) => (
-            <PatternTag key={p} name={p} />
-          ))}
+        <div className="mb-2">
+          {hidePatterns && !patternsRevealed ? (
+            <button
+              onClick={() => setPatternsRevealed(true)}
+              className="w-full cursor-pointer rounded-md border border-dashed border-pb-border bg-transparent px-3 py-1.5 text-left text-[13px] text-pb-text-dim transition-colors duration-150 hover:border-pb-text-dim hover:text-pb-text-muted"
+            >
+              Reveal patterns
+            </button>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {problem.patterns.map((p) => (
+                <PatternTag key={p} name={p} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Confidence and last reviewed */}
@@ -130,6 +143,16 @@ export default function ReviewCard({ problem, onReview, onDismiss, onUpdateNotes
           </div>
         ) : (
           <div className="flex gap-2">
+            {problem.url && (
+              <a
+                href={problem.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-[88px] cursor-pointer rounded-lg border border-pb-border bg-transparent py-2 text-center text-[13px] font-medium text-pb-text-muted no-underline transition-colors duration-150 hover:border-pb-text-muted hover:text-pb-text"
+              >
+                Open ↗
+              </a>
+            )}
             <button
               onClick={handleStartReview}
               className="flex-1 cursor-pointer rounded-lg border-none bg-pb-accent-subtle py-2 text-[13px] font-semibold text-pb-accent transition-all duration-150 hover:bg-pb-accent hover:text-white"

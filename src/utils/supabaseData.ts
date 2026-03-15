@@ -221,7 +221,10 @@ export async function fetchPreferences(userId: string): Promise<{ data: Preferen
     if (error) return { data: null, error };
     if (!data) return { data: null, error: null };
     return {
-      data: { dailyReviewGoal: (data as { daily_review_goal: number }).daily_review_goal },
+      data: {
+        dailyReviewGoal: (data as { daily_review_goal: number }).daily_review_goal,
+        hidePatternsDuringReview: (data as { hide_patterns_during_review?: boolean }).hide_patterns_during_review ?? false,
+      },
       error: null,
     };
   } catch (err) {
@@ -284,6 +287,7 @@ export async function upsertPreferences(userId: string, prefs: Preferences): Pro
     const row = {
       user_id: userId,
       daily_review_goal: prefs.dailyReviewGoal,
+      hide_patterns_during_review: prefs.hidePatternsDuringReview,
       updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase
@@ -293,7 +297,10 @@ export async function upsertPreferences(userId: string, prefs: Preferences): Pro
       .single();
     if (error) return { data: null, error };
     return {
-      data: { dailyReviewGoal: (data as { daily_review_goal: number }).daily_review_goal },
+      data: {
+        dailyReviewGoal: (data as { daily_review_goal: number }).daily_review_goal,
+        hidePatternsDuringReview: (data as { hide_patterns_during_review?: boolean }).hide_patterns_during_review ?? false,
+      },
       error: null,
     };
   } catch (err) {

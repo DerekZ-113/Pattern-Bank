@@ -77,10 +77,10 @@ describe("usePreferences", () => {
     const { result } = renderHook(() => usePreferences({ user: null }));
 
     act(() => {
-      result.current.replacePreferences({ dailyReviewGoal: 99 });
+      result.current.replacePreferences({ dailyReviewGoal: 99, hidePatternsDuringReview: false });
     });
 
-    expect(result.current.preferences).toEqual({ dailyReviewGoal: 99 });
+    expect(result.current.preferences).toEqual({ dailyReviewGoal: 99, hidePatternsDuringReview: false });
   });
 
   it("pushes to cloud when user is authenticated", () => {

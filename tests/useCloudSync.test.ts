@@ -35,7 +35,7 @@ const mockSyncOnSignIn = syncOnSignIn as ReturnType<typeof vi.fn>;
 
 const mockUser = { id: "user-123" } as User;
 
-const defaultPreferences: Preferences = { dailyReviewGoal: 5 };
+const defaultPreferences: Preferences = { dailyReviewGoal: 5, hidePatternsDuringReview: false };
 
 const mockProblem: Problem = {
   id: "test-1",

@@ -86,6 +86,34 @@ export default function SettingsModal({
             onUpdatePreferences={onUpdatePreferences}
           />
 
+          <div>
+            <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+              Hide Patterns During Review
+            </label>
+            <button
+              onClick={() => onUpdatePreferences({ hidePatternsDuringReview: !preferences.hidePatternsDuringReview })}
+              className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-pb-border bg-transparent px-3 py-2.5 text-left transition-colors duration-150 hover:border-pb-text-muted"
+            >
+              <span className="text-sm text-pb-text">
+                {preferences.hidePatternsDuringReview ? "On" : "Off"}
+              </span>
+              <span
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
+                  preferences.hidePatternsDuringReview ? "bg-pb-accent" : "bg-pb-border"
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
+                    preferences.hidePatternsDuringReview ? "translate-x-[18px]" : "translate-x-[3px]"
+                  }`}
+                />
+              </span>
+            </button>
+            <p className="mt-2 text-xs leading-relaxed text-pb-text-dim">
+              Test your pattern recognition — tap to reveal on each card.
+            </p>
+          </div>
+
           <ProblemListPicker
             existingIds={existingProblemNumbers}
             onBulkAdd={(problems, patternMap) => { onBulkAdd(problems, patternMap); onClose(); }}

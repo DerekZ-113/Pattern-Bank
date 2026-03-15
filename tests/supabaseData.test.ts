@@ -450,7 +450,7 @@ describe("fetchPreferences", () => {
     const result = await fetchPreferences(USER_ID);
 
     expect(result.error).toBeNull();
-    expect(result.data).toEqual({ dailyReviewGoal: 10 });
+    expect(result.data).toEqual({ dailyReviewGoal: 10, hidePatternsDuringReview: false });
   });
 
   it("returns null when no row exists", async () => {
@@ -471,7 +471,7 @@ describe("fetchPreferences", () => {
 describe("upsertPreferences", () => {
   it("returns { data: null, error: null } when supabase is null", async () => {
     mockSupabase = null;
-    const prefs: Preferences = { dailyReviewGoal: 5 };
+    const prefs: Preferences = { dailyReviewGoal: 5, hidePatternsDuringReview: false };
     const result = await upsertPreferences(USER_ID, prefs);
     expect(result).toEqual({ data: null, error: null });
   });
@@ -481,11 +481,11 @@ describe("upsertPreferences", () => {
     mockSupabase = createSupabaseMock({ data: returnedRow, error: null });
     // terminal is .single()
 
-    const prefs: Preferences = { dailyReviewGoal: 7 };
+    const prefs: Preferences = { dailyReviewGoal: 7, hidePatternsDuringReview: false };
     const result = await upsertPreferences(USER_ID, prefs);
 
     expect(result.error).toBeNull();
-    expect(result.data).toEqual({ dailyReviewGoal: 7 });
+    expect(result.data).toEqual({ dailyReviewGoal: 7, hidePatternsDuringReview: false });
 
     const upsertCall = mockSupabase.upsert.mock.calls[0][0];
     expect(upsertCall).toMatchObject({

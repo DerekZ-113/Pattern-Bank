@@ -57,8 +57,8 @@ function makeEntry(date: string): ReviewLogEntry {
   return { date };
 }
 
-const defaultPrefs: Preferences = { dailyReviewGoal: 5 };
-const cloudPrefs: Preferences = { dailyReviewGoal: 10 };
+const defaultPrefs: Preferences = { dailyReviewGoal: 5, hidePatternsDuringReview: false };
+const cloudPrefs: Preferences = { dailyReviewGoal: 10, hidePatternsDuringReview: false };
 
 beforeEach(() => {
   vi.clearAllMocks();

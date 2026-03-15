@@ -38,4 +38,5 @@ export const PREFERENCES_KEY = "patternbank-preferences";
 
 export const DEFAULT_PREFERENCES: Preferences = {
   dailyReviewGoal: 5,
+  hidePatternsDuringReview: false,
 };
