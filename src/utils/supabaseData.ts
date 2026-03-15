@@ -230,6 +230,36 @@ export async function fetchPreferences(userId: string): Promise<{ data: Preferen
 }
 
 // ============================================================
+// BULK DELETE (clear all user data)
+// ============================================================
+
+export async function deleteAllUserProblems(userId: string): Promise<{ error: unknown }> {
+  if (!supabase) return { error: null };
+  try {
+    const { error } = await supabase
+      .from("problems")
+      .delete()
+      .eq("user_id", userId);
+    return { error: error || null };
+  } catch (err) {
+    return { error: err };
+  }
+}
+
+export async function deleteAllUserReviewLog(userId: string): Promise<{ error: unknown }> {
+  if (!supabase) return { error: null };
+  try {
+    const { error } = await supabase
+      .from("review_log")
+      .delete()
+      .eq("user_id", userId);
+    return { error: error || null };
+  } catch (err) {
+    return { error: err };
+  }
+}
+
+// ============================================================
 // FEEDBACK
 // ============================================================
 

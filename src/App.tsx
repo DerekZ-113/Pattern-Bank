@@ -26,7 +26,6 @@ export default function App() {
     handleReview,
     handleUpdateNotes,
     handleDismiss,
-    handleSetAllDue,
     handleImport,
     handleUpdatePreferences,
     handleBulkAdd,
@@ -69,8 +68,6 @@ export default function App() {
         onUpdatePreferences={handleUpdatePreferences}
         onExport={exportData}
         onImport={handleImport}
-        onSetAllDue={handleSetAllDue}
-        onClearAllData={ui.requestClearData}
         onBulkAdd={handleBulkAdd}
         problemCount={problems.length}
         existingProblemNumbers={new Set(problems.map((p) => p.leetcodeNumber).filter((n): n is number => Boolean(n)))}

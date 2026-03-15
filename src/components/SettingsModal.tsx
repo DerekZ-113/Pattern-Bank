@@ -16,8 +16,6 @@ interface Props {
   onUpdatePreferences: (updates: Partial<Preferences>) => void;
   onExport: () => void;
   onImport: (file: File) => void;
-  onSetAllDue: () => void;
-  onClearAllData: () => void;
   onBulkAdd: (problems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
   problemCount: number;
   existingProblemNumbers: Set<number>;
@@ -116,40 +114,6 @@ export default function SettingsModal({
             </label>
             <FeedbackSection user={user} />
           </div>
-
-          {/* Dev Tools — commented out for launch
-          <div className="border-t border-pb-border pt-4">
-            <button
-              onClick={() => setDevToolsOpen(!devToolsOpen)}
-              className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent p-0 text-[13px] font-medium text-pb-text-dim transition-colors duration-150 hover:text-pb-text-muted"
-            >
-              <span
-                className="inline-block text-[10px] transition-transform duration-150"
-                style={{ transform: devToolsOpen ? "rotate(90deg)" : "rotate(0deg)" }}
-              >
-                ▶
-              </span>
-              Dev Tools
-            </button>
-
-            {devToolsOpen && (
-              <div className="mt-3 flex flex-col gap-2">
-                <button
-                  onClick={() => { onSetAllDue(); onClose(); }}
-                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-pb-border bg-transparent px-3.5 py-2.5 text-[13px] font-medium text-pb-text-dim transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text-muted"
-                >
-                  Set all problems due today
-                </button>
-                <button
-                  onClick={onClearAllData}
-                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-dashed border-pb-hard/40 bg-transparent px-3.5 py-2.5 text-[13px] font-medium text-pb-hard/60 transition-all duration-150 hover:border-pb-hard hover:text-pb-hard"
-                >
-                  Clear all data
-                </button>
-              </div>
-            )}
-          </div>
-          */}
 
           {/* Built by footer */}
           <div className="border-t border-pb-border pt-4 text-center">

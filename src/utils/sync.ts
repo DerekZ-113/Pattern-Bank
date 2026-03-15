@@ -4,6 +4,8 @@ import {
   upsertProblems,
   deleteProblem as deleteFromSupabase,
   deleteProblems as deleteMultipleFromSupabase,
+  deleteAllUserProblems,
+  deleteAllUserReviewLog,
   fetchReviewLog,
   logReview,
   fetchPreferences,
@@ -264,4 +266,13 @@ export async function pushReviewToCloud(
 export async function pushPreferencesToCloud(userId: string, prefs: Preferences): Promise<void> {
   const { error } = await upsertPreferences(userId, prefs);
   if (error) console.error("Cloud push failed (preferences):", error);
+}
+
+export async function clearAllCloudData(userId: string): Promise<void> {
+  const [problemsResult, logResult] = await Promise.all([
+    deleteAllUserProblems(userId),
+    deleteAllUserReviewLog(userId),
+  ]);
+  if (problemsResult.error) console.error("Cloud clear failed (problems):", problemsResult.error);
+  if (logResult.error) console.error("Cloud clear failed (review log):", logResult.error);
 }

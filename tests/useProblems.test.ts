@@ -501,27 +501,4 @@ describe("useProblems", () => {
     });
   });
 
-  // ── handleSetAllDue ───────────────────────────────────────────────────────
-
-  describe("handleSetAllDue", () => {
-    it("sets all problems' nextReviewDate to today", () => {
-      const today = new Date().toISOString().slice(0, 10);
-      const p1 = makeProblem({ id: "due-1", nextReviewDate: "2020-01-01" });
-      const p2 = makeProblem({ id: "due-2", leetcodeNumber: 2, nextReviewDate: "2020-06-01" });
-      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p1, p2]);
-
-      const { result } = renderHook(() =>
-        useProblems({ user: null, showToast: mockShowToast })
-      );
-
-      act(() => {
-        result.current.handleSetAllDue();
-      });
-
-      for (const p of result.current.problems) {
-        expect(p.nextReviewDate).toBe(today);
-        expect(p.lastReviewed).toBeNull();
-      }
-    });
-  });
 });

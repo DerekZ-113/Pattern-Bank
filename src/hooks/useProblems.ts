@@ -25,6 +25,7 @@ import {
   deleteProblemFromCloud,
   pushReviewToCloud,
   deduplicateProblems,
+  clearAllCloudData,
 } from "../utils/sync";
 import posthog from "posthog-js";
 import type { Problem, Preferences, SyncStatus, Confidence, LeetCodeProblem } from "../types";
@@ -44,7 +45,6 @@ interface UseProblemsReturn {
   handleReview: (problemId: string, newConfidence: Confidence) => void;
   handleUpdateNotes: (problemId: string, newNotes: string) => void;
   handleDismiss: (problemId: string) => void;
-  handleSetAllDue: () => void;
   handleImport: (file: File) => Promise<void>;
   handleUpdatePreferences: (updates: Partial<Preferences>) => void;
   handleBulkAdd: (lcProblems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
@@ -180,14 +180,6 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     }
   }, [user, problems]);
 
-  const handleSetAllDue = useCallback(() => {
-    const today = todayStr();
-    const now = new Date().toISOString();
-    setProblems((prev) =>
-      prev.map((p) => ({ ...p, nextReviewDate: today, lastReviewed: null, updatedAt: now }))
-    );
-  }, []);
-
   const handleImport = useCallback(
     async (file: File) => {
       try {
@@ -255,8 +247,9 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   const handleClearAllData = useCallback(() => {
     setProblems([]);
     saveReviewLog([]);
+    if (user) clearAllCloudData(user.id);
     showToast("All data cleared");
-  }, [showToast]);
+  }, [showToast, user]);
 
   return {
     problems,
@@ -267,7 +260,6 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     handleReview,
     handleUpdateNotes,
     handleDismiss,
-    handleSetAllDue,
     handleImport,
     handleUpdatePreferences,
     handleBulkAdd,

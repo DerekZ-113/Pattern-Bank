@@ -20,12 +20,10 @@ export default function usePreferences({ user }: UsePreferencesParams): UsePrefe
   useEffect(() => { savePreferences(preferences); }, [preferences]);
 
   const handleUpdatePreferences = useCallback((updates: Partial<Preferences>) => {
-    setPreferences((prev) => {
-      const next = { ...prev, ...updates };
-      if (user) pushPreferencesToCloud(user.id, next);
-      return next;
-    });
-  }, [user]);
+    const next = { ...preferences, ...updates };
+    setPreferences(next);
+    if (user) pushPreferencesToCloud(user.id, next);
+  }, [user, preferences]);
 
   const replacePreferences = useCallback((prefs: Preferences) => {
     setPreferences(prefs);
