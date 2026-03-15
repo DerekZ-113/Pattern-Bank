@@ -28,73 +28,87 @@ function makeEntry(date: string): ReviewLogEntry {
 describe("mergeProblems", () => {
   it("returns local problems when cloud is empty", () => {
     const local = [makeProblem({ id: "a" }), makeProblem({ id: "b" })];
-    const result = mergeProblems(local, []);
-    expect(result).toHaveLength(2);
-    expect(result.map((p) => p.id).sort()).toEqual(["a", "b"]);
+    const { problems, cloudAdded, cloudWon } = mergeProblems(local, []);
+    expect(problems).toHaveLength(2);
+    expect(problems.map((p) => p.id).sort()).toEqual(["a", "b"]);
+    expect(cloudAdded).toBe(0);
+    expect(cloudWon).toBe(0);
   });
 
   it("returns cloud problems when local is empty", () => {
     const cloud = [makeProblem({ id: "c" }), makeProblem({ id: "d" })];
-    const result = mergeProblems([], cloud);
-    expect(result).toHaveLength(2);
-    expect(result.map((p) => p.id).sort()).toEqual(["c", "d"]);
+    const { problems, cloudAdded, cloudWon } = mergeProblems([], cloud);
+    expect(problems).toHaveLength(2);
+    expect(problems.map((p) => p.id).sort()).toEqual(["c", "d"]);
+    expect(cloudAdded).toBe(2);
+    expect(cloudWon).toBe(0);
   });
 
   it("unions local-only and cloud-only problems", () => {
     const local = [makeProblem({ id: "local-1" }), makeProblem({ id: "local-2" })];
     const cloud = [makeProblem({ id: "cloud-1" }), makeProblem({ id: "cloud-2" })];
-    const result = mergeProblems(local, cloud);
-    expect(result).toHaveLength(4);
-    expect(result.map((p) => p.id).sort()).toEqual(["cloud-1", "cloud-2", "local-1", "local-2"]);
+    const { problems, cloudAdded, cloudWon } = mergeProblems(local, cloud);
+    expect(problems).toHaveLength(4);
+    expect(problems.map((p) => p.id).sort()).toEqual(["cloud-1", "cloud-2", "local-1", "local-2"]);
+    expect(cloudAdded).toBe(2);
+    expect(cloudWon).toBe(0);
   });
 
   it("keeps local version when updatedAt is equal (local wins on tie)", () => {
     const ts = "2026-03-10T00:00:00.000Z";
     const local = makeProblem({ id: "shared", notes: "local notes", updatedAt: ts });
     const cloud = makeProblem({ id: "shared", notes: "cloud notes", updatedAt: ts });
-    const result = mergeProblems([local], [cloud]);
-    expect(result).toHaveLength(1);
-    expect(result[0].notes).toBe("local notes");
+    const { problems, cloudAdded, cloudWon } = mergeProblems([local], [cloud]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].notes).toBe("local notes");
+    expect(cloudAdded).toBe(0);
+    expect(cloudWon).toBe(0);
   });
 
   it("keeps local version when local is newer", () => {
     const local = makeProblem({ id: "shared", notes: "local notes", updatedAt: "2026-03-10T00:00:00.000Z" });
     const cloud = makeProblem({ id: "shared", notes: "cloud notes", updatedAt: "2026-03-05T00:00:00.000Z" });
-    const result = mergeProblems([local], [cloud]);
-    expect(result).toHaveLength(1);
-    expect(result[0].notes).toBe("local notes");
+    const { problems, cloudWon } = mergeProblems([local], [cloud]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].notes).toBe("local notes");
+    expect(cloudWon).toBe(0);
   });
 
   it("keeps cloud version when cloud is newer", () => {
     const local = makeProblem({ id: "shared", notes: "local notes", updatedAt: "2026-03-05T00:00:00.000Z" });
     const cloud = makeProblem({ id: "shared", notes: "cloud notes", updatedAt: "2026-03-10T00:00:00.000Z" });
-    const result = mergeProblems([local], [cloud]);
-    expect(result).toHaveLength(1);
-    expect(result[0].notes).toBe("cloud notes");
+    const { problems, cloudAdded, cloudWon } = mergeProblems([local], [cloud]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].notes).toBe("cloud notes");
+    expect(cloudAdded).toBe(0);
+    expect(cloudWon).toBe(1);
   });
 
   it("handles both updatedAt null → local wins", () => {
     const local = makeProblem({ id: "shared", notes: "local notes", updatedAt: null as unknown as string });
     const cloud = makeProblem({ id: "shared", notes: "cloud notes", updatedAt: null as unknown as string });
-    const result = mergeProblems([local], [cloud]);
-    expect(result).toHaveLength(1);
-    expect(result[0].notes).toBe("local notes");
+    const { problems, cloudWon } = mergeProblems([local], [cloud]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].notes).toBe("local notes");
+    expect(cloudWon).toBe(0);
   });
 
   it("handles local updatedAt null, cloud has timestamp → cloud wins", () => {
     const local = makeProblem({ id: "shared", notes: "local notes", updatedAt: null as unknown as string });
     const cloud = makeProblem({ id: "shared", notes: "cloud notes", updatedAt: "2026-03-01T00:00:00.000Z" });
-    const result = mergeProblems([local], [cloud]);
-    expect(result).toHaveLength(1);
-    expect(result[0].notes).toBe("cloud notes");
+    const { problems, cloudWon } = mergeProblems([local], [cloud]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].notes).toBe("cloud notes");
+    expect(cloudWon).toBe(1);
   });
 
   it("handles cloud updatedAt null, local has timestamp → local wins", () => {
     const local = makeProblem({ id: "shared", notes: "local notes", updatedAt: "2026-03-01T00:00:00.000Z" });
     const cloud = makeProblem({ id: "shared", notes: "cloud notes", updatedAt: null as unknown as string });
-    const result = mergeProblems([local], [cloud]);
-    expect(result).toHaveLength(1);
-    expect(result[0].notes).toBe("local notes");
+    const { problems, cloudWon } = mergeProblems([local], [cloud]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0].notes).toBe("local notes");
+    expect(cloudWon).toBe(0);
   });
 
   it("merges large sets without duplicating shared IDs", () => {
@@ -107,11 +121,13 @@ describe("mergeProblems", () => {
       ...sharedIds.map((id) => makeProblem({ id, updatedAt: "2026-03-01T00:00:00.000Z" })),
       ...Array.from({ length: 5 }, (_, i) => makeProblem({ id: `cloud-only-${i}` })),
     ];
-    const result = mergeProblems(local, cloud);
-    expect(result).toHaveLength(20); // 10 shared + 5 local-only + 5 cloud-only
-    const ids = result.map((p) => p.id);
+    const { problems, cloudAdded, cloudWon } = mergeProblems(local, cloud);
+    expect(problems).toHaveLength(20); // 10 shared + 5 local-only + 5 cloud-only
+    const ids = problems.map((p) => p.id);
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(20); // no duplicates
+    expect(cloudAdded).toBe(5); // 5 cloud-only problems
+    expect(cloudWon).toBe(0); // same timestamps → local wins
   });
 
   it("does not mutate input arrays", () => {
@@ -143,9 +159,9 @@ describe("mergeProblems", () => {
       updatedAt: "2026-03-10T00:00:00.000Z",
     });
     const cloud = makeProblem({ id: "shared", updatedAt: "2026-03-05T00:00:00.000Z" });
-    const result = mergeProblems([local], [cloud]);
-    expect(result).toHaveLength(1);
-    const winner = result[0];
+    const { problems } = mergeProblems([local], [cloud]);
+    expect(problems).toHaveLength(1);
+    const winner = problems[0];
     expect(winner.title).toBe("Two Sum");
     expect(winner.leetcodeNumber).toBe(1);
     expect(winner.url).toBe("https://leetcode.com/problems/two-sum");
@@ -164,45 +180,50 @@ describe("mergeProblems", () => {
 describe("mergeReviewLog", () => {
   it("returns local log when cloud is empty", () => {
     const local = [makeEntry("2026-03-01"), makeEntry("2026-03-02")];
-    const result = mergeReviewLog(local, []);
-    expect(result).toHaveLength(2);
-    expect(result.map((e) => e.date)).toEqual(["2026-03-01", "2026-03-02"]);
+    const { log, addedFromCloud } = mergeReviewLog(local, []);
+    expect(log).toHaveLength(2);
+    expect(log.map((e) => e.date)).toEqual(["2026-03-01", "2026-03-02"]);
+    expect(addedFromCloud).toBe(0);
   });
 
   it("returns cloud log when local is empty", () => {
     const cloud = [makeEntry("2026-03-05"), makeEntry("2026-03-06")];
-    const result = mergeReviewLog([], cloud);
-    expect(result).toHaveLength(2);
-    expect(result.map((e) => e.date)).toEqual(["2026-03-05", "2026-03-06"]);
+    const { log, addedFromCloud } = mergeReviewLog([], cloud);
+    expect(log).toHaveLength(2);
+    expect(log.map((e) => e.date)).toEqual(["2026-03-05", "2026-03-06"]);
+    expect(addedFromCloud).toBe(2);
   });
 
   it("deduplicates entries with the same date", () => {
     const local = [makeEntry("2026-03-01"), makeEntry("2026-03-02")];
     const cloud = [makeEntry("2026-03-02"), makeEntry("2026-03-03")];
-    const result = mergeReviewLog(local, cloud);
-    expect(result).toHaveLength(3);
-    const dates = result.map((e) => e.date);
+    const { log, addedFromCloud } = mergeReviewLog(local, cloud);
+    expect(log).toHaveLength(3);
+    const dates = log.map((e) => e.date);
     expect(dates).toContain("2026-03-01");
     expect(dates).toContain("2026-03-02");
     expect(dates).toContain("2026-03-03");
+    expect(addedFromCloud).toBe(1);
   });
 
   it("unions entries with different dates", () => {
     const local = [makeEntry("2026-03-01"), makeEntry("2026-03-03")];
     const cloud = [makeEntry("2026-03-02"), makeEntry("2026-03-04")];
-    const result = mergeReviewLog(local, cloud);
-    expect(result).toHaveLength(4);
-    expect(result.map((e) => e.date).sort()).toEqual([
+    const { log, addedFromCloud } = mergeReviewLog(local, cloud);
+    expect(log).toHaveLength(4);
+    expect(log.map((e) => e.date).sort()).toEqual([
       "2026-03-01",
       "2026-03-02",
       "2026-03-03",
       "2026-03-04",
     ]);
+    expect(addedFromCloud).toBe(2);
   });
 
   it("handles both empty → empty result", () => {
-    const result = mergeReviewLog([], []);
-    expect(result).toHaveLength(0);
+    const { log, addedFromCloud } = mergeReviewLog([], []);
+    expect(log).toHaveLength(0);
+    expect(addedFromCloud).toBe(0);
   });
 
   it("does not mutate input arrays", () => {
@@ -220,13 +241,14 @@ describe("mergeReviewLog", () => {
   it("preserves order: local entries first, then new cloud entries", () => {
     const local = [makeEntry("2026-03-01"), makeEntry("2026-03-03")];
     const cloud = [makeEntry("2026-03-03"), makeEntry("2026-03-05"), makeEntry("2026-03-07")];
-    const result = mergeReviewLog(local, cloud);
-    expect(result).toHaveLength(4);
+    const { log, addedFromCloud } = mergeReviewLog(local, cloud);
+    expect(log).toHaveLength(4);
     // Local entries come first, in their original order
-    expect(result[0].date).toBe("2026-03-01");
-    expect(result[1].date).toBe("2026-03-03");
+    expect(log[0].date).toBe("2026-03-01");
+    expect(log[1].date).toBe("2026-03-03");
     // Then new cloud entries (not duplicates), in their original order
-    expect(result[2].date).toBe("2026-03-05");
-    expect(result[3].date).toBe("2026-03-07");
+    expect(log[2].date).toBe("2026-03-05");
+    expect(log[3].date).toBe("2026-03-07");
+    expect(addedFromCloud).toBe(2);
   });
 });

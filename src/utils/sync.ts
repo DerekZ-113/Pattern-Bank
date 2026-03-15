@@ -51,7 +51,7 @@ export async function syncOnSignIn(
     const cloudPrefs = cloudPrefsRes.data;
 
     // 2. Merge problems, then deduplicate by leetcodeNumber
-    const merged = mergeProblems(localProblems, cloudProblems);
+    const { problems: merged, cloudAdded, cloudWon } = mergeProblems(localProblems, cloudProblems);
     const { problems: mergedProblems, removedIds: dupIds } = deduplicateProblems(merged);
 
     // Delete duplicate rows from Supabase
@@ -60,7 +60,7 @@ export async function syncOnSignIn(
     }
 
     // 3. Merge review log (deduplicate by date)
-    const mergedLog = mergeReviewLog(localReviewLog, cloudLog);
+    const { log: mergedLog, addedFromCloud: logAddedFromCloud } = mergeReviewLog(localReviewLog, cloudLog);
 
     // 4. Merge preferences
     // If Supabase has preferences, use those (cloud state).
@@ -89,7 +89,7 @@ export async function syncOnSignIn(
         const cloud = cloudMap.get(problem.id)!;
         const cloudTime = cloud.updatedAt ? new Date(cloud.updatedAt).getTime() : 0;
         const localTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
-        if (localTime >= cloudTime) {
+        if (localTime > cloudTime) {
           problemsToPush.push(problem);
         }
       }
@@ -98,12 +98,12 @@ export async function syncOnSignIn(
       await upsertProblems(userId, problemsToPush);
     }
 
-    // Detect whether sync actually changed local state
+    // Detect whether sync actually changed local state — tracked during merge, not post-hoc
     const hasChanges =
+      cloudAdded > 0 ||
+      cloudWon > 0 ||
       dupIds.length > 0 ||
-      mergedProblems.length !== localProblems.length ||
-      mergedProblems.some((p, i) => p.id !== localProblems[i]?.id || p.updatedAt !== localProblems[i]?.updatedAt) ||
-      mergedLog.length !== localReviewLog.length ||
+      logAddedFromCloud > 0 ||
       (cloudPrefs !== null && cloudPrefs.dailyReviewGoal !== localPreferences.dailyReviewGoal);
 
     return {
@@ -129,10 +129,18 @@ export async function syncOnSignIn(
 // MERGE HELPERS
 // ============================================================
 
-export function mergeProblems(localProblems: Problem[], cloudProblems: Problem[]): Problem[] {
+export interface MergeProblemsResult {
+  problems: Problem[];
+  cloudAdded: number;
+  cloudWon: number;
+}
+
+export function mergeProblems(localProblems: Problem[], cloudProblems: Problem[]): MergeProblemsResult {
   const localMap = new Map(localProblems.map((p) => [p.id, p]));
   const cloudMap = new Map(cloudProblems.map((p) => [p.id, p]));
   const merged = new Map<string, Problem>();
+  let cloudAdded = 0;
+  let cloudWon = 0;
 
   // Add all local problems first
   for (const [id, problem] of localMap) {
@@ -144,6 +152,7 @@ export function mergeProblems(localProblems: Problem[], cloudProblems: Problem[]
     if (!merged.has(id)) {
       // Cloud-only — add it
       merged.set(id, problem);
+      cloudAdded++;
     } else {
       // Exists in both — compare updatedAt timestamps
       const local = localMap.get(id)!;
@@ -153,11 +162,12 @@ export function mergeProblems(localProblems: Problem[], cloudProblems: Problem[]
       // If cloud is newer, it wins. If equal or local newer or either missing, local wins (fallback).
       if (cloudTime > localTime) {
         merged.set(id, problem);
+        cloudWon++;
       }
     }
   }
 
-  return Array.from(merged.values());
+  return { problems: Array.from(merged.values()), cloudAdded, cloudWon };
 }
 
 export function deduplicateProblems(problems: Problem[]): { problems: Problem[]; removedIds: string[] } {
@@ -190,10 +200,16 @@ export function deduplicateProblems(problems: Problem[]): { problems: Problem[];
   return { problems: kept, removedIds };
 }
 
-export function mergeReviewLog(localLog: ReviewLogEntry[], cloudLog: ReviewLogEntry[]): ReviewLogEntry[] {
+export interface MergeReviewLogResult {
+  log: ReviewLogEntry[];
+  addedFromCloud: number;
+}
+
+export function mergeReviewLog(localLog: ReviewLogEntry[], cloudLog: ReviewLogEntry[]): MergeReviewLogResult {
   // Deduplicate by date — we only need one entry per date for streak calculation
   const dates = new Set<string>();
   const merged: ReviewLogEntry[] = [];
+  let addedFromCloud = 0;
 
   for (const entry of localLog) {
     if (!dates.has(entry.date)) {
@@ -206,10 +222,11 @@ export function mergeReviewLog(localLog: ReviewLogEntry[], cloudLog: ReviewLogEn
     if (!dates.has(entry.date)) {
       dates.add(entry.date);
       merged.push(entry);
+      addedFromCloud++;
     }
   }
 
-  return merged;
+  return { log: merged, addedFromCloud };
 }
 
 // ============================================================
