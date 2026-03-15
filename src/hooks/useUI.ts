@@ -82,7 +82,6 @@ export default function useUI(): UseUIReturn {
 
   const closeModal = useCallback(() => {
     setModalOpen(false);
-    setEditingProblem(null);
   }, []);
 
   const requestClearData = useCallback(() => {

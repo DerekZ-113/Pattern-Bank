@@ -96,7 +96,7 @@ describe("useUI", () => {
       expect(result.current.modalOpen).toBe(true);
     });
 
-    it("closeModal closes modal and clears editingProblem", () => {
+    it("closeModal closes modal and retains editingProblem", () => {
       const { result } = renderHook(() => useUI());
       act(() => {
         result.current.handleEdit(mockProblem);
@@ -105,7 +105,7 @@ describe("useUI", () => {
         result.current.closeModal();
       });
       expect(result.current.modalOpen).toBe(false);
-      expect(result.current.editingProblem).toBeNull();
+      expect(result.current.editingProblem).toEqual(mockProblem);
     });
   });
 

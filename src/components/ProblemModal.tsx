@@ -52,31 +52,37 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
   }, [isOpen, onClose]);
 
   const isEdit = !!initialData;
-  const [mode, setMode] = useState("leetcode");
-  const [form, setForm] = useState<ProblemFormState>(EMPTY_FORM);
+  const [mode, setMode] = useState(() => initialData?.leetcodeNumber ? "leetcode" : initialData ? "custom" : "leetcode");
+  const [form, setForm] = useState<ProblemFormState>(() => initialData ? {
+    title: initialData.title || "",
+    leetcodeNumber: initialData.leetcodeNumber || "",
+    url: initialData.url || "",
+    difficulty: initialData.difficulty || "Medium",
+    patterns: initialData.patterns || [],
+    confidence: initialData.confidence || 3,
+    notes: initialData.notes || "",
+    excludeFromReview: initialData.excludeFromReview || false,
+  } : EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [attempted, setAttempted] = useState(false);
 
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        title: initialData.title || "",
-        leetcodeNumber: initialData.leetcodeNumber || "",
-        url: initialData.url || "",
-        difficulty: initialData.difficulty || "Medium",
-        patterns: initialData.patterns || [],
-        confidence: initialData.confidence || 3,
-        notes: initialData.notes || "",
-        excludeFromReview: initialData.excludeFromReview || false,
-      });
-      setMode(initialData.leetcodeNumber ? "leetcode" : "custom");
-    } else {
-      setForm(EMPTY_FORM);
-      setMode("leetcode");
-    }
+  const [prevInitialId, setPrevInitialId] = useState<string | null>(initialData?.id ?? null);
+  if ((initialData?.id ?? null) !== prevInitialId) {
+    setPrevInitialId(initialData?.id ?? null);
+    setForm(initialData ? {
+      title: initialData.title || "",
+      leetcodeNumber: initialData.leetcodeNumber || "",
+      url: initialData.url || "",
+      difficulty: initialData.difficulty || "Medium",
+      patterns: initialData.patterns || [],
+      confidence: initialData.confidence || 3,
+      notes: initialData.notes || "",
+      excludeFromReview: initialData.excludeFromReview || false,
+    } : EMPTY_FORM);
+    setMode(initialData?.leetcodeNumber ? "leetcode" : initialData ? "custom" : "leetcode");
     setErrors({});
     setAttempted(false);
-  }, [initialData, isOpen]);
+  }
 
   const validate = useCallback(() => {
     const e: Record<string, string> = {};
