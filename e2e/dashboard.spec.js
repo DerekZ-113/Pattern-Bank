@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { buildProblem, seedProblems } from "./fixtures.js";
+import { buildProblem, seedProblems, localTodayStr } from "./fixtures.js";
 
 test.describe("Dashboard", () => {
   test("shows welcome screen when no problems", async ({ page }) => {
@@ -8,7 +8,7 @@ test.describe("Dashboard", () => {
   });
 
   test("shows stats and heatmap with problems", async ({ page }) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = localTodayStr();
     const problems = [
       buildProblem({ title: "Alpha Problem", patterns: ["DP"], confidence: 4, nextReviewDate: today }),
       buildProblem({ title: "Beta Problem", patterns: ["Tree"], confidence: 2, nextReviewDate: today }),

@@ -15,6 +15,7 @@ import {
 } from "../src/utils/sync";
 import type { User } from "@supabase/supabase-js";
 import type { Problem, Confidence } from "../src/types";
+import { addDays, todayStr } from "../src/utils/dateHelpers";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -361,7 +362,7 @@ describe("useProblems", () => {
 
   describe("handleDismiss", () => {
     it("sets nextReviewDate to tomorrow", () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayStr();
       const p = makeProblem({ id: "dismiss-1", nextReviewDate: "2020-01-01" });
       (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
 
@@ -377,7 +378,7 @@ describe("useProblems", () => {
       // Tomorrow should be strictly after today
       expect(updated.nextReviewDate > today).toBe(true);
       // And it should be exactly 1 day after today
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      const tomorrow = addDays(today, 1);
       expect(updated.nextReviewDate).toBe(tomorrow);
     });
   });

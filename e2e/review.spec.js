@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { buildProblem, seedProblems, getStoredProblems } from "./fixtures.js";
+import { buildProblem, seedProblems, getStoredProblems, localTodayStr } from "./fixtures.js";
 
 test.describe("Review Flow", () => {
   test("review a due problem from dashboard", async ({ page }) => {
@@ -9,7 +9,7 @@ test.describe("Review Flow", () => {
       difficulty: "Easy",
       patterns: ["Binary Search"],
       confidence: 2,
-      nextReviewDate: new Date().toISOString().split("T")[0], // due today
+      nextReviewDate: localTodayStr(), // due today
     });
     await seedProblems(page, [problem]);
     await page.goto("/");
@@ -36,7 +36,7 @@ test.describe("Review Flow", () => {
   });
 
   test("dismiss a problem postpones it", async ({ page }) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = localTodayStr();
     const problem = buildProblem({
       title: "Two Sum",
       nextReviewDate: today,
@@ -52,7 +52,7 @@ test.describe("Review Flow", () => {
   });
 
   test("excluded problems do not appear in reviews", async ({ page }) => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = localTodayStr();
     const included = buildProblem({ title: "Visible Problem", nextReviewDate: today });
     const excluded = buildProblem({
       title: "Hidden Problem",
