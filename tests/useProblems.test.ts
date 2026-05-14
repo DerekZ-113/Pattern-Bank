@@ -6,6 +6,9 @@ import {
   saveProblems,
   logReviewToday,
   saveReviewLog,
+  recordProblemTombstone,
+  saveProblemTombstones,
+  saveDataReset,
 } from "../src/utils/storage";
 import {
   pushProblemToCloud,
@@ -15,6 +18,7 @@ import {
 } from "../src/utils/sync";
 import type { User } from "@supabase/supabase-js";
 import type { Problem, Confidence } from "../src/types";
+import { addDays, todayStr } from "../src/utils/dateHelpers";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -29,6 +33,11 @@ vi.mock("../src/utils/storage", () => ({
   logReviewEvent: vi.fn(),
   loadReviewEvents: vi.fn(() => []),
   saveReviewEvents: vi.fn(),
+  loadProblemTombstones: vi.fn(() => []),
+  saveProblemTombstones: vi.fn(),
+  recordProblemTombstone: vi.fn(),
+  loadDataReset: vi.fn(() => null),
+  saveDataReset: vi.fn(),
   importData: vi.fn(),
   exportData: vi.fn(),
   calculateStreak: vi.fn(() => 0),
@@ -39,7 +48,11 @@ vi.mock("../src/utils/sync", () => ({
   syncOnSignIn: vi.fn().mockResolvedValue({
     problems: [],
     reviewLog: [],
+    reviewEvents: [],
     preferences: { dailyReviewGoal: 5 },
+    problemTombstones: [],
+    dataReset: null,
+    hasChanges: false,
     error: null,
   }),
   pushProblemToCloud: vi.fn(),
@@ -47,9 +60,13 @@ vi.mock("../src/utils/sync", () => ({
   deleteProblemFromCloud: vi.fn(),
   pushReviewToCloud: vi.fn(),
   pushPreferencesToCloud: vi.fn(),
+  clearAllCloudData: vi.fn(),
   deduplicateProblems: vi.fn((problems: Problem[]) => ({ problems, removedIds: [] })),
-  mergeProblems: vi.fn(),
-  mergeReviewLog: vi.fn(),
+  mergeProblems: vi.fn((local, cloud) => ({ problems: [...local, ...cloud], cloudAdded: cloud.length, cloudWon: 0 })),
+  mergeReviewLog: vi.fn((local, cloud) => ({ log: [...local, ...cloud], addedFromCloud: cloud.length })),
+  mergeReviewEvents: vi.fn((local, cloud) => ({ events: [...local, ...cloud], addedFromCloud: cloud.length, localOnlyEvents: [] })),
+  mergeProblemTombstones: vi.fn((local, cloud) => ({ tombstones: [...local, ...cloud], addedFromCloud: cloud.length })),
+  filterTombstonedProblems: vi.fn((problems) => problems),
 }));
 
 vi.mock("posthog-js", () => ({
@@ -277,7 +294,24 @@ describe("useProblems", () => {
         result.current.handleDeleteConfirm(p);
       });
 
-      expect(deleteProblemFromCloud).toHaveBeenCalledWith("del-cloud-1");
+      expect(recordProblemTombstone).toHaveBeenCalledWith("del-cloud-1", expect.any(String));
+      expect(deleteProblemFromCloud).toHaveBeenCalledWith("user-123", "del-cloud-1", expect.any(String));
+    });
+
+    it("records a local tombstone even when signed out", () => {
+      const p = makeProblem({ id: "del-local-1" });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleDeleteConfirm(p);
+      });
+
+      expect(recordProblemTombstone).toHaveBeenCalledWith("del-local-1", expect.any(String));
+      expect(deleteProblemFromCloud).not.toHaveBeenCalled();
     });
   });
 
@@ -361,7 +395,7 @@ describe("useProblems", () => {
 
   describe("handleDismiss", () => {
     it("sets nextReviewDate to tomorrow", () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayStr();
       const p = makeProblem({ id: "dismiss-1", nextReviewDate: "2020-01-01" });
       (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
 
@@ -377,7 +411,7 @@ describe("useProblems", () => {
       // Tomorrow should be strictly after today
       expect(updated.nextReviewDate > today).toBe(true);
       // And it should be exactly 1 day after today
-      const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+      const tomorrow = addDays(today, 1);
       expect(updated.nextReviewDate).toBe(tomorrow);
     });
   });
@@ -501,6 +535,8 @@ describe("useProblems", () => {
 
       expect(result.current.problems).toHaveLength(0);
       expect(saveReviewLog).toHaveBeenCalledWith([]);
+      expect(saveDataReset).toHaveBeenCalledWith({ resetAt: expect.any(String) });
+      expect(saveProblemTombstones).toHaveBeenCalledWith([]);
     });
   });
 

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { PATTERN_COLORS, getVisiblePatterns } from "../utils/constants";
 import { calculateStreak } from "../utils/storage";
-import { todayStr, addDays } from "../utils/dateHelpers";
+import { todayStr, addDays, formatLocalDate } from "../utils/dateHelpers";
 import {
   calculateLongestStreak,
   buildReviewCountMap,
@@ -149,7 +149,7 @@ function StreakHeatmap({
 
     const cursor = new Date(startDate);
     while (cursor <= endDate) {
-      const dateStr = cursor.toISOString().split("T")[0];
+      const dateStr = formatLocalDate(cursor);
       const dayOfWeek = cursor.getDay(); // 0=Sun
       const month = cursor.getMonth();
       const isFuture = dateStr > today;

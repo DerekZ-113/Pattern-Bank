@@ -7,12 +7,20 @@ const STORAGE_KEY = "patternbank-problems";
 const REVIEW_LOG_KEY = "patternbank-review-log";
 const PREFERENCES_KEY = "patternbank-preferences";
 
+export function localTodayStr() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 /**
  * Build a problem object matching the app's internal shape.
  */
 export function buildProblem(overrides = {}) {
   const now = new Date().toISOString();
-  const today = now.split("T")[0];
+  const today = localTodayStr();
   return {
     id: `test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     title: "Test Problem",

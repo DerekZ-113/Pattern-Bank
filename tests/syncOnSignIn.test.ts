@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { Problem, ReviewLogEntry, Preferences } from "../src/types";
+import type { DataReset, Problem, ProblemTombstone, ReviewEvent, ReviewLogEntry, Preferences } from "../src/types";
 
 vi.mock("../src/utils/supabaseData", () => ({
   fetchProblems: vi.fn(),
+  fetchProblemTombstones: vi.fn(),
+  upsertProblemTombstones: vi.fn(),
+  fetchDataReset: vi.fn(),
+  upsertDataReset: vi.fn(),
   fetchReviewLog: vi.fn(),
   fetchReviewEvents: vi.fn(),
   fetchPreferences: vi.fn(),
@@ -13,27 +17,41 @@ vi.mock("../src/utils/supabaseData", () => ({
   deleteProblem: vi.fn(),
   logReview: vi.fn(),
   batchInsertReviewLogs: vi.fn(),
+  deleteAllUserProblems: vi.fn(),
+  deleteAllUserReviewLog: vi.fn(),
   fetchProblemReviewHistory: vi.fn(),
   submitFeedback: vi.fn(),
 }));
 
 import {
   fetchProblems,
+  fetchProblemTombstones,
+  upsertProblemTombstones,
+  fetchDataReset,
+  upsertDataReset,
   fetchReviewLog,
   fetchReviewEvents,
   fetchPreferences,
   upsertProblems,
   deleteProblems,
+  deleteAllUserProblems,
+  deleteAllUserReviewLog,
   upsertPreferences,
 } from "../src/utils/supabaseData";
 import { syncOnSignIn } from "../src/utils/sync";
 
 const mockFetchProblems = fetchProblems as ReturnType<typeof vi.fn>;
+const mockFetchProblemTombstones = fetchProblemTombstones as ReturnType<typeof vi.fn>;
+const mockUpsertProblemTombstones = upsertProblemTombstones as ReturnType<typeof vi.fn>;
+const mockFetchDataReset = fetchDataReset as ReturnType<typeof vi.fn>;
+const mockUpsertDataReset = upsertDataReset as ReturnType<typeof vi.fn>;
 const mockFetchReviewLog = fetchReviewLog as ReturnType<typeof vi.fn>;
 const mockFetchReviewEvents = fetchReviewEvents as ReturnType<typeof vi.fn>;
 const mockFetchPreferences = fetchPreferences as ReturnType<typeof vi.fn>;
 const mockUpsertProblems = upsertProblems as ReturnType<typeof vi.fn>;
 const mockDeleteProblems = deleteProblems as ReturnType<typeof vi.fn>;
+const mockDeleteAllUserProblems = deleteAllUserProblems as ReturnType<typeof vi.fn>;
+const mockDeleteAllUserReviewLog = deleteAllUserReviewLog as ReturnType<typeof vi.fn>;
 const mockUpsertPreferences = upsertPreferences as ReturnType<typeof vi.fn>;
 
 const USER_ID = "user-abc";
@@ -61,19 +79,38 @@ function makeEntry(date: string): ReviewLogEntry {
   return { date };
 }
 
+function makeEvent(overrides: Partial<ReviewEvent> = {}): ReviewEvent {
+  return {
+    date: "2026-03-10",
+    problemId: "test-1",
+    confidence: 3,
+    patterns: ["Hash Table"],
+    timestamp: "2026-03-10T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
 const defaultPrefs: Preferences = { dailyReviewGoal: 5, hidePatternsDuringReview: false, enabledExtraPatterns: [] };
 const cloudPrefs: Preferences = { dailyReviewGoal: 10, hidePatternsDuringReview: false, enabledExtraPatterns: [] };
+const localTombstone: ProblemTombstone = { problemId: "deleted-1", deletedAt: "2026-03-10T12:00:00.000Z" };
+const localReset: DataReset = { resetAt: "2026-03-10T12:00:00.000Z" };
 
 beforeEach(() => {
   vi.clearAllMocks();
 
   // Sensible defaults: no cloud data, no errors
   mockFetchProblems.mockResolvedValue({ data: [], error: null });
+  mockFetchProblemTombstones.mockResolvedValue({ data: [], error: null });
+  mockFetchDataReset.mockResolvedValue({ data: null, error: null });
   mockFetchReviewLog.mockResolvedValue({ data: [], error: null });
   mockFetchReviewEvents.mockResolvedValue({ data: [], error: null });
   mockFetchPreferences.mockResolvedValue({ data: null, error: null });
   mockUpsertProblems.mockResolvedValue({ data: [], error: null });
   mockDeleteProblems.mockResolvedValue({ error: null });
+  mockUpsertProblemTombstones.mockResolvedValue({ error: null });
+  mockUpsertDataReset.mockResolvedValue({ error: null });
+  mockDeleteAllUserProblems.mockResolvedValue({ error: null });
+  mockDeleteAllUserReviewLog.mockResolvedValue({ error: null });
   mockUpsertPreferences.mockResolvedValue({ data: null, error: null });
 });
 
@@ -224,6 +261,103 @@ describe("syncOnSignIn", () => {
       expect(dates).toContain("2025-01-01");
       expect(dates).toContain("2025-01-02");
       expect(dates).toContain("2025-01-03");
+    });
+
+    it("does not resurrect a cloud problem when a local tombstone exists", async () => {
+      const deletedCloudProblem = makeProblem({
+        id: "deleted-1",
+        title: "Deleted Elsewhere",
+        updatedAt: "2026-03-11T12:00:00.000Z",
+      });
+      mockFetchProblems.mockResolvedValue({ data: [deletedCloudProblem], error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [], defaultPrefs, [localTombstone], null);
+
+      expect(result.problems).toEqual([]);
+      expect(result.problemTombstones).toEqual([localTombstone]);
+      expect(mockUpsertProblemTombstones).toHaveBeenCalledWith(USER_ID, [localTombstone]);
+      expect(mockDeleteProblems).toHaveBeenCalledWith(["deleted-1"]);
+      expect(mockUpsertProblems).not.toHaveBeenCalled();
+    });
+
+    it("applies cloud tombstones to local problems before merging", async () => {
+      const localProblem = makeProblem({ id: "local-1" });
+      const cloudTombstone = { problemId: "local-1", deletedAt: "2026-03-12T12:00:00.000Z" };
+      mockFetchProblemTombstones.mockResolvedValue({ data: [cloudTombstone], error: null });
+
+      const result = await syncOnSignIn(USER_ID, [localProblem], [], [], defaultPrefs);
+
+      expect(result.problems).toEqual([]);
+      expect(result.problemTombstones).toEqual([cloudTombstone]);
+      expect(result.hasChanges).toBe(true);
+    });
+
+    it("uses the newest tombstone when local and cloud both have one for the same problem", async () => {
+      const olderLocal = { problemId: "p1", deletedAt: "2026-03-10T12:00:00.000Z" };
+      const newerCloud = { problemId: "p1", deletedAt: "2026-03-11T12:00:00.000Z" };
+      mockFetchProblemTombstones.mockResolvedValue({ data: [newerCloud], error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [], defaultPrefs, [olderLocal], null);
+
+      expect(result.problemTombstones).toEqual([newerCloud]);
+    });
+
+    it("treats tombstone fetch failure as critical to avoid resurrecting deleted rows", async () => {
+      const localProblem = makeProblem({ id: "local-1" });
+      const fetchError = new Error("tombstone fetch failed");
+      mockFetchProblemTombstones.mockResolvedValue({ data: null, error: fetchError });
+
+      const result = await syncOnSignIn(USER_ID, [localProblem], [], [], defaultPrefs);
+
+      expect(result.problems).toEqual([localProblem]);
+      expect(result.error).toBe(fetchError);
+      expect(mockUpsertProblems).not.toHaveBeenCalled();
+    });
+
+    it("applies a newer cloud reset marker before merging local data", async () => {
+      const localProblem = makeProblem({ id: "local-1" });
+      const localLog = [makeEntry("2026-03-10")];
+      const localEvents = [makeEvent({ problemId: "local-1" })];
+      const cloudReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+      mockFetchDataReset.mockResolvedValue({ data: cloudReset, error: null });
+
+      const result = await syncOnSignIn(USER_ID, [localProblem], localLog, localEvents, defaultPrefs, [], null);
+
+      expect(result.problems).toEqual([]);
+      expect(result.reviewLog).toEqual([]);
+      expect(result.reviewEvents).toEqual([]);
+      expect(result.dataReset).toEqual(cloudReset);
+      expect(result.hasChanges).toBe(true);
+    });
+
+    it("does not resurrect stale cloud problems older than a newer cloud reset marker", async () => {
+      const staleCloudProblem = makeProblem({
+        id: "stale-cloud-1",
+        updatedAt: "2026-03-10T12:00:00.000Z",
+      });
+      const cloudReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+      mockFetchProblems.mockResolvedValue({ data: [staleCloudProblem], error: null });
+      mockFetchDataReset.mockResolvedValue({ data: cloudReset, error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [], defaultPrefs, [], null);
+
+      expect(result.problems).toEqual([]);
+      expect(mockDeleteProblems).toHaveBeenCalledWith(["stale-cloud-1"]);
+    });
+
+    it("uses a newer local reset marker to suppress stale cloud data and repair cloud state", async () => {
+      const cloudProblem = makeProblem({ id: "cloud-1" });
+      const olderCloudReset = { resetAt: "2026-03-09T12:00:00.000Z" };
+      mockFetchProblems.mockResolvedValue({ data: [cloudProblem], error: null });
+      mockFetchDataReset.mockResolvedValue({ data: olderCloudReset, error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [], defaultPrefs, [], localReset);
+
+      expect(result.problems).toEqual([]);
+      expect(result.dataReset).toEqual(localReset);
+      expect(mockUpsertDataReset).toHaveBeenCalledWith(USER_ID, localReset);
+      expect(mockDeleteAllUserProblems).toHaveBeenCalledWith(USER_ID);
+      expect(mockDeleteAllUserReviewLog).toHaveBeenCalledWith(USER_ID);
     });
   });
 

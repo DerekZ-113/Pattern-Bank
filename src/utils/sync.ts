@@ -4,6 +4,11 @@ import {
   upsertProblems,
   deleteProblem as deleteFromSupabase,
   deleteProblems as deleteMultipleFromSupabase,
+  fetchProblemTombstones,
+  upsertProblemTombstone,
+  upsertProblemTombstones,
+  fetchDataReset,
+  upsertDataReset,
   deleteAllUserProblems,
   deleteAllUserReviewLog,
   fetchReviewLog,
@@ -13,15 +18,90 @@ import {
   fetchPreferences,
   upsertPreferences,
 } from "./supabaseData";
-import type { Problem, ReviewLogEntry, ReviewEvent, Preferences, Confidence } from "../types";
+import type {
+  Problem,
+  ReviewLogEntry,
+  ReviewEvent,
+  Preferences,
+  Confidence,
+  ProblemTombstone,
+  DataReset,
+} from "../types";
 
 export interface SyncResult {
   problems: Problem[];
   reviewLog: ReviewLogEntry[];
   reviewEvents: ReviewEvent[];
   preferences: Preferences;
+  problemTombstones: ProblemTombstone[];
+  dataReset: DataReset | null;
   hasChanges: boolean;
   error: unknown;
+}
+
+function localSyncResult(
+  problems: Problem[],
+  reviewLog: ReviewLogEntry[],
+  reviewEvents: ReviewEvent[],
+  preferences: Preferences,
+  problemTombstones: ProblemTombstone[],
+  dataReset: DataReset | null,
+  error: unknown
+): SyncResult {
+  return {
+    problems,
+    reviewLog,
+    reviewEvents,
+    preferences,
+    problemTombstones,
+    dataReset,
+    hasChanges: false,
+    error,
+  };
+}
+
+function resetTime(reset: DataReset | null | undefined): number {
+  if (!reset) return 0;
+  const ms = new Date(reset.resetAt).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function compareDataResets(localReset: DataReset | null, cloudReset: DataReset | null): "local" | "cloud" | "none" {
+  const localTime = resetTime(localReset);
+  const cloudTime = resetTime(cloudReset);
+  if (localTime > cloudTime) return "local";
+  if (cloudTime > localTime) return "cloud";
+  return "none";
+}
+
+function newestDataReset(localReset: DataReset | null, cloudReset: DataReset | null): DataReset | null {
+  return compareDataResets(localReset, cloudReset) === "cloud" ? cloudReset : localReset;
+}
+
+function filterProblemsAfterDataReset(problems: Problem[], reset: DataReset | null): { problems: Problem[]; removedIds: string[] } {
+  const cutoff = resetTime(reset);
+  if (cutoff === 0) return { problems, removedIds: [] };
+
+  const kept: Problem[] = [];
+  const removedIds: string[] = [];
+  for (const problem of problems) {
+    const updatedAt = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
+    if (Number.isFinite(updatedAt) && updatedAt > cutoff) {
+      kept.push(problem);
+    } else {
+      removedIds.push(problem.id);
+    }
+  }
+  return { problems: kept, removedIds };
+}
+
+function filterReviewEventsAfterDataReset(events: ReviewEvent[], reset: DataReset | null): ReviewEvent[] {
+  const cutoff = resetTime(reset);
+  if (cutoff === 0) return events;
+  return events.filter((event) => {
+    const timestamp = new Date(event.timestamp).getTime();
+    return Number.isFinite(timestamp) && timestamp > cutoff;
+  });
 }
 
 // ============================================================
@@ -36,12 +116,23 @@ export async function syncOnSignIn(
   localProblems: Problem[],
   localReviewLog: ReviewLogEntry[],
   localReviewEvents: ReviewEvent[],
-  localPreferences: Preferences
+  localPreferences: Preferences,
+  localProblemTombstones: ProblemTombstone[] = [],
+  localDataReset: DataReset | null = null
 ): Promise<SyncResult> {
   try {
     // 1. Fetch everything from Supabase in parallel
-    const [cloudProblemsRes, cloudLogRes, cloudEventsRes, cloudPrefsRes] = await Promise.all([
+    const [
+      cloudProblemsRes,
+      cloudTombstonesRes,
+      cloudResetRes,
+      cloudLogRes,
+      cloudEventsRes,
+      cloudPrefsRes,
+    ] = await Promise.all([
       fetchProblems(userId),
+      fetchProblemTombstones(userId),
+      fetchDataReset(userId),
       fetchReviewLog(userId),
       fetchReviewEvents(userId),
       fetchPreferences(userId),
@@ -50,28 +141,87 @@ export async function syncOnSignIn(
     // If any fetch failed critically, return local data unchanged
     if (cloudProblemsRes.error) {
       console.error("Sync: failed to fetch problems", cloudProblemsRes.error);
-      return { problems: localProblems, reviewLog: localReviewLog, reviewEvents: localReviewEvents, preferences: localPreferences, hasChanges: false, error: cloudProblemsRes.error };
+      return localSyncResult(localProblems, localReviewLog, localReviewEvents, localPreferences, localProblemTombstones, localDataReset, cloudProblemsRes.error);
+    }
+    if (cloudTombstonesRes.error) {
+      console.error("Sync: failed to fetch problem tombstones", cloudTombstonesRes.error);
+      return localSyncResult(localProblems, localReviewLog, localReviewEvents, localPreferences, localProblemTombstones, localDataReset, cloudTombstonesRes.error);
+    }
+    if (cloudResetRes.error) {
+      console.error("Sync: failed to fetch data reset marker", cloudResetRes.error);
+      return localSyncResult(localProblems, localReviewLog, localReviewEvents, localPreferences, localProblemTombstones, localDataReset, cloudResetRes.error);
     }
 
-    const cloudProblems = cloudProblemsRes.data || [];
-    const cloudLog = cloudLogRes.data || [];
-    const cloudEvents = cloudEventsRes.data || [];
+    const cloudProblems = cloudProblemsRes.data ?? [];
+    const cloudTombstones = cloudTombstonesRes.data ?? [];
+    const cloudDataReset = cloudResetRes.data ?? null;
+    const resetWinner = compareDataResets(localDataReset, cloudDataReset);
+
+    let effectiveLocalProblems = localProblems;
+    let effectiveLocalLog = localReviewLog;
+    let effectiveLocalEvents = localReviewEvents;
+    let effectiveCloudProblems = cloudProblems;
+    let effectiveCloudLog = cloudLogRes.data ?? [];
+    let effectiveCloudEvents = cloudEventsRes.data ?? [];
+    let resetRemovedCloudProblemIds: string[] = [];
+
+    if (resetWinner === "cloud") {
+      effectiveLocalProblems = [];
+      effectiveLocalLog = [];
+      effectiveLocalEvents = [];
+      const filteredCloud = filterProblemsAfterDataReset(cloudProblems, cloudDataReset);
+      effectiveCloudProblems = filteredCloud.problems;
+      effectiveCloudEvents = filterReviewEventsAfterDataReset(effectiveCloudEvents, cloudDataReset);
+      effectiveCloudLog = [];
+      resetRemovedCloudProblemIds = filteredCloud.removedIds;
+    } else if (resetWinner === "local") {
+      effectiveCloudProblems = [];
+      effectiveCloudLog = [];
+      effectiveCloudEvents = [];
+      await upsertDataReset(userId, localDataReset!);
+      const [problemsDeleteResult, logDeleteResult] = await Promise.all([
+        deleteAllUserProblems(userId),
+        deleteAllUserReviewLog(userId),
+      ]);
+      if (problemsDeleteResult.error) console.error("Sync: failed to repair cloud reset (problems):", problemsDeleteResult.error);
+      if (logDeleteResult.error) console.error("Sync: failed to repair cloud reset (review log):", logDeleteResult.error);
+    }
+
+    const dataReset = newestDataReset(localDataReset, cloudDataReset);
+    const {
+      tombstones: mergedTombstones,
+      addedFromCloud: tombstonesAddedFromCloud,
+    } = mergeProblemTombstones(localProblemTombstones, cloudTombstones);
+
+    const filteredLocalProblems = filterTombstonedProblems(effectiveLocalProblems, mergedTombstones);
+    const filteredCloudProblems = filterTombstonedProblems(effectiveCloudProblems, mergedTombstones);
+    const tombstoneIds = new Set(mergedTombstones.map((t) => t.problemId));
+    const tombstonedCloudIds = effectiveCloudProblems
+      .filter((p) => tombstoneIds.has(p.id))
+      .map((p) => p.id);
+
     const cloudPrefs = cloudPrefsRes.data;
 
     // 2. Merge problems, then deduplicate by leetcodeNumber
-    const { problems: merged, cloudAdded, cloudWon } = mergeProblems(localProblems, cloudProblems);
+    const { problems: merged, cloudAdded, cloudWon } = mergeProblems(filteredLocalProblems, filteredCloudProblems);
     const { problems: mergedProblems, removedIds: dupIds } = deduplicateProblems(merged);
 
-    // Delete duplicate rows from Supabase
-    if (dupIds.length > 0) {
-      await deleteMultipleFromSupabase(dupIds);
+    // Delete duplicate and tombstoned rows from Supabase
+    const idsToDelete = Array.from(new Set([...dupIds, ...tombstonedCloudIds, ...resetRemovedCloudProblemIds]));
+    if (idsToDelete.length > 0) {
+      await deleteMultipleFromSupabase(idsToDelete);
+    }
+
+    if (mergedTombstones.length > 0) {
+      const { error } = await upsertProblemTombstones(userId, mergedTombstones);
+      if (error) console.error("Sync: failed to upsert problem tombstones", error);
     }
 
     // 3. Merge review log (deduplicate by date)
-    const { log: mergedLog, addedFromCloud: logAddedFromCloud } = mergeReviewLog(localReviewLog, cloudLog);
+    const { log: mergedLog, addedFromCloud: logAddedFromCloud } = mergeReviewLog(effectiveLocalLog, effectiveCloudLog);
 
     // 4. Merge review events (deduplicate by problemId+timestamp)
-    const { events: mergedEvents, addedFromCloud: eventsAddedFromCloud, localOnlyEvents } = mergeReviewEvents(localReviewEvents, cloudEvents);
+    const { events: mergedEvents, addedFromCloud: eventsAddedFromCloud, localOnlyEvents } = mergeReviewEvents(effectiveLocalEvents, effectiveCloudEvents);
 
     // Push local-only review events to cloud
     if (localOnlyEvents.length > 0) {
@@ -91,9 +241,9 @@ export async function syncOnSignIn(
     }
 
     // 5. Push merged problems to Supabase where needed (batched)
-    const cloudIds = new Set(cloudProblems.map((p) => p.id));
-    const localIds = new Set(localProblems.map((p) => p.id));
-    const cloudMap = new Map(cloudProblems.map((p) => [p.id, p]));
+    const cloudIds = new Set(filteredCloudProblems.map((p) => p.id));
+    const localIds = new Set(filteredLocalProblems.map((p) => p.id));
+    const cloudMap = new Map(filteredCloudProblems.map((p) => [p.id, p]));
 
     const problemsToPush: Problem[] = [];
     for (const problem of mergedProblems) {
@@ -118,7 +268,9 @@ export async function syncOnSignIn(
     const hasChanges =
       cloudAdded > 0 ||
       cloudWon > 0 ||
-      dupIds.length > 0 ||
+      idsToDelete.length > 0 ||
+      tombstonesAddedFromCloud > 0 ||
+      resetWinner === "cloud" ||
       logAddedFromCloud > 0 ||
       eventsAddedFromCloud > 0 ||
       (cloudPrefs !== null && cloudPrefs.dailyReviewGoal !== localPreferences.dailyReviewGoal);
@@ -128,6 +280,8 @@ export async function syncOnSignIn(
       reviewLog: mergedLog,
       reviewEvents: mergedEvents,
       preferences: mergedPreferences,
+      problemTombstones: mergedTombstones,
+      dataReset,
       hasChanges,
       error: null,
     };
@@ -138,6 +292,8 @@ export async function syncOnSignIn(
       reviewLog: localReviewLog,
       reviewEvents: localReviewEvents,
       preferences: localPreferences,
+      problemTombstones: localProblemTombstones,
+      dataReset: localDataReset,
       hasChanges: false,
       error: err,
     };
@@ -187,6 +343,49 @@ export function mergeProblems(localProblems: Problem[], cloudProblems: Problem[]
   }
 
   return { problems: Array.from(merged.values()), cloudAdded, cloudWon };
+}
+
+export interface MergeProblemTombstonesResult {
+  tombstones: ProblemTombstone[];
+  addedFromCloud: number;
+}
+
+export function mergeProblemTombstones(
+  localTombstones: ProblemTombstone[],
+  cloudTombstones: ProblemTombstone[]
+): MergeProblemTombstonesResult {
+  const merged = new Map<string, ProblemTombstone>();
+  const localMap = new Map(localTombstones.map((t) => [t.problemId, t]));
+  let addedFromCloud = 0;
+
+  for (const tombstone of localTombstones) {
+    merged.set(tombstone.problemId, tombstone);
+  }
+
+  for (const tombstone of cloudTombstones) {
+    const existing = merged.get(tombstone.problemId);
+    if (!existing) {
+      merged.set(tombstone.problemId, tombstone);
+      addedFromCloud++;
+      continue;
+    }
+    const existingTime = new Date(existing.deletedAt).getTime();
+    const cloudTime = new Date(tombstone.deletedAt).getTime();
+    if (cloudTime > existingTime) {
+      merged.set(tombstone.problemId, tombstone);
+      if (localMap.has(tombstone.problemId)) {
+        addedFromCloud++;
+      }
+    }
+  }
+
+  return { tombstones: Array.from(merged.values()), addedFromCloud };
+}
+
+export function filterTombstonedProblems(problems: Problem[], tombstones: ProblemTombstone[]): Problem[] {
+  if (tombstones.length === 0) return problems;
+  const deletedIds = new Set(tombstones.map((t) => t.problemId));
+  return problems.filter((p) => !deletedIds.has(p.id));
 }
 
 export function deduplicateProblems(problems: Problem[]): { problems: Problem[]; removedIds: string[] } {
@@ -316,9 +515,12 @@ export async function pushProblemToCloud(userId: string, problem: Problem): Prom
   if (error) console.error("Cloud push failed (problem):", error);
 }
 
-export async function deleteProblemFromCloud(problemId: string): Promise<void> {
-  const { error } = await deleteFromSupabase(problemId);
-  if (error) console.error("Cloud push failed (delete):", error);
+export async function deleteProblemFromCloud(userId: string, problemId: string, deletedAt: string = new Date().toISOString()): Promise<void> {
+  const tombstoneResult = await upsertProblemTombstone(userId, { problemId, deletedAt });
+  if (tombstoneResult?.error) console.error("Cloud push failed (problem tombstone):", tombstoneResult.error);
+
+  const deleteResult = await deleteFromSupabase(problemId);
+  if (deleteResult.error) console.error("Cloud push failed (delete):", deleteResult.error);
 }
 
 export async function pushReviewToCloud(
@@ -344,7 +546,10 @@ export async function pushPreferencesToCloud(userId: string, prefs: Preferences)
   if (error) console.error("Cloud push failed (preferences):", error);
 }
 
-export async function clearAllCloudData(userId: string): Promise<void> {
+export async function clearAllCloudData(userId: string, resetAt: string = new Date().toISOString()): Promise<void> {
+  const resetResult = await upsertDataReset(userId, { resetAt });
+  if (resetResult.error) console.error("Cloud clear failed (reset marker):", resetResult.error);
+
   const [problemsResult, logResult] = await Promise.all([
     deleteAllUserProblems(userId),
     deleteAllUserReviewLog(userId),

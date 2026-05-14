@@ -29,6 +29,11 @@ const {
   loadReviewEvents,
   saveReviewEvents,
   logReviewEvent,
+  loadProblemTombstones,
+  saveProblemTombstones,
+  recordProblemTombstone,
+  loadDataReset,
+  saveDataReset,
   importData,
   exportData,
 } = await import("../src/utils/storage");
@@ -212,6 +217,57 @@ describe("logReviewEvent", () => {
     logReviewEvent("p2", 5, ["Tree"]);
     logReviewEvent("p1", 4, ["DP"]);
     expect(loadReviewEvents()).toHaveLength(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sync tombstones / reset markers
+// ---------------------------------------------------------------------------
+
+describe("loadProblemTombstones / saveProblemTombstones", () => {
+  it("returns empty array when nothing stored", () => {
+    expect(loadProblemTombstones()).toEqual([]);
+  });
+
+  it("round-trips problem tombstones", () => {
+    const tombstones = [
+      { problemId: "p1", deletedAt: "2026-03-10T12:00:00.000Z" },
+      { problemId: "p2", deletedAt: "2026-03-11T12:00:00.000Z" },
+    ];
+    saveProblemTombstones(tombstones);
+    expect(loadProblemTombstones()).toEqual(tombstones);
+  });
+
+  it("keeps the newest deletion per problem when recording tombstones", () => {
+    recordProblemTombstone("p1", "2026-03-10T12:00:00.000Z");
+    recordProblemTombstone("p1", "2026-03-09T12:00:00.000Z");
+    recordProblemTombstone("p1", "2026-03-11T12:00:00.000Z");
+
+    expect(loadProblemTombstones()).toEqual([
+      { problemId: "p1", deletedAt: "2026-03-11T12:00:00.000Z" },
+    ]);
+  });
+
+  it("returns empty array on corrupted JSON", () => {
+    localStorageMock.setItem("patternbank-problem-tombstones", "bad{json");
+    expect(loadProblemTombstones()).toEqual([]);
+  });
+});
+
+describe("loadDataReset / saveDataReset", () => {
+  it("returns null when no reset marker is stored", () => {
+    expect(loadDataReset()).toBeNull();
+  });
+
+  it("round-trips the data reset marker", () => {
+    const reset = { resetAt: "2026-03-10T12:00:00.000Z" };
+    saveDataReset(reset);
+    expect(loadDataReset()).toEqual(reset);
+  });
+
+  it("returns null on corrupted JSON", () => {
+    localStorageMock.setItem("patternbank-data-reset", "bad{json");
+    expect(loadDataReset()).toBeNull();
   });
 });
 

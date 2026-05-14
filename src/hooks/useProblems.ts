@@ -5,10 +5,17 @@ import { getIntervalDays } from "../utils/spacedRepetition";
 import {
   loadProblems,
   saveProblems,
+  loadReviewLog,
   saveReviewLog,
   logReviewToday,
   logReviewEvent,
+  loadReviewEvents,
   saveReviewEvents,
+  loadProblemTombstones,
+  saveProblemTombstones,
+  recordProblemTombstone,
+  loadDataReset,
+  saveDataReset,
   importData,
 } from "../utils/storage";
 import usePreferences from "./usePreferences";
@@ -28,10 +35,15 @@ import {
   pushReviewToCloud,
   pushReviewEventsToCloud,
   deduplicateProblems,
+  mergeProblems,
+  mergeReviewLog,
+  mergeReviewEvents,
+  mergeProblemTombstones,
+  filterTombstonedProblems,
   clearAllCloudData,
 } from "../utils/sync";
 import posthog from "posthog-js";
-import type { Problem, Preferences, SyncStatus, Confidence, LeetCodeProblem } from "../types";
+import type { DataReset, Problem, Preferences, SyncStatus, Confidence, LeetCodeProblem } from "../types";
 import type { SyncResult } from "../utils/sync";
 
 interface UseProblemsParams {
@@ -57,6 +69,16 @@ interface UseProblemsReturn {
   handleClearAllData: () => Promise<void>;
 }
 
+function dataResetTime(reset: DataReset | null | undefined): number {
+  if (!reset) return 0;
+  const ms = new Date(reset.resetAt).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+function newerDataReset(a: DataReset | null, b: DataReset | null): DataReset | null {
+  return dataResetTime(a) >= dataResetTime(b) ? a : b;
+}
+
 export default function useProblems({ user, showToast }: UseProblemsParams): UseProblemsReturn {
   const { preferences, handleUpdatePreferences, replacePreferences } = usePreferences({ user });
 
@@ -80,9 +102,28 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
 
   // Sync with Supabase on sign-in
   const handleSyncComplete = useCallback((result: SyncResult) => {
-    setProblems(result.problems);
-    saveReviewLog(result.reviewLog);
-    saveReviewEvents(result.reviewEvents);
+    const currentTombstones = loadProblemTombstones();
+    const { tombstones } = mergeProblemTombstones(currentTombstones, result.problemTombstones);
+    saveProblemTombstones(tombstones);
+
+    const currentDataReset = loadDataReset();
+    const mergedDataReset = newerDataReset(currentDataReset, result.dataReset);
+    const incomingResetIsNewer = dataResetTime(result.dataReset) > dataResetTime(currentDataReset);
+    if (mergedDataReset) {
+      saveDataReset(mergedDataReset);
+    }
+
+    setProblems((currentProblems) => {
+      const localProblems = incomingResetIsNewer ? [] : currentProblems;
+      const { problems: mergedProblems } = mergeProblems(localProblems, result.problems);
+      const filteredProblems = filterTombstonedProblems(mergedProblems, tombstones);
+      return deduplicateProblems(filteredProblems).problems;
+    });
+
+    const localReviewLog = incomingResetIsNewer ? [] : loadReviewLog();
+    const localReviewEvents = incomingResetIsNewer ? [] : loadReviewEvents();
+    saveReviewLog(mergeReviewLog(localReviewLog, result.reviewLog).log);
+    saveReviewEvents(mergeReviewEvents(localReviewEvents, result.reviewEvents).events);
     replacePreferences(result.preferences);
     setReviewCount((c) => c + 1);
   }, [replacePreferences]);
@@ -134,10 +175,12 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
 
   const handleDeleteConfirm = useCallback((deleteTarget: Problem | null) => {
     if (deleteTarget) {
+      const deletedAt = new Date().toISOString();
+      recordProblemTombstone(deleteTarget.id, deletedAt);
       setProblems((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       showToast(`Deleted ${deleteTarget.title}`);
       posthog.capture("problem_deleted", { platform: "web" });
-      if (user) deleteProblemFromCloud(deleteTarget.id);
+      if (user) deleteProblemFromCloud(user.id, deleteTarget.id, deletedAt);
     }
   }, [showToast, user]);
 
@@ -287,12 +330,15 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   }, [user, showToast]);
 
   const handleClearAllData = useCallback(async () => {
+    const resetAt = new Date().toISOString();
+    saveDataReset({ resetAt });
+    saveProblemTombstones([]);
     setProblems([]);
     saveReviewLog([]);
     saveReviewEvents([]);
     setReviewCount((c) => c + 1);
     if (user) {
-      await clearAllCloudData(user.id);
+      await clearAllCloudData(user.id, resetAt);
     }
     showToast("All data cleared");
   }, [showToast, user]);

@@ -54,6 +54,8 @@ export const STORAGE_KEY = "patternbank-problems";
 export const REVIEW_LOG_KEY = "patternbank-review-log";
 export const REVIEW_EVENTS_KEY = "patternbank-review-events";
 export const PREFERENCES_KEY = "patternbank-preferences";
+export const PROBLEM_TOMBSTONES_KEY = "patternbank-problem-tombstones";
+export const DATA_RESET_KEY = "patternbank-data-reset";
 
 export const DEFAULT_PREFERENCES: Preferences = {
   dailyReviewGoal: 5,

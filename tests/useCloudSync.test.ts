@@ -8,6 +8,8 @@ import type { Problem, Preferences, ReviewLogEntry } from "../src/types";
 vi.mock("../src/utils/storage", () => ({
   loadReviewLog: vi.fn(() => []),
   loadReviewEvents: vi.fn(() => []),
+  loadProblemTombstones: vi.fn(() => []),
+  loadDataReset: vi.fn(() => null),
   loadProblems: vi.fn(() => []),
   saveProblems: vi.fn(),
   savePreferences: vi.fn(),
@@ -60,7 +62,16 @@ function makeSuccessResult(
   preferences: Preferences = defaultPreferences,
   hasChanges: boolean = false
 ) {
-  return { problems, reviewLog, preferences, hasChanges, error: null };
+  return {
+    problems,
+    reviewLog,
+    reviewEvents: [],
+    preferences,
+    problemTombstones: [],
+    dataReset: null,
+    hasChanges,
+    error: null,
+  };
 }
 
 function makeDefaultParams(overrides: Partial<Parameters<typeof useCloudSync>[0]> = {}) {
@@ -103,7 +114,9 @@ describe("useCloudSync", () => {
       params.problems,
       [],
       [],
-      params.preferences
+      params.preferences,
+      [],
+      null
     );
   });
 
@@ -176,6 +189,34 @@ describe("useCloudSync", () => {
     });
 
     expect(params.onSyncComplete).toHaveBeenCalledWith(syncResult);
+  });
+
+  it("ignores an in-flight sync result after the user signs out", async () => {
+    let resolveSyncFn!: (value: ReturnType<typeof makeSuccessResult>) => void;
+    const pendingPromise = new Promise<ReturnType<typeof makeSuccessResult>>(
+      (resolve) => { resolveSyncFn = resolve; }
+    );
+    mockSyncOnSignIn.mockReturnValue(pendingPromise);
+
+    const params = makeDefaultParams();
+    const { result, rerender } = renderHook((props) => useCloudSync(props), {
+      initialProps: params,
+    });
+
+    rerender({ ...params, user: mockUser });
+
+    await waitFor(() => {
+      expect(result.current.syncStatus).toBe("syncing");
+    });
+
+    rerender({ ...params, user: null });
+    resolveSyncFn(makeSuccessResult([mockProblem], [], defaultPreferences, true));
+
+    await waitFor(() => {
+      expect(result.current.syncStatus).toBe("idle");
+    });
+    expect(params.onSyncComplete).not.toHaveBeenCalled();
+    expect(params.showToast).not.toHaveBeenCalledWith("Data synced");
   });
 
   it("shows toast on sync failure", async () => {

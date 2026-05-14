@@ -1,4 +1,4 @@
-import { addDays } from "./dateHelpers";
+import { addDays, dateOnlyToUtcMs } from "./dateHelpers";
 import type { ReviewLogEntry, ReviewEvent } from "../types";
 
 export const CONFIDENCE_BAR_COLORS = [
@@ -42,10 +42,8 @@ export function buildReviewCountMap(
 }
 
 export function getWeekStart(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  const day = d.getDay(); // 0=Sun
-  d.setDate(d.getDate() - day);
-  return d.toISOString().split("T")[0];
+  const day = new Date(dateOnlyToUtcMs(dateStr)).getUTCDay(); // 0=Sun
+  return addDays(dateStr, -day);
 }
 
 export function groupEventsByWeek(

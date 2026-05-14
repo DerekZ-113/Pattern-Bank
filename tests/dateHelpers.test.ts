@@ -1,15 +1,23 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { todayStr, utcToLocalDateStr, addDays, formatRelativeDate, generateId } from "../src/utils/dateHelpers";
 
 describe("todayStr", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
+
   it("returns a string in YYYY-MM-DD format", () => {
     const result = todayStr();
     expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it("returns today's date", () => {
-    const expected = new Date().toISOString().split("T")[0];
-    expect(todayStr()).toBe(expected);
+  it("returns the local calendar date, not the UTC date", () => {
+    vi.stubEnv("TZ", "America/Los_Angeles");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-14T00:30:00.000Z"));
+
+    expect(todayStr()).toBe("2026-05-13");
   });
 });
 
@@ -57,9 +65,24 @@ describe("addDays", () => {
     expect(addDays("2028-02-28", 1)).toBe("2028-02-29");
     expect(addDays("2028-02-28", 2)).toBe("2028-03-01");
   });
+
+  it("is stable across US spring DST transition", () => {
+    expect(addDays("2026-03-07", 1)).toBe("2026-03-08");
+    expect(addDays("2026-03-08", 1)).toBe("2026-03-09");
+  });
+
+  it("is stable across US fall DST transition", () => {
+    expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
+    expect(addDays("2026-11-01", 1)).toBe("2026-11-02");
+  });
 });
 
 describe("formatRelativeDate", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
+  });
+
   it('returns "Today" for today', () => {
     expect(formatRelativeDate(todayStr())).toBe("Today");
   });
@@ -77,6 +100,15 @@ describe("formatRelativeDate", () => {
   it('returns "Xd ago" for past dates', () => {
     const past = addDays(todayStr(), -3);
     expect(formatRelativeDate(past)).toBe("3d ago");
+  });
+
+  it("uses local calendar days near UTC midnight", () => {
+    vi.stubEnv("TZ", "America/Los_Angeles");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-14T00:30:00.000Z"));
+
+    expect(formatRelativeDate("2026-05-13")).toBe("Today");
+    expect(formatRelativeDate("2026-05-14")).toBe("Tomorrow");
   });
 });
 

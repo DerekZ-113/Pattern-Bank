@@ -69,6 +69,11 @@ import {
   upsertProblems,
   deleteProblems,
   deleteProblem,
+  fetchProblemTombstones,
+  upsertProblemTombstone,
+  upsertProblemTombstones,
+  fetchDataReset,
+  upsertDataReset,
   fetchReviewLog,
   logReview,
   fetchProblemReviewHistory,
@@ -306,6 +311,129 @@ describe("deleteProblem", () => {
 });
 
 // ============================================================
+// problem_tombstones
+// ============================================================
+
+describe("fetchProblemTombstones", () => {
+  it("returns { data: null, error: null } when supabase is null", async () => {
+    mockSupabase = null;
+    const result = await fetchProblemTombstones(USER_ID);
+    expect(result).toEqual({ data: null, error: null });
+  });
+
+  it("maps tombstone rows to camelCase", async () => {
+    const rows = [
+      { user_id: USER_ID, problem_id: "p1", deleted_at: "2026-03-10T12:00:00.000Z" },
+    ];
+    mockSupabase = createSupabaseMock({});
+    mockSupabase.order.mockResolvedValue({ data: rows, error: null });
+
+    const result = await fetchProblemTombstones(USER_ID);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toEqual([{ problemId: "p1", deletedAt: "2026-03-10T12:00:00.000Z" }]);
+    expect(mockSupabase.from).toHaveBeenCalledWith("problem_tombstones");
+  });
+});
+
+describe("upsertProblemTombstone", () => {
+  it("upserts a tombstone with user_id and problem_id", async () => {
+    mockSupabase = createSupabaseMock({});
+    mockSupabase.upsert.mockResolvedValue({ data: null, error: null });
+
+    const result = await upsertProblemTombstone(USER_ID, {
+      problemId: "p1",
+      deletedAt: "2026-03-10T12:00:00.000Z",
+    });
+
+    expect(result.error).toBeNull();
+    expect(mockSupabase.from).toHaveBeenCalledWith("problem_tombstones");
+    expect(mockSupabase.upsert).toHaveBeenCalledWith(
+      {
+        user_id: USER_ID,
+        problem_id: "p1",
+        deleted_at: "2026-03-10T12:00:00.000Z",
+        updated_at: "2026-03-10T12:00:00.000Z",
+      },
+      { onConflict: "user_id,problem_id" }
+    );
+  });
+});
+
+describe("upsertProblemTombstones", () => {
+  it("does nothing for an empty tombstone list", async () => {
+    mockSupabase = createSupabaseMock({});
+    const result = await upsertProblemTombstones(USER_ID, []);
+    expect(result).toEqual({ error: null });
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("batch upserts tombstones", async () => {
+    mockSupabase = createSupabaseMock({});
+    mockSupabase.upsert.mockResolvedValue({ data: null, error: null });
+
+    const result = await upsertProblemTombstones(USER_ID, [
+      { problemId: "p1", deletedAt: "2026-03-10T12:00:00.000Z" },
+      { problemId: "p2", deletedAt: "2026-03-11T12:00:00.000Z" },
+    ]);
+
+    expect(result.error).toBeNull();
+    expect(mockSupabase.from).toHaveBeenCalledWith("problem_tombstones");
+    const upsertRows = mockSupabase.upsert.mock.calls[0][0];
+    expect(upsertRows).toHaveLength(2);
+    expect(upsertRows[0]).toMatchObject({ user_id: USER_ID, problem_id: "p1" });
+  });
+});
+
+// ============================================================
+// user_data_resets
+// ============================================================
+
+describe("fetchDataReset", () => {
+  it("returns null when no reset marker exists", async () => {
+    mockSupabase = createSupabaseMock({ data: null, error: null });
+
+    const result = await fetchDataReset(USER_ID);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toBeNull();
+    expect(mockSupabase.from).toHaveBeenCalledWith("user_data_resets");
+  });
+
+  it("maps reset_at to resetAt", async () => {
+    mockSupabase = createSupabaseMock({
+      data: { user_id: USER_ID, reset_at: "2026-03-10T12:00:00.000Z" },
+      error: null,
+    });
+
+    const result = await fetchDataReset(USER_ID);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toEqual({ resetAt: "2026-03-10T12:00:00.000Z" });
+  });
+});
+
+describe("upsertDataReset", () => {
+  it("upserts the reset marker", async () => {
+    mockSupabase = createSupabaseMock({});
+    mockSupabase.upsert.mockResolvedValue({ data: null, error: null });
+
+    const result = await upsertDataReset(USER_ID, { resetAt: "2026-03-10T12:00:00.000Z" });
+
+    expect(result.error).toBeNull();
+    expect(mockSupabase.from).toHaveBeenCalledWith("user_data_resets");
+    expect(mockSupabase.upsert).toHaveBeenCalledWith(
+      {
+        user_id: USER_ID,
+        reset_at: "2026-03-10T12:00:00.000Z",
+        updated_at: "2026-03-10T12:00:00.000Z",
+      },
+      { onConflict: "user_id" }
+    );
+  });
+});
+
+// ============================================================
 // fetchReviewLog
 // ============================================================
 
@@ -360,7 +488,8 @@ describe("logReview", () => {
     mockSupabase = createSupabaseMock({ data: insertedRow, error: null });
     // terminal is .single()
 
-    const result = await logReview(USER_ID, "prob-1", 2, 3, ["Two Pointers"]);
+    const timestamp = "2026-03-10T12:00:00.000Z";
+    const result = await logReview(USER_ID, "prob-1", 2, 3, ["Two Pointers"], timestamp);
 
     expect(result.error).toBeNull();
     expect(result.data).toEqual(insertedRow);
@@ -371,6 +500,8 @@ describe("logReview", () => {
       problem_id: "prob-1",
       old_confidence: 2,
       new_confidence: 3,
+      review_date: "2026-03-10",
+      created_at: timestamp,
     });
   });
 

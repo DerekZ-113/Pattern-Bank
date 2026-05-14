@@ -9,6 +9,10 @@ vi.mock("../src/utils/supabaseData", () => ({
   upsertProblems: vi.fn(),
   deleteProblem: vi.fn(),
   deleteProblems: vi.fn(),
+  upsertProblemTombstone: vi.fn(),
+  upsertDataReset: vi.fn(),
+  deleteAllUserProblems: vi.fn(),
+  deleteAllUserReviewLog: vi.fn(),
   logReview: vi.fn(),
   upsertPreferences: vi.fn(),
   fetchProblemReviewHistory: vi.fn(),
@@ -19,6 +23,10 @@ import {
   upsertProblem,
   upsertProblems,
   deleteProblem,
+  upsertProblemTombstone,
+  upsertDataReset,
+  deleteAllUserProblems,
+  deleteAllUserReviewLog,
   logReview,
   upsertPreferences,
 } from "../src/utils/supabaseData";
@@ -28,11 +36,16 @@ import {
   deleteProblemFromCloud,
   pushReviewToCloud,
   pushPreferencesToCloud,
+  clearAllCloudData,
 } from "../src/utils/sync";
 
 const upsertProblemMock = upsertProblem as ReturnType<typeof vi.fn>;
 const upsertProblemsMock = upsertProblems as ReturnType<typeof vi.fn>;
 const deleteProblemMock = deleteProblem as ReturnType<typeof vi.fn>;
+const upsertProblemTombstoneMock = upsertProblemTombstone as ReturnType<typeof vi.fn>;
+const upsertDataResetMock = upsertDataReset as ReturnType<typeof vi.fn>;
+const deleteAllUserProblemsMock = deleteAllUserProblems as ReturnType<typeof vi.fn>;
+const deleteAllUserReviewLogMock = deleteAllUserReviewLog as ReturnType<typeof vi.fn>;
 const logReviewMock = logReview as ReturnType<typeof vi.fn>;
 const upsertPreferencesMock = upsertPreferences as ReturnType<typeof vi.fn>;
 
@@ -112,9 +125,15 @@ describe("pushProblemsToCloud", () => {
 });
 
 describe("deleteProblemFromCloud", () => {
-  it("calls deleteProblem with problemId", async () => {
+  it("records a tombstone and deletes the problem row", async () => {
     deleteProblemMock.mockResolvedValue({ error: null });
-    await deleteProblemFromCloud("problem-42");
+    upsertProblemTombstoneMock.mockResolvedValue({ error: null });
+    await deleteProblemFromCloud(USER_ID, "problem-42", "2026-03-10T12:00:00.000Z");
+    expect(upsertProblemTombstoneMock).toHaveBeenCalledOnce();
+    expect(upsertProblemTombstoneMock).toHaveBeenCalledWith(USER_ID, {
+      problemId: "problem-42",
+      deletedAt: "2026-03-10T12:00:00.000Z",
+    });
     expect(deleteProblemMock).toHaveBeenCalledOnce();
     expect(deleteProblemMock).toHaveBeenCalledWith("problem-42");
   });
@@ -123,11 +142,27 @@ describe("deleteProblemFromCloud", () => {
     deleteProblemMock.mockResolvedValue({ error: new Error("fail") });
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
-      await expect(deleteProblemFromCloud("problem-42")).resolves.toBeUndefined();
+      await expect(deleteProblemFromCloud(USER_ID, "problem-42")).resolves.toBeUndefined();
       expect(spy).toHaveBeenCalled();
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+describe("clearAllCloudData", () => {
+  it("writes the reset marker before clearing cloud rows", async () => {
+    upsertDataResetMock.mockResolvedValue({ error: null });
+    deleteAllUserProblemsMock.mockResolvedValue({ error: null });
+    deleteAllUserReviewLogMock.mockResolvedValue({ error: null });
+
+    await clearAllCloudData(USER_ID, "2026-03-10T12:00:00.000Z");
+
+    expect(upsertDataResetMock).toHaveBeenCalledWith(USER_ID, {
+      resetAt: "2026-03-10T12:00:00.000Z",
+    });
+    expect(deleteAllUserProblemsMock).toHaveBeenCalledWith(USER_ID);
+    expect(deleteAllUserReviewLogMock).toHaveBeenCalledWith(USER_ID);
   });
 });
 
