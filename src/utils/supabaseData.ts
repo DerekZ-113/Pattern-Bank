@@ -1,5 +1,16 @@
 import { supabase } from "./supabaseClient";
-import type { Problem, Confidence, Preferences, ReviewLogEntry, ReviewEvent, ReviewHistoryEntry, Difficulty } from "../types";
+import { todayStr, utcToLocalDateStr } from "./dateHelpers";
+import type {
+  Problem,
+  Confidence,
+  Preferences,
+  ReviewLogEntry,
+  ReviewEvent,
+  ReviewHistoryEntry,
+  Difficulty,
+  ProblemTombstone,
+  DataReset,
+} from "../types";
 
 // ============================================================
 // FIELD MAPPING: camelCase (localStorage) ↔ snake_case (Supabase)
@@ -19,6 +30,21 @@ interface SnakeCaseProblem {
   next_review_date: string;
   updated_at: string;
   exclude_from_review: boolean;
+}
+
+interface SnakeCaseProblemTombstone {
+  user_id: string;
+  problem_id: string;
+  deleted_at: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface SnakeCaseDataReset {
+  user_id: string;
+  reset_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export function toSnakeCase(problem: Problem): SnakeCaseProblem {
@@ -139,6 +165,105 @@ export async function deleteProblem(problemId: string): Promise<{ data: null; er
 }
 
 // ============================================================
+// PROBLEM TOMBSTONES
+// ============================================================
+
+export async function fetchProblemTombstones(userId: string): Promise<{ data: ProblemTombstone[] | null; error: unknown }> {
+  if (!supabase) return { data: null, error: null };
+  try {
+    const { data, error } = await supabase
+      .from("problem_tombstones")
+      .select("problem_id, deleted_at")
+      .eq("user_id", userId)
+      .order("deleted_at", { ascending: true });
+    if (error) return { data: null, error };
+    return {
+      data: (data as SnakeCaseProblemTombstone[]).map((row) => ({
+        problemId: row.problem_id,
+        deletedAt: row.deleted_at,
+      })),
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: err };
+  }
+}
+
+export async function upsertProblemTombstone(userId: string, tombstone: ProblemTombstone): Promise<{ error: unknown }> {
+  if (!supabase) return { error: null };
+  try {
+    const row: SnakeCaseProblemTombstone = {
+      user_id: userId,
+      problem_id: tombstone.problemId,
+      deleted_at: tombstone.deletedAt,
+      updated_at: tombstone.deletedAt,
+    };
+    const { error } = await supabase
+      .from("problem_tombstones")
+      .upsert(row, { onConflict: "user_id,problem_id" });
+    return { error: error || null };
+  } catch (err) {
+    return { error: err };
+  }
+}
+
+export async function upsertProblemTombstones(userId: string, tombstones: ProblemTombstone[]): Promise<{ error: unknown }> {
+  if (!supabase || !tombstones.length) return { error: null };
+  try {
+    const rows: SnakeCaseProblemTombstone[] = tombstones.map((t) => ({
+      user_id: userId,
+      problem_id: t.problemId,
+      deleted_at: t.deletedAt,
+      updated_at: t.deletedAt,
+    }));
+    const { error } = await supabase
+      .from("problem_tombstones")
+      .upsert(rows, { onConflict: "user_id,problem_id" });
+    return { error: error || null };
+  } catch (err) {
+    return { error: err };
+  }
+}
+
+// ============================================================
+// DATA RESET MARKER
+// ============================================================
+
+export async function fetchDataReset(userId: string): Promise<{ data: DataReset | null; error: unknown }> {
+  if (!supabase) return { data: null, error: null };
+  try {
+    const { data, error } = await supabase
+      .from("user_data_resets")
+      .select("reset_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) return { data: null, error };
+    if (!data) return { data: null, error: null };
+    const row = data as SnakeCaseDataReset;
+    return { data: { resetAt: row.reset_at }, error: null };
+  } catch (err) {
+    return { data: null, error: err };
+  }
+}
+
+export async function upsertDataReset(userId: string, reset: DataReset): Promise<{ error: unknown }> {
+  if (!supabase) return { error: null };
+  try {
+    const row: SnakeCaseDataReset = {
+      user_id: userId,
+      reset_at: reset.resetAt,
+      updated_at: reset.resetAt,
+    };
+    const { error } = await supabase
+      .from("user_data_resets")
+      .upsert(row, { onConflict: "user_id" });
+    return { error: error || null };
+  } catch (err) {
+    return { error: err };
+  }
+}
+
+// ============================================================
 // REVIEW LOG
 // ============================================================
 
@@ -168,14 +293,16 @@ export async function logReview(
 ): Promise<{ data: unknown; error: unknown }> {
   if (!supabase) return { data: null, error: null };
   try {
+    const reviewTimestamp = timestamp ?? new Date().toISOString();
     const row: Record<string, unknown> = {
       user_id: userId,
       problem_id: problemId,
       old_confidence: oldConfidence,
       new_confidence: newConfidence,
       patterns,
+      review_date: utcToLocalDateStr(reviewTimestamp) ?? todayStr(),
+      created_at: reviewTimestamp,
     };
-    if (timestamp) row.created_at = timestamp;
     const { data, error } = await supabase
       .from("review_log")
       .insert(row)

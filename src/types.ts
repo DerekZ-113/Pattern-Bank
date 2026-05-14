@@ -38,6 +38,15 @@ export interface ReviewEvent {
   timestamp: string;
 }
 
+export interface ProblemTombstone {
+  problemId: string;
+  deletedAt: string;
+}
+
+export interface DataReset {
+  resetAt: string;
+}
+
 export interface Preferences {
   dailyReviewGoal: number;
   hidePatternsDuringReview: boolean;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { User } from "@supabase/supabase-js";
-import { loadReviewLog, loadReviewEvents } from "../utils/storage";
+import { loadReviewLog, loadReviewEvents, loadProblemTombstones, loadDataReset } from "../utils/storage";
 import { syncOnSignIn, SyncResult } from "../utils/sync";
 import type { Problem, Preferences, SyncStatus } from "../types";
 
@@ -25,20 +25,34 @@ export default function useCloudSync({
 }: UseCloudSyncParams): UseCloudSyncReturn {
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("idle");
   const hasSyncedRef = useRef(false);
+  const syncRunRef = useRef(0);
+  const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
+      syncRunRef.current += 1;
       const reset = () => { hasSyncedRef.current = false; setSyncStatus("idle"); };
       reset();
       return;
     }
     if (hasSyncedRef.current) return;
     hasSyncedRef.current = true;
+    const runId = syncRunRef.current + 1;
+    syncRunRef.current = runId;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncStatus("syncing");
 
-    syncOnSignIn(user.id, problems, loadReviewLog(), loadReviewEvents(), preferences).then(
+    syncOnSignIn(
+      userId,
+      problems,
+      loadReviewLog(),
+      loadReviewEvents(),
+      preferences,
+      loadProblemTombstones(),
+      loadDataReset()
+    ).then(
       (result) => {
+        if (syncRunRef.current !== runId) return;
         if (result.error) {
           setSyncStatus("error");
           showToast("Sync failed — working offline");
@@ -51,7 +65,12 @@ export default function useCloudSync({
         }
       }
     );
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      if (syncRunRef.current === runId) {
+        syncRunRef.current += 1;
+      }
+    };
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { syncStatus };
 }

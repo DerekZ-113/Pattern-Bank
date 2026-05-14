@@ -1,6 +1,14 @@
-import { STORAGE_KEY, REVIEW_LOG_KEY, REVIEW_EVENTS_KEY, PREFERENCES_KEY, DEFAULT_PREFERENCES } from "./constants";
+import {
+  STORAGE_KEY,
+  REVIEW_LOG_KEY,
+  REVIEW_EVENTS_KEY,
+  PREFERENCES_KEY,
+  PROBLEM_TOMBSTONES_KEY,
+  DATA_RESET_KEY,
+  DEFAULT_PREFERENCES,
+} from "./constants";
 import { todayStr, addDays } from "./dateHelpers";
-import type { Problem, ReviewLogEntry, ReviewEvent, Preferences, BackupData } from "../types";
+import type { Problem, ReviewLogEntry, ReviewEvent, Preferences, BackupData, ProblemTombstone, DataReset } from "../types";
 
 export function loadProblems(): Problem[] {
   try {
@@ -76,6 +84,61 @@ export function saveReviewEvents(events: ReviewEvent[]): void {
     localStorage.setItem(REVIEW_EVENTS_KEY, JSON.stringify(events));
   } catch (e) {
     console.error("Failed to save review events:", e);
+  }
+}
+
+export function loadProblemTombstones(): ProblemTombstone[] {
+  try {
+    const raw = localStorage.getItem(PROBLEM_TOMBSTONES_KEY);
+    return raw ? (JSON.parse(raw) as ProblemTombstone[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveProblemTombstones(tombstones: ProblemTombstone[]): void {
+  try {
+    localStorage.setItem(PROBLEM_TOMBSTONES_KEY, JSON.stringify(tombstones));
+  } catch (e) {
+    console.error("Failed to save problem tombstones:", e);
+  }
+}
+
+export function recordProblemTombstone(problemId: string, deletedAt: string = new Date().toISOString()): ProblemTombstone {
+  const tombstone = { problemId, deletedAt };
+  const tombstones = loadProblemTombstones();
+  const existingIndex = tombstones.findIndex((t) => t.problemId === problemId);
+  if (existingIndex >= 0) {
+    const existing = tombstones[existingIndex];
+    if (new Date(existing.deletedAt).getTime() >= new Date(deletedAt).getTime()) {
+      return existing;
+    }
+    tombstones[existingIndex] = tombstone;
+  } else {
+    tombstones.push(tombstone);
+  }
+  saveProblemTombstones(tombstones);
+  return tombstone;
+}
+
+export function loadDataReset(): DataReset | null {
+  try {
+    const raw = localStorage.getItem(DATA_RESET_KEY);
+    return raw ? (JSON.parse(raw) as DataReset) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveDataReset(reset: DataReset | null): void {
+  try {
+    if (reset) {
+      localStorage.setItem(DATA_RESET_KEY, JSON.stringify(reset));
+    } else {
+      localStorage.removeItem(DATA_RESET_KEY);
+    }
+  } catch (e) {
+    console.error("Failed to save data reset marker:", e);
   }
 }
 
