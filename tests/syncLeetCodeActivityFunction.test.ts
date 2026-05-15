@@ -126,6 +126,13 @@ describe("sync-leetcode-activity helpers", () => {
       ignored: false,
       linkedProblemId: "problem-2",
     })).toEqual({ status: "linked_existing", problemId: "problem-2" });
+
+    expect(resolveSyncedSubmissionState({
+      existingStatus: "linked_existing",
+      existingProblemId: "local-first-problem-id",
+      ignored: false,
+      linkedProblemId: null,
+    })).toEqual({ status: "linked_existing", problemId: "local-first-problem-id" });
   });
 
   it("maps rate-limit and network failures to safe statuses", () => {

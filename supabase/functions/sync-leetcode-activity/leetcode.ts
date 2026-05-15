@@ -149,7 +149,11 @@ export function resolveSyncedSubmissionState({
   ignored: boolean;
   linkedProblemId: string | null;
 }): { status: SubmissionStatus; problemId: string | null } {
-  if (existingStatus === "imported" || existingStatus === "rated") {
+  if (
+    existingStatus === "imported" ||
+    existingStatus === "rated" ||
+    (existingStatus === "linked_existing" && existingProblemId)
+  ) {
     return { status: existingStatus, problemId: existingProblemId };
   }
   if (existingStatus === "ignored" || ignored) {
