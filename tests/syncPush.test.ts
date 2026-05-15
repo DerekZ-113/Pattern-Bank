@@ -148,6 +148,24 @@ describe("deleteProblemFromCloud", () => {
       spy.mockRestore();
     }
   });
+
+  it("skips physical delete when tombstone upsert fails", async () => {
+    upsertProblemTombstoneMock.mockResolvedValue({ error: new Error("tombstone failed") });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      await expect(deleteProblemFromCloud(USER_ID, "problem-42")).resolves.toBeUndefined();
+
+      expect(upsertProblemTombstoneMock).toHaveBeenCalledWith(USER_ID, {
+        problemId: "problem-42",
+        deletedAt: expect.any(String),
+      });
+      expect(deleteProblemMock).not.toHaveBeenCalled();
+      expect(spy).toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });
 
 describe("clearAllCloudData", () => {
@@ -163,6 +181,24 @@ describe("clearAllCloudData", () => {
     });
     expect(deleteAllUserProblemsMock).toHaveBeenCalledWith(USER_ID);
     expect(deleteAllUserReviewLogMock).toHaveBeenCalledWith(USER_ID);
+  });
+
+  it("skips cloud cleanup when reset marker upsert fails", async () => {
+    upsertDataResetMock.mockResolvedValue({ error: new Error("reset failed") });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      await expect(clearAllCloudData(USER_ID, "2026-03-10T12:00:00.000Z")).resolves.toBeUndefined();
+
+      expect(upsertDataResetMock).toHaveBeenCalledWith(USER_ID, {
+        resetAt: "2026-03-10T12:00:00.000Z",
+      });
+      expect(deleteAllUserProblemsMock).not.toHaveBeenCalled();
+      expect(deleteAllUserReviewLogMock).not.toHaveBeenCalled();
+      expect(spy).toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

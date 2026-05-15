@@ -104,6 +104,63 @@ function filterReviewEventsAfterDataReset(events: ReviewEvent[], reset: DataRese
   });
 }
 
+function reviewLogFromEvents(events: ReviewEvent[]): ReviewLogEntry[] {
+  const dates = new Set<string>();
+  const log: ReviewLogEntry[] = [];
+  for (const event of events) {
+    if (!dates.has(event.date)) {
+      dates.add(event.date);
+      log.push({ date: event.date });
+    }
+  }
+  return log;
+}
+
+function reviewEventKey(event: ReviewEvent): string {
+  return `${event.problemId}|${event.timestamp}`;
+}
+
+function reviewEventTime(event: ReviewEvent): number {
+  const timestamp = new Date(event.timestamp).getTime();
+  return Number.isFinite(timestamp) ? timestamp : Number.NaN;
+}
+
+function reviewEventsMatch(a: ReviewEvent, b: ReviewEvent): boolean {
+  if (reviewEventKey(a) === reviewEventKey(b)) return true;
+  if (a.problemId !== b.problemId) return false;
+
+  const aTime = reviewEventTime(a);
+  const bTime = reviewEventTime(b);
+  if (!Number.isFinite(aTime) || !Number.isFinite(bTime)) return false;
+
+  return Math.abs(aTime - bTime) < 5000;
+}
+
+function stringArraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => value === b[index]);
+}
+
+function preferencesEqual(a: Preferences, b: Preferences): boolean {
+  return (
+    a.dailyReviewGoal === b.dailyReviewGoal &&
+    a.hidePatternsDuringReview === b.hidePatternsDuringReview &&
+    stringArraysEqual(a.enabledExtraPatterns, b.enabledExtraPatterns)
+  );
+}
+
+export function filterTombstonesAfterDataReset(
+  tombstones: ProblemTombstone[],
+  reset: DataReset | null
+): ProblemTombstone[] {
+  const cutoff = resetTime(reset);
+  if (cutoff === 0) return tombstones;
+  return tombstones.filter((tombstone) => {
+    const deletedAt = new Date(tombstone.deletedAt).getTime();
+    return Number.isFinite(deletedAt) && deletedAt > cutoff;
+  });
+}
+
 // ============================================================
 // SYNC ON SIGN-IN
 // ============================================================
@@ -151,47 +208,69 @@ export async function syncOnSignIn(
       console.error("Sync: failed to fetch data reset marker", cloudResetRes.error);
       return localSyncResult(localProblems, localReviewLog, localReviewEvents, localPreferences, localProblemTombstones, localDataReset, cloudResetRes.error);
     }
+    const reviewEventsFetchFailed = !!cloudEventsRes.error;
+    if (reviewEventsFetchFailed) {
+      console.error("Sync: failed to fetch review events", cloudEventsRes.error);
+    }
+    const preferencesFetchFailed = !!cloudPrefsRes.error;
+    if (preferencesFetchFailed) {
+      console.error("Sync: failed to fetch preferences", cloudPrefsRes.error);
+    }
 
     const cloudProblems = cloudProblemsRes.data ?? [];
     const cloudTombstones = cloudTombstonesRes.data ?? [];
     const cloudDataReset = cloudResetRes.data ?? null;
     const resetWinner = compareDataResets(localDataReset, cloudDataReset);
+    const dataReset = newestDataReset(localDataReset, cloudDataReset);
 
     let effectiveLocalProblems = localProblems;
     let effectiveLocalLog = localReviewLog;
     let effectiveLocalEvents = localReviewEvents;
     let effectiveCloudProblems = cloudProblems;
     let effectiveCloudLog = cloudLogRes.data ?? [];
-    let effectiveCloudEvents = cloudEventsRes.data ?? [];
+    let effectiveCloudEvents = reviewEventsFetchFailed ? [] : cloudEventsRes.data ?? [];
     let resetRemovedCloudProblemIds: string[] = [];
+    let resetMarkerWriteSucceeded = true;
 
     if (resetWinner === "cloud") {
       effectiveLocalProblems = [];
       effectiveLocalLog = [];
       effectiveLocalEvents = [];
-      const filteredCloud = filterProblemsAfterDataReset(cloudProblems, cloudDataReset);
+      const filteredCloud = filterProblemsAfterDataReset(cloudProblems, dataReset);
       effectiveCloudProblems = filteredCloud.problems;
-      effectiveCloudEvents = filterReviewEventsAfterDataReset(effectiveCloudEvents, cloudDataReset);
-      effectiveCloudLog = [];
+      effectiveCloudEvents = filterReviewEventsAfterDataReset(effectiveCloudEvents, dataReset);
+      effectiveCloudLog = reviewLogFromEvents(effectiveCloudEvents);
       resetRemovedCloudProblemIds = filteredCloud.removedIds;
     } else if (resetWinner === "local") {
       effectiveCloudProblems = [];
       effectiveCloudLog = [];
       effectiveCloudEvents = [];
-      await upsertDataReset(userId, localDataReset!);
-      const [problemsDeleteResult, logDeleteResult] = await Promise.all([
-        deleteAllUserProblems(userId),
-        deleteAllUserReviewLog(userId),
-      ]);
-      if (problemsDeleteResult.error) console.error("Sync: failed to repair cloud reset (problems):", problemsDeleteResult.error);
-      if (logDeleteResult.error) console.error("Sync: failed to repair cloud reset (review log):", logDeleteResult.error);
+      const resetResult = await upsertDataReset(userId, localDataReset!);
+      if (resetResult.error) {
+        resetMarkerWriteSucceeded = false;
+        console.error("Sync: failed to upsert local data reset marker", resetResult.error);
+      } else {
+        const [problemsDeleteResult, logDeleteResult] = await Promise.all([
+          deleteAllUserProblems(userId),
+          deleteAllUserReviewLog(userId),
+        ]);
+        if (problemsDeleteResult.error) console.error("Sync: failed to repair cloud reset (problems):", problemsDeleteResult.error);
+        if (logDeleteResult.error) console.error("Sync: failed to repair cloud reset (review log):", logDeleteResult.error);
+      }
+    } else if (dataReset) {
+      const filteredCloud = filterProblemsAfterDataReset(cloudProblems, dataReset);
+      effectiveCloudProblems = filteredCloud.problems;
+      effectiveCloudEvents = filterReviewEventsAfterDataReset(effectiveCloudEvents, dataReset);
+      effectiveCloudLog = reviewLogFromEvents(effectiveCloudEvents);
+      resetRemovedCloudProblemIds = filteredCloud.removedIds;
     }
 
-    const dataReset = newestDataReset(localDataReset, cloudDataReset);
+    const validLocalTombstones = filterTombstonesAfterDataReset(localProblemTombstones, dataReset);
+    const validCloudTombstones = filterTombstonesAfterDataReset(cloudTombstones, dataReset);
     const {
       tombstones: mergedTombstones,
       addedFromCloud: tombstonesAddedFromCloud,
-    } = mergeProblemTombstones(localProblemTombstones, cloudTombstones);
+    } = mergeProblemTombstones(validLocalTombstones, validCloudTombstones);
 
     const filteredLocalProblems = filterTombstonedProblems(effectiveLocalProblems, mergedTombstones);
     const filteredCloudProblems = filterTombstonedProblems(effectiveCloudProblems, mergedTombstones);
@@ -206,15 +285,26 @@ export async function syncOnSignIn(
     const { problems: merged, cloudAdded, cloudWon } = mergeProblems(filteredLocalProblems, filteredCloudProblems);
     const { problems: mergedProblems, removedIds: dupIds } = deduplicateProblems(merged);
 
-    // Delete duplicate and tombstoned rows from Supabase
-    const idsToDelete = Array.from(new Set([...dupIds, ...tombstonedCloudIds, ...resetRemovedCloudProblemIds]));
-    if (idsToDelete.length > 0) {
-      await deleteMultipleFromSupabase(idsToDelete);
-    }
-
+    let tombstoneMarkersReadyForCleanup = true;
     if (mergedTombstones.length > 0) {
       const { error } = await upsertProblemTombstones(userId, mergedTombstones);
-      if (error) console.error("Sync: failed to upsert problem tombstones", error);
+      if (error) {
+        tombstoneMarkersReadyForCleanup = false;
+        console.error("Sync: failed to upsert problem tombstones", error);
+      }
+    }
+
+    // Delete duplicate and stale rows only after their durable intent marker is safe.
+    const idsToDelete = new Set(dupIds);
+    if (tombstoneMarkersReadyForCleanup) {
+      tombstonedCloudIds.forEach((id) => idsToDelete.add(id));
+    }
+    if (resetMarkerWriteSucceeded) {
+      resetRemovedCloudProblemIds.forEach((id) => idsToDelete.add(id));
+    }
+    const idsToDeleteList = Array.from(idsToDelete);
+    if (idsToDeleteList.length > 0) {
+      await deleteMultipleFromSupabase(idsToDeleteList);
     }
 
     // 3. Merge review log (deduplicate by date)
@@ -224,7 +314,7 @@ export async function syncOnSignIn(
     const { events: mergedEvents, addedFromCloud: eventsAddedFromCloud, localOnlyEvents } = mergeReviewEvents(effectiveLocalEvents, effectiveCloudEvents);
 
     // Push local-only review events to cloud
-    if (localOnlyEvents.length > 0) {
+    if (localOnlyEvents.length > 0 && !reviewEventsFetchFailed) {
       pushReviewEventsToCloud(userId, localOnlyEvents);
     }
 
@@ -234,6 +324,8 @@ export async function syncOnSignIn(
     let mergedPreferences: Preferences;
     if (cloudPrefs) {
       mergedPreferences = cloudPrefs;
+    } else if (preferencesFetchFailed) {
+      mergedPreferences = localPreferences;
     } else {
       mergedPreferences = localPreferences;
       // First sign-in — push local preferences to cloud
@@ -260,7 +352,7 @@ export async function syncOnSignIn(
         }
       }
     }
-    if (problemsToPush.length > 0) {
+    if (problemsToPush.length > 0 && resetMarkerWriteSucceeded) {
       await upsertProblems(userId, problemsToPush);
     }
 
@@ -268,12 +360,12 @@ export async function syncOnSignIn(
     const hasChanges =
       cloudAdded > 0 ||
       cloudWon > 0 ||
-      idsToDelete.length > 0 ||
+      idsToDeleteList.length > 0 ||
       tombstonesAddedFromCloud > 0 ||
       resetWinner === "cloud" ||
       logAddedFromCloud > 0 ||
       eventsAddedFromCloud > 0 ||
-      (cloudPrefs !== null && cloudPrefs.dailyReviewGoal !== localPreferences.dailyReviewGoal);
+      (cloudPrefs !== null && !preferencesEqual(cloudPrefs, localPreferences));
 
     return {
       problems: mergedProblems,
@@ -430,48 +522,38 @@ export interface MergeReviewEventsResult {
 }
 
 export function mergeReviewEvents(localEvents: ReviewEvent[], cloudEvents: ReviewEvent[]): MergeReviewEventsResult {
-  const keyFn = (e: ReviewEvent) => `${e.problemId}|${e.timestamp}`;
+  type SourcedReviewEvent = { event: ReviewEvent; source: "local" | "cloud" };
 
   // Combine all events, then deduplicate
-  const all = [...localEvents, ...cloudEvents];
+  const all: SourcedReviewEvent[] = [
+    ...localEvents.map((event) => ({ event, source: "local" as const })),
+    ...cloudEvents.map((event) => ({ event, source: "cloud" as const })),
+  ];
 
   // Sort by timestamp so near-duplicate detection works in order
-  all.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  all.sort((a, b) => a.event.timestamp.localeCompare(b.event.timestamp));
 
   // Deduplicate: exact key match OR same problemId within 5 seconds (legacy mismatch)
-  const kept: ReviewEvent[] = [];
-  const seenKeys = new Set<string>();
+  const kept: SourcedReviewEvent[] = [];
 
-  for (const event of all) {
-    const key = keyFn(event);
-    if (seenKeys.has(key)) continue;
-
-    // Check for near-duplicate: same problemId within 5s of an already-kept event
-    const ts = new Date(event.timestamp).getTime();
-    const isNearDup = kept.some(
-      (k) => k.problemId === event.problemId && Math.abs(new Date(k.timestamp).getTime() - ts) < 5000
-    );
-    if (isNearDup) continue;
-
-    seenKeys.add(key);
-    kept.push(event);
+  for (const item of all) {
+    if (kept.some((existing) => reviewEventsMatch(existing.event, item.event))) continue;
+    kept.push(item);
   }
 
   // Determine what was added from cloud and what's local-only
-  const localKeys = new Set(localEvents.map(keyFn));
-  const cloudKeys = new Set(cloudEvents.map(keyFn));
   let addedFromCloud = 0;
   const localOnlyEvents: ReviewEvent[] = [];
 
-  for (const event of kept) {
-    const key = keyFn(event);
-    const inLocal = localKeys.has(key);
-    const inCloud = cloudKeys.has(key);
-    if (inCloud && !inLocal) addedFromCloud++;
-    if (inLocal && !inCloud) localOnlyEvents.push(event);
+  for (const { event, source } of kept) {
+    const hasLocalMatch = localEvents.some((localEvent) => reviewEventsMatch(localEvent, event));
+    const hasCloudMatch = cloudEvents.some((cloudEvent) => reviewEventsMatch(cloudEvent, event));
+
+    if (source === "cloud" && !hasLocalMatch) addedFromCloud++;
+    if (source === "local" && !hasCloudMatch) localOnlyEvents.push(event);
   }
 
-  return { events: kept, addedFromCloud, localOnlyEvents };
+  return { events: kept.map(({ event }) => event), addedFromCloud, localOnlyEvents };
 }
 
 export function mergeReviewLog(localLog: ReviewLogEntry[], cloudLog: ReviewLogEntry[]): MergeReviewLogResult {
@@ -517,7 +599,10 @@ export async function pushProblemToCloud(userId: string, problem: Problem): Prom
 
 export async function deleteProblemFromCloud(userId: string, problemId: string, deletedAt: string = new Date().toISOString()): Promise<void> {
   const tombstoneResult = await upsertProblemTombstone(userId, { problemId, deletedAt });
-  if (tombstoneResult?.error) console.error("Cloud push failed (problem tombstone):", tombstoneResult.error);
+  if (tombstoneResult?.error) {
+    console.error("Cloud push failed (problem tombstone):", tombstoneResult.error);
+    return;
+  }
 
   const deleteResult = await deleteFromSupabase(problemId);
   if (deleteResult.error) console.error("Cloud push failed (delete):", deleteResult.error);
@@ -548,7 +633,10 @@ export async function pushPreferencesToCloud(userId: string, prefs: Preferences)
 
 export async function clearAllCloudData(userId: string, resetAt: string = new Date().toISOString()): Promise<void> {
   const resetResult = await upsertDataReset(userId, { resetAt });
-  if (resetResult.error) console.error("Cloud clear failed (reset marker):", resetResult.error);
+  if (resetResult.error) {
+    console.error("Cloud clear failed (reset marker):", resetResult.error);
+    return;
+  }
 
   const [problemsResult, logResult] = await Promise.all([
     deleteAllUserProblems(userId),

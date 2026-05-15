@@ -1,5 +1,5 @@
 import { createSupabaseMock, type SupabaseMock } from "./helpers/supabaseMock";
-import type { Problem, Preferences } from "../src/types";
+import type { Problem, Preferences, ReviewEvent } from "../src/types";
 
 // ============================================================
 // Module-level mock variable — controlled per-test in beforeEach
@@ -77,6 +77,7 @@ import {
   fetchReviewLog,
   logReview,
   fetchProblemReviewHistory,
+  fetchReviewEvents,
   fetchPreferences,
   upsertPreferences,
   submitFeedback,
@@ -559,6 +560,59 @@ describe("fetchProblemReviewHistory", () => {
     const result = await fetchProblemReviewHistory(USER_ID, "prob-1");
     expect(result.data).toBeNull();
     expect(result.error).toBe(supabaseError);
+  });
+});
+
+// ============================================================
+// fetchReviewEvents
+// ============================================================
+
+describe("fetchReviewEvents", () => {
+  function makeReviewRow(index: number) {
+    return {
+      problem_id: `prob-${index}`,
+      new_confidence: 3,
+      patterns: ["Hash Table"],
+      review_date: "2026-03-10",
+      created_at: `2026-03-10T12:${String(index % 60).padStart(2, "0")}:00.000Z`,
+    };
+  }
+
+  it("fetches full review history in pages when since is omitted", async () => {
+    const firstPage = Array.from({ length: 1000 }, (_, index) => makeReviewRow(index));
+    const secondPage = [makeReviewRow(1000)];
+    mockSupabase = createSupabaseMock({});
+    mockSupabase.range
+      .mockResolvedValueOnce({ data: firstPage, error: null })
+      .mockResolvedValueOnce({ data: secondPage, error: null });
+
+    const result = await fetchReviewEvents(USER_ID);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toHaveLength(1001);
+    expect(result.data![0]).toEqual<ReviewEvent>({
+      date: "2026-03-10",
+      problemId: "prob-0",
+      confidence: 3,
+      patterns: ["Hash Table"],
+      timestamp: "2026-03-10T12:00:00.000Z",
+    });
+    expect(mockSupabase.gte).not.toHaveBeenCalled();
+    expect(mockSupabase.range).toHaveBeenNthCalledWith(1, 0, 999);
+    expect(mockSupabase.range).toHaveBeenNthCalledWith(2, 1000, 1999);
+  });
+
+  it("applies explicit since filtering before paginating", async () => {
+    const since = "2026-01-01T00:00:00.000Z";
+    mockSupabase = createSupabaseMock({});
+    mockSupabase.range.mockResolvedValueOnce({ data: [makeReviewRow(1)], error: null });
+
+    const result = await fetchReviewEvents(USER_ID, since);
+
+    expect(result.error).toBeNull();
+    expect(result.data).toHaveLength(1);
+    expect(mockSupabase.gte).toHaveBeenCalledWith("created_at", since);
+    expect(mockSupabase.range).toHaveBeenCalledWith(0, 999);
   });
 });
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import useProblems from "../src/hooks/useProblems";
 import {
   loadProblems,
@@ -11,13 +11,15 @@ import {
   saveDataReset,
 } from "../src/utils/storage";
 import {
+  syncOnSignIn,
   pushProblemToCloud,
   deleteProblemFromCloud,
   pushProblemsToCloud,
+  pushPreferencesToCloud,
   deduplicateProblems,
 } from "../src/utils/sync";
 import type { User } from "@supabase/supabase-js";
-import type { Problem, Confidence } from "../src/types";
+import type { Problem, Confidence, Preferences, SyncStatus } from "../src/types";
 import { addDays, todayStr } from "../src/utils/dateHelpers";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -25,7 +27,7 @@ import { addDays, todayStr } from "../src/utils/dateHelpers";
 vi.mock("../src/utils/storage", () => ({
   loadProblems: vi.fn(() => []),
   saveProblems: vi.fn(),
-  loadPreferences: vi.fn(() => ({ dailyReviewGoal: 5 })),
+  loadPreferences: vi.fn(() => ({ dailyReviewGoal: 5, hidePatternsDuringReview: false, enabledExtraPatterns: [] })),
   savePreferences: vi.fn(),
   loadReviewLog: vi.fn(() => []),
   saveReviewLog: vi.fn(),
@@ -49,7 +51,7 @@ vi.mock("../src/utils/sync", () => ({
     problems: [],
     reviewLog: [],
     reviewEvents: [],
-    preferences: { dailyReviewGoal: 5 },
+    preferences: { dailyReviewGoal: 5, hidePatternsDuringReview: false, enabledExtraPatterns: [] },
     problemTombstones: [],
     dataReset: null,
     hasChanges: false,
@@ -67,6 +69,7 @@ vi.mock("../src/utils/sync", () => ({
   mergeReviewEvents: vi.fn((local, cloud) => ({ events: [...local, ...cloud], addedFromCloud: cloud.length, localOnlyEvents: [] })),
   mergeProblemTombstones: vi.fn((local, cloud) => ({ tombstones: [...local, ...cloud], addedFromCloud: cloud.length })),
   filterTombstonedProblems: vi.fn((problems) => problems),
+  filterTombstonesAfterDataReset: vi.fn((tombstones) => tombstones),
 }));
 
 vi.mock("posthog-js", () => ({
@@ -96,6 +99,22 @@ function makeProblem(overrides: Partial<Problem> = {}): Problem {
 
 const mockShowToast = vi.fn();
 const mockUser = { id: "user-123" } as User;
+const defaultPrefs: Preferences = { dailyReviewGoal: 5, hidePatternsDuringReview: false, enabledExtraPatterns: [] };
+const mockSyncOnSignIn = syncOnSignIn as ReturnType<typeof vi.fn>;
+const mockPushPreferencesToCloud = pushPreferencesToCloud as ReturnType<typeof vi.fn>;
+
+function makeSyncResult(preferences: Preferences, syncStatus?: SyncStatus) {
+  return {
+    problems: [],
+    reviewLog: [],
+    reviewEvents: [],
+    preferences,
+    problemTombstones: [],
+    dataReset: null,
+    hasChanges: syncStatus === "synced",
+    error: null,
+  };
+}
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
@@ -104,6 +123,7 @@ describe("useProblems", () => {
     vi.clearAllMocks();
     // Reset mocks to safe defaults
     (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    (syncOnSignIn as ReturnType<typeof vi.fn>).mockResolvedValue(makeSyncResult(defaultPrefs));
     (deduplicateProblems as ReturnType<typeof vi.fn>).mockImplementation(
       (problems: Problem[]) => ({ problems, removedIds: [] })
     );
@@ -142,6 +162,79 @@ describe("useProblems", () => {
       // saveProblems is called during state init (removedIds.length > 0) and
       // also via the useEffect after mount — both should have the deduped list.
       expect(saveProblems).toHaveBeenCalledWith(deduped);
+    });
+  });
+
+  describe("sign-in sync preferences", () => {
+    it("applies cloud preferences when local preferences were unchanged during sync", async () => {
+      let resolveSync!: (value: ReturnType<typeof makeSyncResult>) => void;
+      const pendingSync = new Promise<ReturnType<typeof makeSyncResult>>((resolve) => {
+        resolveSync = resolve;
+      });
+      const cloudPrefs: Preferences = {
+        dailyReviewGoal: 11,
+        hidePatternsDuringReview: true,
+        enabledExtraPatterns: ["Sliding Window"],
+      };
+      mockSyncOnSignIn.mockReturnValue(pendingSync);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      await waitFor(() => {
+        expect(mockSyncOnSignIn).toHaveBeenCalledTimes(1);
+      });
+
+      await act(async () => {
+        resolveSync(makeSyncResult(cloudPrefs, "synced"));
+        await pendingSync;
+      });
+
+      await waitFor(() => {
+        expect(result.current.syncStatus).toBe("synced");
+      });
+      expect(result.current.preferences).toEqual(cloudPrefs);
+    });
+
+    it("keeps local preference edits made while sign-in sync is in flight", async () => {
+      let resolveSync!: (value: ReturnType<typeof makeSyncResult>) => void;
+      const pendingSync = new Promise<ReturnType<typeof makeSyncResult>>((resolve) => {
+        resolveSync = resolve;
+      });
+      const cloudPrefs: Preferences = {
+        dailyReviewGoal: 11,
+        hidePatternsDuringReview: true,
+        enabledExtraPatterns: ["Sliding Window"],
+      };
+      const localPrefs: Preferences = { ...defaultPrefs, dailyReviewGoal: 8 };
+      mockSyncOnSignIn.mockReturnValue(pendingSync);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      await waitFor(() => {
+        expect(mockSyncOnSignIn).toHaveBeenCalledTimes(1);
+      });
+
+      act(() => {
+        result.current.handleUpdatePreferences({ dailyReviewGoal: 8 });
+      });
+      expect(result.current.preferences).toEqual(localPrefs);
+      expect(mockPushPreferencesToCloud).toHaveBeenCalledWith("user-123", localPrefs);
+      mockPushPreferencesToCloud.mockClear();
+
+      await act(async () => {
+        resolveSync(makeSyncResult(cloudPrefs, "synced"));
+        await pendingSync;
+      });
+
+      await waitFor(() => {
+        expect(result.current.syncStatus).toBe("synced");
+      });
+      expect(result.current.preferences).toEqual(localPrefs);
+      expect(mockPushPreferencesToCloud).toHaveBeenCalledWith("user-123", localPrefs);
     });
   });
 

@@ -20,6 +20,7 @@ import {
 } from "../utils/storage";
 import usePreferences from "./usePreferences";
 import useCloudSync from "./useCloudSync";
+import type { SyncCompleteContext } from "./useCloudSync";
 import {
   filterExistingProblems,
   interleaveByDifficulty,
@@ -34,12 +35,14 @@ import {
   deleteProblemFromCloud,
   pushReviewToCloud,
   pushReviewEventsToCloud,
+  pushPreferencesToCloud,
   deduplicateProblems,
   mergeProblems,
   mergeReviewLog,
   mergeReviewEvents,
   mergeProblemTombstones,
   filterTombstonedProblems,
+  filterTombstonesAfterDataReset,
   clearAllCloudData,
 } from "../utils/sync";
 import posthog from "posthog-js";
@@ -80,7 +83,13 @@ function newerDataReset(a: DataReset | null, b: DataReset | null): DataReset | n
 }
 
 export default function useProblems({ user, showToast }: UseProblemsParams): UseProblemsReturn {
-  const { preferences, handleUpdatePreferences, replacePreferences } = usePreferences({ user });
+  const {
+    preferences,
+    handleUpdatePreferences,
+    replacePreferences,
+    getCurrentPreferences,
+    getPreferenceRevision,
+  } = usePreferences({ user });
 
   const [problems, setProblems] = useState(() => {
     const loaded = loadProblems();
@@ -101,17 +110,18 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   useEffect(() => { saveProblems(problems); }, [problems]);
 
   // Sync with Supabase on sign-in
-  const handleSyncComplete = useCallback((result: SyncResult) => {
-    const currentTombstones = loadProblemTombstones();
-    const { tombstones } = mergeProblemTombstones(currentTombstones, result.problemTombstones);
-    saveProblemTombstones(tombstones);
-
+  const handleSyncComplete = useCallback((result: SyncResult, context?: SyncCompleteContext) => {
     const currentDataReset = loadDataReset();
     const mergedDataReset = newerDataReset(currentDataReset, result.dataReset);
     const incomingResetIsNewer = dataResetTime(result.dataReset) > dataResetTime(currentDataReset);
     if (mergedDataReset) {
       saveDataReset(mergedDataReset);
     }
+
+    const currentTombstones = filterTombstonesAfterDataReset(loadProblemTombstones(), mergedDataReset);
+    const resultTombstones = filterTombstonesAfterDataReset(result.problemTombstones, mergedDataReset);
+    const { tombstones } = mergeProblemTombstones(currentTombstones, resultTombstones);
+    saveProblemTombstones(tombstones);
 
     setProblems((currentProblems) => {
       const localProblems = incomingResetIsNewer ? [] : currentProblems;
@@ -124,12 +134,16 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     const localReviewEvents = incomingResetIsNewer ? [] : loadReviewEvents();
     saveReviewLog(mergeReviewLog(localReviewLog, result.reviewLog).log);
     saveReviewEvents(mergeReviewEvents(localReviewEvents, result.reviewEvents).events);
-    replacePreferences(result.preferences);
+    if (!context || getPreferenceRevision() === context.preferenceRevisionAtStart) {
+      replacePreferences(result.preferences);
+    } else if (user) {
+      pushPreferencesToCloud(user.id, getCurrentPreferences());
+    }
     setReviewCount((c) => c + 1);
-  }, [replacePreferences]);
+  }, [getCurrentPreferences, getPreferenceRevision, replacePreferences, user]);
 
   const { syncStatus } = useCloudSync({
-    user, problems, preferences, showToast,
+    user, problems, preferences, getPreferenceRevision, showToast,
     onSyncComplete: handleSyncComplete,
   });
 

@@ -47,6 +47,14 @@ interface SnakeCaseDataReset {
   updated_at?: string;
 }
 
+interface ReviewEventRow {
+  problem_id: string;
+  new_confidence: number;
+  patterns: string[] | null;
+  review_date: string;
+  created_at: string;
+}
+
 export function toSnakeCase(problem: Problem): SnakeCaseProblem {
   return {
     id: problem.id,
@@ -348,21 +356,37 @@ export async function fetchReviewEvents(
 ): Promise<{ data: ReviewEvent[] | null; error: unknown }> {
   if (!supabase) return { data: null, error: null };
   try {
-    const sinceDate = since ?? new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error } = await supabase
-      .from("review_log")
-      .select("problem_id, new_confidence, patterns, review_date, created_at")
-      .eq("user_id", userId)
-      .gte("created_at", sinceDate)
-      .order("created_at", { ascending: true });
-    if (error) return { data: null, error };
-    const events = (data as Array<{ problem_id: string; new_confidence: number; patterns: string[] | null; review_date: string; created_at: string }>).map((row) => ({
-      date: row.review_date,
-      problemId: row.problem_id,
-      confidence: row.new_confidence,
-      patterns: row.patterns ?? [],
-      timestamp: row.created_at,
-    }));
+    const PAGE_SIZE = 1000;
+    const events: ReviewEvent[] = [];
+
+    for (let from = 0; ; from += PAGE_SIZE) {
+      let query = supabase
+        .from("review_log")
+        .select("problem_id, new_confidence, patterns, review_date, created_at")
+        .eq("user_id", userId);
+
+      if (since) {
+        query = query.gte("created_at", since);
+      }
+
+      const { data, error } = await query
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) return { data: null, error };
+
+      const rows = (data ?? []) as ReviewEventRow[];
+      events.push(...rows.map((row) => ({
+        date: row.review_date,
+        problemId: row.problem_id,
+        confidence: row.new_confidence,
+        patterns: row.patterns ?? [],
+        timestamp: row.created_at,
+      })));
+
+      if (rows.length < PAGE_SIZE) break;
+    }
+
     return { data: events, error: null };
   } catch (err) {
     return { data: null, error: err };
