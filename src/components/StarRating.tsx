@@ -17,7 +17,8 @@ export default function StarRating({ value, onChange, size = 20 }: Props) {
           key={star}
           role={interactive ? "radio" : undefined}
           aria-checked={interactive ? star === value : undefined}
-          aria-label={`${star} star${star !== 1 ? "s" : ""}`}
+          aria-label={interactive ? `${star} star${star !== 1 ? "s" : ""}` : undefined}
+          aria-hidden={interactive ? undefined : true}
           tabIndex={interactive ? 0 : undefined}
           onClick={() => interactive && onChange(star)}
           onKeyDown={(e) => interactive && e.key === "Enter" && onChange(star)}

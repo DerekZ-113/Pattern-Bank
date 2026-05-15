@@ -11,7 +11,7 @@ import Header from "./components/Header";
 import HelpModal from "./components/HelpModal";
 import NavBar from "./components/NavBar";
 import ProblemModal from "./components/ProblemModal";
-import DashboardView from "./components/DashboardView";
+import TodayView from "./components/TodayView";
 import ProgressView from "./components/ProgressView";
 import AllProblemsView from "./components/AllProblemsView";
 import SettingsModal from "./components/SettingsModal";
@@ -107,16 +107,15 @@ export default function App() {
       />
 
       {ui.activeTab === "dashboard" && (
-        <DashboardView
+        <TodayView
           problems={problems}
+          reviewEvents={reviewEvents}
           dailyGoal={preferences.dailyReviewGoal}
           hidePatterns={preferences.hidePatternsDuringReview}
-          enabledExtraPatterns={preferences.enabledExtraPatterns}
           onReview={handleReview}
           onDismiss={handleDismiss}
           onUpdateNotes={handleUpdateNotes}
           onViewAllDue={ui.handleViewAllDue}
-          onPatternClick={ui.handlePatternClick}
           onAddClick={ui.openAddModal}
           onBulkAdd={handleBulkAdd}
           existingProblemNumbers={existingProblemNumbers}
@@ -146,7 +145,6 @@ export default function App() {
       <NavBar
         activeTab={ui.activeTab}
         onTabChange={ui.handleTabChange}
-        onAddClick={ui.openAddModal}
       />
       <ProblemModal
         isOpen={ui.modalOpen}

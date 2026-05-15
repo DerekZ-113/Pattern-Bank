@@ -8,20 +8,20 @@ test.describe("Navigation & Modals", () => {
     await page.goto("/");
   });
 
-  test("tab navigation between dashboard and all problems", async ({ page }) => {
-    // Start on dashboard
-    await expect(page.getByText(/Today's Reviews/i)).toBeVisible();
+  test("tab navigation between today and all problems", async ({ page }) => {
+    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
 
     // Navigate to All Problems
     await page.getByRole("button", { name: /All Problems/i }).click();
     await expect(page.getByPlaceholder(/search by title/i)).toBeVisible();
 
-    // Navigate back to Dashboard
-    await page.getByRole("button", { name: /Dashboard/i }).click();
-    await expect(page.getByText(/Today's Reviews/i)).toBeVisible();
+    // Navigate back to Today
+    await page.getByRole("button", { name: /Today/i }).click();
+    await expect(page.getByText(/Reviews due/i)).toBeVisible();
   });
 
   test("modal closes on escape key", async ({ page }) => {
+    await page.getByRole("button", { name: /All Problems/i }).click();
     await page.getByRole("button", { name: "Add Problem" }).click();
     await expect(page.getByText("Add New Problem")).toBeVisible();
 
@@ -30,6 +30,7 @@ test.describe("Navigation & Modals", () => {
   });
 
   test("modal closes on overlay click", async ({ page }) => {
+    await page.getByRole("button", { name: /All Problems/i }).click();
     await page.getByRole("button", { name: "Add Problem" }).click();
     await expect(page.getByText("Add New Problem")).toBeVisible();
 
