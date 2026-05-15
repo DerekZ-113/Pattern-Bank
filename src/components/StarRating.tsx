@@ -21,7 +21,13 @@ export default function StarRating({ value, onChange, size = 20 }: Props) {
           aria-hidden={interactive ? undefined : true}
           tabIndex={interactive ? 0 : undefined}
           onClick={() => interactive && onChange(star)}
-          onKeyDown={(e) => interactive && e.key === "Enter" && onChange(star)}
+          onKeyDown={(e) => {
+            if (!interactive) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onChange(star);
+            }
+          }}
           onMouseEnter={() => interactive && setHover(star)}
           onMouseLeave={() => interactive && setHover(0)}
           className="select-none leading-none transition-colors duration-150"

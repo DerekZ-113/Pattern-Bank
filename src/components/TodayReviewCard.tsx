@@ -29,6 +29,9 @@ export default function TodayReviewCard({
   const lastReviewedText = problem.lastReviewed
     ? `last reviewed ${formatRelativeDate(problem.lastReviewed).toLowerCase()}`
     : "Never reviewed";
+  const actionGridClass = problem.url
+    ? "mt-3 grid grid-cols-[auto_1fr_auto] gap-2 max-sm:grid-cols-1"
+    : "mt-3 grid grid-cols-[1fr_auto] gap-2 max-sm:grid-cols-1";
 
   const handleStartReview = () => {
     setReviewing(true);
@@ -143,7 +146,7 @@ export default function TodayReviewCard({
           </div>
         </div>
       ) : (
-        <div className="mt-3 grid grid-cols-[auto_1fr_auto] gap-2 max-sm:grid-cols-1">
+        <div className={actionGridClass}>
           {problem.url && (
             <a
               href={problem.url}

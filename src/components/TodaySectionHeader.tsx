@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 interface Props {
+  id?: string;
   title: string;
   count?: number | string;
   subcopy?: string;
@@ -8,10 +9,10 @@ interface Props {
   children?: ReactNode;
 }
 
-export default function TodaySectionHeader({ title, count, subcopy, accent, children }: Props) {
+export default function TodaySectionHeader({ id, title, count, subcopy, accent, children }: Props) {
   return (
     <div className="mb-3 flex items-center gap-2.5">
-      <h2 className="text-[15px] font-semibold text-pb-text">{title}</h2>
+      <h2 id={id} className="text-[15px] font-semibold text-pb-text">{title}</h2>
       {count !== undefined && (
         <span
           className={`inline-flex min-w-6 items-center justify-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${

@@ -61,13 +61,12 @@ export default function TodayView({
       ) : (
         <>
           <section aria-labelledby="today-reviews-title">
-            <div id="today-reviews-title">
-              <TodaySectionHeader
-                title="Reviews due"
-                count={totalDueCount}
-                subcopy="Spaced repetition — rate after reviewing"
-              />
-            </div>
+            <TodaySectionHeader
+              id="today-reviews-title"
+              title="Reviews due"
+              count={totalDueCount}
+              subcopy="Spaced repetition — rate after reviewing"
+            />
 
             {todaysReviews.length === 0 ? (
               <div className="rounded-[10px] border border-pb-border bg-pb-surface px-5 py-8 text-center">
@@ -120,14 +119,13 @@ export default function TodayView({
 
           {doneTodayItems.length > 0 && (
             <section aria-labelledby="done-today-title">
-              <div id="done-today-title">
-                <TodaySectionHeader
-                  title="Done today"
-                  count={doneTodayItems.length}
-                  subcopy="Reverse chronological"
-                  accent
-                />
-              </div>
+              <TodaySectionHeader
+                id="done-today-title"
+                title="Done today"
+                count={doneTodayItems.length}
+                subcopy="Reverse chronological"
+                accent
+              />
               <TodayDoneFeed items={doneTodayItems} />
             </section>
           )}
