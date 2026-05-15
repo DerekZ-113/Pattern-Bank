@@ -26,6 +26,8 @@ export interface SupabaseMock {
   range: ReturnType<typeof vi.fn>;
   single: ReturnType<typeof vi.fn>;
   maybeSingle: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  functions: { invoke: ReturnType<typeof vi.fn> };
 }
 
 export function createSupabaseMock(result: MockResult = { data: null, error: null }): SupabaseMock {
@@ -44,6 +46,8 @@ export function createSupabaseMock(result: MockResult = { data: null, error: nul
     range: vi.fn().mockResolvedValue(resolvedResult),
     single: vi.fn().mockResolvedValue(resolvedResult),
     maybeSingle: vi.fn().mockResolvedValue(resolvedResult),
+    limit: vi.fn().mockResolvedValue(resolvedResult),
+    functions: { invoke: vi.fn().mockResolvedValue(resolvedResult) },
   };
 
   // All chainable methods return the mock itself
@@ -56,6 +60,7 @@ export function createSupabaseMock(result: MockResult = { data: null, error: nul
   mock.insert.mockReturnValue(mock);
   mock.delete.mockReturnValue(mock);
   mock.order.mockReturnValue(mock);
+  mock.limit.mockResolvedValue(resolvedResult);
 
   return mock;
 }

@@ -4,6 +4,7 @@ import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
 import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";
 import useProblems from "./hooks/useProblems";
+import useLeetCodeActivity from "./hooks/useLeetCodeActivity";
 
 import Toast from "./components/Toast";
 import ConfirmDialog from "./components/ConfirmDialog";
@@ -37,6 +38,7 @@ export default function App() {
     handleSetAllDue,
     handleClearAllData,
   } = useProblems({ user, showToast: ui.showToast });
+  const leetcodeActivity = useLeetCodeActivity({ user, showToast: ui.showToast });
 
   const existingProblemNumbers = useMemo(
     () => new Set(problems.map((p) => p.leetcodeNumber).filter((n): n is number => Boolean(n))),
@@ -89,6 +91,7 @@ export default function App() {
         problemCount={problems.length}
         existingProblemNumbers={existingProblemNumbers}
         user={user}
+        leetcodeActivity={leetcodeActivity}
         onSignInGoogle={signInWithGoogle}
         onSignInGitHub={signInWithGitHub}
         onSignInApple={signInWithApple}
