@@ -10,6 +10,7 @@ import {
   fetchLeetCodeConnection,
   fetchLeetCodeIgnoredImports,
   fetchRecentLeetCodeSubmissions,
+  markLeetCodeSubmissionRated,
   syncLeetCodeActivity,
 } from "../src/utils/leetcodeActivityData";
 
@@ -19,6 +20,7 @@ vi.mock("../src/utils/leetcodeActivityData", () => ({
   fetchLeetCodeConnection: vi.fn(),
   fetchLeetCodeIgnoredImports: vi.fn(),
   fetchRecentLeetCodeSubmissions: vi.fn(),
+  markLeetCodeSubmissionRated: vi.fn(),
   syncLeetCodeActivity: vi.fn(),
 }));
 
@@ -38,6 +40,10 @@ describe("useLeetCodeActivity", () => {
     vi.mocked(fetchRecentLeetCodeSubmissions).mockResolvedValue({ data: [], error: null });
     vi.mocked(syncLeetCodeActivity).mockResolvedValue({
       data: { connection: oldConnection, submissions: [], ignoredImports: [], summary: { insertedCount: 3 } },
+      error: null,
+    });
+    vi.mocked(markLeetCodeSubmissionRated).mockResolvedValue({
+      data: { connection: oldConnection, submissions: [], ignoredImports: [], summary: { insertedCount: 0 } },
       error: null,
     });
   });
@@ -176,5 +182,34 @@ describe("useLeetCodeActivity", () => {
 
     expect(disconnectLeetCodeActivity).toHaveBeenCalledTimes(1);
     expect(result.current.connection).toBeNull();
+  });
+
+  it("marks a LeetCode submission rated and refreshes local activity state from the response", async () => {
+    const ratedSubmission = {
+      id: "sub-db-1",
+      userId: "user-1",
+      leetcodeUsername: "derek113",
+      leetcodeSubmissionId: "lc-sub-1",
+      titleSlug: "two-sum",
+      title: "Two Sum",
+      leetcodeNumber: 1,
+      difficulty: "Easy" as const,
+      submittedAt: "2026-05-15T09:00:00.000Z",
+      problemId: "problem-1",
+      status: "rated" as const,
+    };
+    vi.mocked(markLeetCodeSubmissionRated).mockResolvedValue({
+      data: { connection: oldConnection, submissions: [ratedSubmission], ignoredImports: [], summary: { insertedCount: 0 } },
+      error: null,
+    });
+    const { result } = renderHook(() => useLeetCodeActivity({ user: mockUser }));
+
+    await act(async () => {
+      const response = await result.current.markRated("sub-db-1", "problem-1");
+      expect(response.error).toBeNull();
+    });
+
+    expect(markLeetCodeSubmissionRated).toHaveBeenCalledWith("sub-db-1", "problem-1");
+    expect(result.current.submissions).toEqual([ratedSubmission]);
   });
 });

@@ -27,6 +27,7 @@ type RequestBody =
   | { action: "disconnect" }
   | { action: "mark_imported"; submissionDbId: string; problemId: string }
   | { action: "mark_linked_existing"; submissionDbId: string; problemId: string }
+  | { action: "mark_rated"; submissionDbId: string; problemId: string }
   | { action: "ignore_import"; submissionDbId: string }
   | { action: "restore_ignored_import"; titleSlug: string };
 
@@ -237,7 +238,7 @@ async function markSubmissionProblemStatus(
   userId: string,
   submissionDbId: string,
   problemId: string,
-  status: "imported" | "linked_existing",
+  status: "imported" | "linked_existing" | "rated",
 ) {
   const submission = await fetchOwnedSubmission(serviceClient, userId, submissionDbId);
   if (!submission) return jsonResponse({ error: "Invalid request." }, { status: 404 });
@@ -565,6 +566,16 @@ Deno.serve(async (req) => {
         body.submissionDbId,
         body.problemId,
         "linked_existing",
+      );
+    }
+
+    if (body.action === "mark_rated") {
+      return await markSubmissionProblemStatus(
+        serviceClient,
+        user.id,
+        body.submissionDbId,
+        body.problemId,
+        "rated",
       );
     }
 

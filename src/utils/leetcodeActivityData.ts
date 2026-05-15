@@ -286,3 +286,10 @@ export function ignoreLeetCodeImport(submissionDbId: string): Promise<LeetCodeAc
 export function restoreIgnoredLeetCodeImport(titleSlug: string): Promise<LeetCodeActivityResult> {
   return invokeLeetCodeActivity({ action: "restore_ignored_import", titleSlug });
 }
+
+export function markLeetCodeSubmissionRated(
+  submissionDbId: string,
+  problemId: string,
+): Promise<LeetCodeActivityResult> {
+  return invokeLeetCodeActivity({ action: "mark_rated", submissionDbId, problemId });
+}

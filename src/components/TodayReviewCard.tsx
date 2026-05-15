@@ -8,6 +8,7 @@ import type { Confidence, Problem } from "../types";
 interface Props {
   problem: Problem;
   hidePatterns?: boolean;
+  solvedOnLeetCodeToday?: boolean;
   onReview: (id: string, confidence: Confidence) => void;
   onDismiss: (id: string) => void;
   onUpdateNotes: (id: string, notes: string) => void;
@@ -16,6 +17,7 @@ interface Props {
 export default function TodayReviewCard({
   problem,
   hidePatterns,
+  solvedOnLeetCodeToday = false,
   onReview,
   onDismiss,
   onUpdateNotes,
@@ -62,6 +64,11 @@ export default function TodayReviewCard({
 
           <div className="flex flex-wrap items-center gap-2">
             <DifficultyBadge difficulty={problem.difficulty} />
+            {solvedOnLeetCodeToday && (
+              <span className="rounded-full border border-pb-accent/25 bg-pb-accent-subtle px-2.5 py-1 text-[11px] font-semibold text-pb-accent">
+                Solved on LC today
+              </span>
+            )}
             {hidePatterns && !patternsRevealed ? (
               <button
                 onClick={() => setPatternsRevealed(true)}

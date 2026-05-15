@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
+import { rateLeetCodeReviewLocallyFirst } from "./utils/leetcodeReviewActions";
 
 import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";
@@ -56,6 +57,23 @@ export default function App() {
     () => new Set(problems.map((p) => p.leetcodeNumber).filter((n): n is number => Boolean(n))),
     [problems],
   );
+
+  const handleRateLeetCodeReview = useCallback(async (
+    submissionDbId: string,
+    problemId: string,
+    confidence: Parameters<typeof handleReview>[1],
+  ) => {
+    await rateLeetCodeReviewLocallyFirst({
+      submissionDbId,
+      problemId,
+      confidence,
+      onReview: handleReview,
+      markRated: leetcodeActivity.markRated,
+      onError: (error) => {
+        console.warn("LeetCode submission marked locally reviewed, but remote rated status failed:", error);
+      },
+    });
+  }, [handleReview, leetcodeActivity]);
 
   // Re-read from localStorage when review data changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -138,6 +156,8 @@ export default function App() {
           pendingLeetCodeImports={leetcodePendingImports.pendingImports}
           onConfirmLeetCodeImport={leetcodePendingImports.confirmImport}
           onIgnoreLeetCodeImport={leetcodePendingImports.ignoreImport}
+          leetcodeSubmissions={leetcodeActivity.submissions}
+          onRateLeetCodeReview={handleRateLeetCodeReview}
         />
       )}
       {ui.activeTab === "progress" && (

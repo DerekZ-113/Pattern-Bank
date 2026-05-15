@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDoneTodayFeedItems,
+  buildSolvedOnLeetCodeTodayIndex,
+  buildTodayActivityFeedItems,
   buildTodayReviewState,
 } from "../src/utils/todayView";
-import type { Problem, ReviewEvent } from "../src/types";
+import type { LeetCodeSubmission, Problem, ReviewEvent } from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
@@ -31,6 +33,25 @@ function makeReviewEvent(overrides: Partial<ReviewEvent> = {}): ReviewEvent {
     confidence: 4,
     patterns: ["Hash Table"],
     timestamp: "2026-05-14T21:14:00.000Z",
+    ...overrides,
+  };
+}
+
+function makeSubmission(overrides: Partial<LeetCodeSubmission> = {}): LeetCodeSubmission {
+  return {
+    id: "sub-1",
+    userId: "user-1",
+    leetcodeUsername: "derek113",
+    leetcodeSubmissionId: "lc-sub-1",
+    titleSlug: "two-sum",
+    title: "Two Sum",
+    leetcodeNumber: 1,
+    difficulty: "Easy",
+    submittedAt: "2026-05-14T21:30:00.000Z",
+    problemId: "p1",
+    status: "linked_existing",
+    createdAt: "2026-05-14T21:31:00.000Z",
+    updatedAt: "2026-05-14T21:31:00.000Z",
     ...overrides,
   };
 }
@@ -127,5 +148,145 @@ describe("buildDoneTodayFeedItems", () => {
 
     expect(items).toHaveLength(1);
     expect(items[0].problemId).toBe("existing");
+  });
+});
+
+describe("buildTodayActivityFeedItems", () => {
+  it("creates PB review rows and linked LeetCode rows for today", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [
+        makeProblem(),
+        makeProblem({
+          id: "p2",
+          title: "Number of Islands",
+          leetcodeNumber: 200,
+          difficulty: "Medium",
+          nextReviewDate: "2026-05-20",
+        }),
+      ],
+      reviewEvents: [makeReviewEvent({ timestamp: "2026-05-14T22:00:00.000Z" })],
+      leetcodeSubmissions: [
+        makeSubmission({
+          id: "sub-2",
+          problemId: "p2",
+          title: "Number of Islands",
+          titleSlug: "number-of-islands",
+          leetcodeNumber: 200,
+          difficulty: "Medium",
+          status: "linked_existing",
+          submittedAt: "2026-05-14T21:00:00.000Z",
+        }),
+      ],
+      today: "2026-05-14",
+    });
+
+    expect(items.map((item) => item.type)).toEqual(["pb_review", "leetcode_solve"]);
+    expect(items[0]).toMatchObject({ type: "pb_review", problemId: "p1", confidence: 4 });
+    expect(items[1]).toMatchObject({
+      type: "leetcode_solve",
+      submissionDbId: "sub-2",
+      problemId: "p2",
+      status: "linked_existing",
+      canRate: false,
+    });
+  });
+
+  it("excludes ignored submissions and detected pending imports from Done Today", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [makeProblem()],
+      reviewEvents: [],
+      leetcodeSubmissions: [
+        makeSubmission({ id: "ignored", status: "ignored" }),
+        makeSubmission({ id: "detected", status: "detected", problemId: null }),
+      ],
+      today: "2026-05-14",
+    });
+
+    expect(items).toEqual([]);
+  });
+
+  it("matches LeetCode rows by leetcodeNumber when problemId is not present", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [makeProblem({ id: "local-two-sum", leetcodeNumber: 1 })],
+      reviewEvents: [],
+      leetcodeSubmissions: [makeSubmission({ problemId: null, status: "imported" })],
+      today: "2026-05-14",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      type: "leetcode_solve",
+      problemId: "local-two-sum",
+      status: "imported",
+    });
+  });
+
+  it("sets canRate only for due local problems that were not already reviewed today", () => {
+    const dueItems = buildTodayActivityFeedItems({
+      problems: [makeProblem({ nextReviewDate: "2026-05-14", lastReviewed: null })],
+      reviewEvents: [],
+      leetcodeSubmissions: [makeSubmission()],
+      today: "2026-05-14",
+    });
+    const excludedItems = buildTodayActivityFeedItems({
+      problems: [makeProblem({ excludeFromReview: true, nextReviewDate: "2026-05-14" })],
+      reviewEvents: [],
+      leetcodeSubmissions: [makeSubmission()],
+      today: "2026-05-14",
+    });
+    const reviewedItems = buildTodayActivityFeedItems({
+      problems: [makeProblem({ nextReviewDate: "2026-05-14", lastReviewed: "2026-05-14" })],
+      reviewEvents: [],
+      leetcodeSubmissions: [makeSubmission()],
+      today: "2026-05-14",
+    });
+
+    expect(dueItems[0]).toMatchObject({ type: "leetcode_solve", canRate: true, reviewDue: true });
+    expect(excludedItems[0]).toMatchObject({ type: "leetcode_solve", canRate: false, reviewDue: false });
+    expect(reviewedItems[0]).toMatchObject({ type: "leetcode_solve", canRate: false, reviewDue: true });
+  });
+
+  it("renders only the PB review row when a LeetCode solve was reviewed later the same day", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [makeProblem()],
+      reviewEvents: [makeReviewEvent({ timestamp: "2026-05-14T21:35:00.000Z" })],
+      leetcodeSubmissions: [makeSubmission({ submittedAt: "2026-05-14T21:30:00.000Z" })],
+      today: "2026-05-14",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ type: "pb_review", problemId: "p1" });
+  });
+
+  it("sorts PB and LeetCode rows reverse chronological", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [
+        makeProblem({ id: "p1", leetcodeNumber: 1 }),
+        makeProblem({ id: "p2", title: "LRU Cache", leetcodeNumber: 146 }),
+      ],
+      reviewEvents: [makeReviewEvent({ problemId: "p1", timestamp: "2026-05-14T20:00:00.000Z" })],
+      leetcodeSubmissions: [
+        makeSubmission({
+          id: "sub-late",
+          problemId: "p2",
+          title: "LRU Cache",
+          leetcodeNumber: 146,
+          submittedAt: "2026-05-14T23:00:00.000Z",
+          status: "rated",
+        }),
+      ],
+      today: "2026-05-14",
+    });
+
+    expect(items.map((item) => item.title)).toEqual(["LRU Cache", "Two Sum"]);
+  });
+});
+
+describe("buildSolvedOnLeetCodeTodayIndex", () => {
+  it("indexes solved LeetCode problem ids and numbers for the current local day", () => {
+    const index = buildSolvedOnLeetCodeTodayIndex([makeSubmission()], "2026-05-14");
+
+    expect(index.problemIds.has("p1")).toBe(true);
+    expect(index.leetcodeNumbers.has(1)).toBe(true);
   });
 });

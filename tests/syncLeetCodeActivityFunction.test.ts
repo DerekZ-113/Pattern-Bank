@@ -114,6 +114,13 @@ describe("sync-leetcode-activity helpers", () => {
     })).toEqual({ status: "imported", problemId: "problem-1" });
 
     expect(resolveSyncedSubmissionState({
+      existingStatus: "rated",
+      existingProblemId: "problem-rated",
+      ignored: false,
+      linkedProblemId: null,
+    })).toEqual({ status: "rated", problemId: "problem-rated" });
+
+    expect(resolveSyncedSubmissionState({
       existingStatus: "detected",
       existingProblemId: null,
       ignored: true,
