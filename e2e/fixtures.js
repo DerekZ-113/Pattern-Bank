@@ -5,6 +5,7 @@
 
 const STORAGE_KEY = "patternbank-problems";
 const REVIEW_LOG_KEY = "patternbank-review-log";
+const REVIEW_EVENTS_KEY = "patternbank-review-events";
 const PREFERENCES_KEY = "patternbank-preferences";
 
 export function localTodayStr() {
@@ -13,6 +14,16 @@ export function localTodayStr() {
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Bypass the marketing landing page for tests that need the app with no data.
+ * Call before page.goto().
+ */
+export async function skipLanding(page) {
+  await page.addInitScript(() => {
+    sessionStorage.setItem("patternbank-skip-landing", "true");
+  });
 }
 
 /**
@@ -59,6 +70,15 @@ export async function seedPreferences(page, prefs) {
 }
 
 /**
+ * Inject detailed review events into localStorage before the page loads.
+ */
+export async function seedReviewEvents(page, events) {
+  await page.addInitScript(({ key, data }) => {
+    localStorage.setItem(key, JSON.stringify(data));
+  }, { key: REVIEW_EVENTS_KEY, data: events });
+}
+
+/**
  * Read current problems from localStorage (after page is loaded).
  */
 export async function getStoredProblems(page) {
@@ -74,9 +94,10 @@ export async function getStoredProblems(page) {
  * so this is only needed if you're reusing a page within a test.
  */
 export async function clearAppData(page) {
-  await page.addInitScript(({ sk, rk, pk }) => {
+  await page.addInitScript(({ sk, rk, rek, pk }) => {
     localStorage.removeItem(sk);
     localStorage.removeItem(rk);
+    localStorage.removeItem(rek);
     localStorage.removeItem(pk);
-  }, { sk: STORAGE_KEY, rk: REVIEW_LOG_KEY, pk: PREFERENCES_KEY });
+  }, { sk: STORAGE_KEY, rk: REVIEW_LOG_KEY, rek: REVIEW_EVENTS_KEY, pk: PREFERENCES_KEY });
 }

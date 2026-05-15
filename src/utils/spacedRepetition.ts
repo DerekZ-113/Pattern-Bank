@@ -35,10 +35,8 @@ function calcDaysOverdue(nextReviewDate: string, today: string): number {
 //   1. Lowest confidence first (weakest problems surface first)
 //   2. Most days overdue first (longest-waiting problems surface first)
 //   3. Stable random tiebreaker (reshuffles daily, stable within a session)
-export function prioritizeProblems(dueProblems: Problem[], limit: number): Problem[] {
+export function prioritizeProblems(dueProblems: Problem[], limit: number, today = todayStr()): Problem[] {
   if (!dueProblems.length || limit <= 0) return [];
-
-  const today = todayStr();
 
   const sorted = [...dueProblems].sort((a, b) => {
     // 1. Lowest confidence first

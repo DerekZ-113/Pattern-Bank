@@ -26,6 +26,16 @@ export function todayStr(): string {
   return formatLocalDate(new Date());
 }
 
+export function formatDisplayDate(dateStr: string): string {
+  const { year, month, day } = parseDateOnly(dateStr);
+  const localDate = new Date(year, month - 1, day);
+  return localDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export function utcToLocalDateStr(isoTimestamp: string | null | undefined): string | null {
   if (!isoTimestamp) return null;
   const d = new Date(isoTimestamp);

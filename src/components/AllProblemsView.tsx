@@ -142,6 +142,21 @@ export default function AllProblemsView({ problems, onEdit, onDelete, onToggleEx
 
   return (
     <div className="p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-pb-text">All Problems</h1>
+          <p className="mt-1 text-sm text-pb-text-muted">
+            Browse, filter, and maintain your problem library.
+          </p>
+        </div>
+        <button
+          onClick={onAddClick}
+          className="cursor-pointer rounded-lg border border-pb-accent/35 bg-pb-accent-subtle px-4 py-2 text-[13px] font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+        >
+          Add Problem
+        </button>
+      </div>
+
       {/* Search */}
       <div className="relative mb-3">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] text-pb-text-dim">

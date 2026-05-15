@@ -3,8 +3,10 @@
 @theme {
   --color-pb-bg: #0d1117;
   --color-pb-surface: #161b22;
+  --color-pb-surface-2: #15151e;
   --color-pb-surface-hover: #1c2129;
   --color-pb-border: #30363d;
+  --color-pb-border-strong: #3d444d;
   --color-pb-border-light: #21262d;
   --color-pb-text: #e6edf3;
   --color-pb-text-muted: #8b949e;
@@ -127,8 +129,10 @@ body {
 html.light {
   --color-pb-bg: #ffffff;
   --color-pb-surface: #f6f8fa;
+  --color-pb-surface-2: #ffffff;
   --color-pb-surface-hover: #eef1f4;
   --color-pb-border: #d0d7de;
+  --color-pb-border-strong: #afb8c1;
   --color-pb-border-light: #e8ecef;
   --color-pb-text: #1f2328;
   --color-pb-text-muted: #656d76;
