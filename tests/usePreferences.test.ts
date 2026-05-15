@@ -32,18 +32,19 @@ vi.mock("../src/utils/sync", () => ({
 }));
 
 const mockUser = { id: "user-123" } as User;
+const fullPrefs = { dailyReviewGoal: 5, hidePatternsDuringReview: false, enabledExtraPatterns: [] };
 
 describe("usePreferences", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (loadPreferences as ReturnType<typeof vi.fn>).mockReturnValue({ dailyReviewGoal: 5 });
+    (loadPreferences as ReturnType<typeof vi.fn>).mockReturnValue(fullPrefs);
   });
 
   it("loads initial preferences from localStorage", () => {
     const { result } = renderHook(() => usePreferences({ user: null }));
 
     expect(loadPreferences).toHaveBeenCalledTimes(1);
-    expect(result.current.preferences).toEqual({ dailyReviewGoal: 5 });
+    expect(result.current.preferences).toEqual(fullPrefs);
   });
 
   it("saves preferences to localStorage on change", async () => {
@@ -51,7 +52,7 @@ describe("usePreferences", () => {
 
     // The useEffect fires after initial render to save initial preferences
     await waitFor(() => {
-      expect(savePreferences).toHaveBeenCalledWith({ dailyReviewGoal: 5 });
+      expect(savePreferences).toHaveBeenCalledWith(fullPrefs);
     });
 
     act(() => {
@@ -59,7 +60,7 @@ describe("usePreferences", () => {
     });
 
     await waitFor(() => {
-      expect(savePreferences).toHaveBeenCalledWith({ dailyReviewGoal: 10 });
+      expect(savePreferences).toHaveBeenCalledWith({ ...fullPrefs, dailyReviewGoal: 10 });
     });
   });
 
@@ -70,7 +71,7 @@ describe("usePreferences", () => {
       result.current.handleUpdatePreferences({ dailyReviewGoal: 20 });
     });
 
-    expect(result.current.preferences).toEqual({ dailyReviewGoal: 20 });
+    expect(result.current.preferences).toEqual({ ...fullPrefs, dailyReviewGoal: 20 });
   });
 
   it("replacePreferences overwrites all preferences", () => {
@@ -83,6 +84,43 @@ describe("usePreferences", () => {
     expect(result.current.preferences).toEqual({ dailyReviewGoal: 99, hidePatternsDuringReview: false, enabledExtraPatterns: [] });
   });
 
+  it("increments preference revision only for user updates", () => {
+    const { result } = renderHook(() => usePreferences({ user: null }));
+
+    expect(result.current.getPreferenceRevision()).toBe(0);
+
+    act(() => {
+      result.current.handleUpdatePreferences({ dailyReviewGoal: 12 });
+    });
+
+    expect(result.current.getPreferenceRevision()).toBe(1);
+
+    act(() => {
+      result.current.replacePreferences({ dailyReviewGoal: 9, hidePatternsDuringReview: true, enabledExtraPatterns: [] });
+    });
+
+    expect(result.current.getPreferenceRevision()).toBe(1);
+  });
+
+  it("returns current preferences from the internal ref after local and cloud changes", () => {
+    const { result } = renderHook(() => usePreferences({ user: null }));
+
+    expect(result.current.getCurrentPreferences()).toEqual(fullPrefs);
+
+    act(() => {
+      result.current.handleUpdatePreferences({ dailyReviewGoal: 12 });
+    });
+
+    expect(result.current.getCurrentPreferences()).toEqual({ ...fullPrefs, dailyReviewGoal: 12 });
+
+    const cloudPrefs = { dailyReviewGoal: 9, hidePatternsDuringReview: true, enabledExtraPatterns: ["Graph"] };
+    act(() => {
+      result.current.replacePreferences(cloudPrefs);
+    });
+
+    expect(result.current.getCurrentPreferences()).toEqual(cloudPrefs);
+  });
+
   it("pushes to cloud when user is authenticated", () => {
     const { result } = renderHook(() => usePreferences({ user: mockUser }));
 
@@ -91,7 +129,7 @@ describe("usePreferences", () => {
     });
 
     expect(pushPreferencesToCloud).toHaveBeenCalledTimes(1);
-    expect(pushPreferencesToCloud).toHaveBeenCalledWith("user-123", { dailyReviewGoal: 15 });
+    expect(pushPreferencesToCloud).toHaveBeenCalledWith("user-123", { ...fullPrefs, dailyReviewGoal: 15 });
   });
 
   it("does not push to cloud when user is null", () => {

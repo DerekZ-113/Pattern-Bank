@@ -37,6 +37,7 @@ import {
   deleteAllUserProblems,
   deleteAllUserReviewLog,
   upsertPreferences,
+  batchInsertReviewLogs,
 } from "../src/utils/supabaseData";
 import { syncOnSignIn } from "../src/utils/sync";
 
@@ -53,6 +54,7 @@ const mockDeleteProblems = deleteProblems as ReturnType<typeof vi.fn>;
 const mockDeleteAllUserProblems = deleteAllUserProblems as ReturnType<typeof vi.fn>;
 const mockDeleteAllUserReviewLog = deleteAllUserReviewLog as ReturnType<typeof vi.fn>;
 const mockUpsertPreferences = upsertPreferences as ReturnType<typeof vi.fn>;
+const mockBatchInsertReviewLogs = batchInsertReviewLogs as ReturnType<typeof vi.fn>;
 
 const USER_ID = "user-abc";
 
@@ -112,6 +114,7 @@ beforeEach(() => {
   mockDeleteAllUserProblems.mockResolvedValue({ error: null });
   mockDeleteAllUserReviewLog.mockResolvedValue({ error: null });
   mockUpsertPreferences.mockResolvedValue({ data: null, error: null });
+  mockBatchInsertReviewLogs.mockResolvedValue({ error: null });
 });
 
 describe("syncOnSignIn", () => {
@@ -150,17 +153,23 @@ describe("syncOnSignIn", () => {
       expect(result.reviewLog[0].date).toBe("2025-01-01");
     });
 
-    it("treats fetchPreferences error gracefully (uses local prefs)", async () => {
+    it("treats fetchPreferences error gracefully without overwriting cloud prefs", async () => {
       const localProblem = makeProblem({ id: "local-1" });
+      const fetchError = new Error("prefs fetch failed");
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-      mockFetchPreferences.mockResolvedValue({ data: null, error: new Error("prefs fetch failed") });
+      mockFetchPreferences.mockResolvedValue({ data: null, error: fetchError });
 
-      const result = await syncOnSignIn(USER_ID, [localProblem], [], [], defaultPrefs);
+      try {
+        const result = await syncOnSignIn(USER_ID, [localProblem], [], [], defaultPrefs);
 
-      // cloudPrefs is null → use local, push to cloud
-      expect(result.error).toBeNull();
-      expect(result.preferences).toEqual(defaultPrefs);
-      expect(mockUpsertPreferences).toHaveBeenCalledWith(USER_ID, defaultPrefs);
+        expect(result.error).toBeNull();
+        expect(result.preferences).toEqual(defaultPrefs);
+        expect(mockUpsertPreferences).not.toHaveBeenCalled();
+        expect(spy).toHaveBeenCalledWith("Sync: failed to fetch preferences", fetchError);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 
@@ -345,6 +354,89 @@ describe("syncOnSignIn", () => {
       expect(mockDeleteProblems).toHaveBeenCalledWith(["stale-cloud-1"]);
     });
 
+    it("does not resurrect stale cloud problems when reset markers already match", async () => {
+      const staleCloudProblem = makeProblem({
+        id: "stale-cloud-1",
+        updatedAt: "2026-03-10T12:00:00.000Z",
+      });
+      const matchingReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+      mockFetchProblems.mockResolvedValue({ data: [staleCloudProblem], error: null });
+      mockFetchDataReset.mockResolvedValue({ data: matchingReset, error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [], defaultPrefs, [], matchingReset);
+
+      expect(result.problems).toEqual([]);
+      expect(result.dataReset).toEqual(matchingReset);
+      expect(mockDeleteProblems).toHaveBeenCalledWith(["stale-cloud-1"]);
+      expect(mockUpsertProblems).not.toHaveBeenCalled();
+    });
+
+    it("keeps cloud problems created after matching reset markers", async () => {
+      const freshCloudProblem = makeProblem({
+        id: "fresh-cloud-1",
+        updatedAt: "2026-03-13T12:00:00.000Z",
+      });
+      const matchingReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+      mockFetchProblems.mockResolvedValue({ data: [freshCloudProblem], error: null });
+      mockFetchDataReset.mockResolvedValue({ data: matchingReset, error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [], defaultPrefs, [], matchingReset);
+
+      expect(result.problems).toEqual([freshCloudProblem]);
+      expect(mockDeleteProblems).not.toHaveBeenCalled();
+    });
+
+    it("ignores tombstones older than the active reset marker", async () => {
+      const restoredProblem = makeProblem({
+        id: "restored-1",
+        updatedAt: "2026-03-13T12:00:00.000Z",
+      });
+      const matchingReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+      const oldCloudTombstone = { problemId: "restored-1", deletedAt: "2026-03-11T12:00:00.000Z" };
+      mockFetchDataReset.mockResolvedValue({ data: matchingReset, error: null });
+      mockFetchProblemTombstones.mockResolvedValue({ data: [oldCloudTombstone], error: null });
+
+      const result = await syncOnSignIn(USER_ID, [restoredProblem], [], [], defaultPrefs, [], matchingReset);
+
+      expect(result.problems).toEqual([restoredProblem]);
+      expect(result.problemTombstones).toEqual([]);
+    });
+
+    it("applies tombstones newer than the active reset marker", async () => {
+      const localProblem = makeProblem({
+        id: "deleted-after-reset",
+        updatedAt: "2026-03-13T12:00:00.000Z",
+      });
+      const matchingReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+      const newCloudTombstone = { problemId: "deleted-after-reset", deletedAt: "2026-03-13T13:00:00.000Z" };
+      mockFetchDataReset.mockResolvedValue({ data: matchingReset, error: null });
+      mockFetchProblemTombstones.mockResolvedValue({ data: [newCloudTombstone], error: null });
+
+      const result = await syncOnSignIn(USER_ID, [localProblem], [], [], defaultPrefs, [], matchingReset);
+
+      expect(result.problems).toEqual([]);
+      expect(result.problemTombstones).toEqual([newCloudTombstone]);
+    });
+
+    it("does not let old cloud tombstones delete an imported local backup after reset", async () => {
+      const importedProblem = makeProblem({
+        id: "restored-older-updated-at",
+        updatedAt: "2026-03-01T12:00:00.000Z",
+      });
+      const matchingReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+      const oldCloudTombstone = {
+        problemId: "restored-older-updated-at",
+        deletedAt: "2026-03-11T12:00:00.000Z",
+      };
+      mockFetchDataReset.mockResolvedValue({ data: matchingReset, error: null });
+      mockFetchProblemTombstones.mockResolvedValue({ data: [oldCloudTombstone], error: null });
+
+      const result = await syncOnSignIn(USER_ID, [importedProblem], [], [], defaultPrefs, [], matchingReset);
+
+      expect(result.problems).toEqual([importedProblem]);
+      expect(result.problemTombstones).toEqual([]);
+    });
+
     it("uses a newer local reset marker to suppress stale cloud data and repair cloud state", async () => {
       const cloudProblem = makeProblem({ id: "cloud-1" });
       const olderCloudReset = { resetAt: "2026-03-09T12:00:00.000Z" };
@@ -358,6 +450,29 @@ describe("syncOnSignIn", () => {
       expect(mockUpsertDataReset).toHaveBeenCalledWith(USER_ID, localReset);
       expect(mockDeleteAllUserProblems).toHaveBeenCalledWith(USER_ID);
       expect(mockDeleteAllUserReviewLog).toHaveBeenCalledWith(USER_ID);
+    });
+
+    it("skips local reset cloud cleanup when reset marker upsert fails", async () => {
+      const cloudProblem = makeProblem({ id: "cloud-1" });
+      const olderCloudReset = { resetAt: "2026-03-09T12:00:00.000Z" };
+      const resetError = new Error("reset marker failed");
+      mockFetchProblems.mockResolvedValue({ data: [cloudProblem], error: null });
+      mockFetchDataReset.mockResolvedValue({ data: olderCloudReset, error: null });
+      mockUpsertDataReset.mockResolvedValue({ error: resetError });
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      try {
+        const result = await syncOnSignIn(USER_ID, [], [], [], defaultPrefs, [], localReset);
+
+        expect(result.problems).toEqual([]);
+        expect(result.dataReset).toEqual(localReset);
+        expect(mockUpsertDataReset).toHaveBeenCalledWith(USER_ID, localReset);
+        expect(mockDeleteAllUserProblems).not.toHaveBeenCalled();
+        expect(mockDeleteAllUserReviewLog).not.toHaveBeenCalled();
+        expect(spy).toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 
@@ -382,6 +497,85 @@ describe("syncOnSignIn", () => {
       expect(result.preferences).toEqual(defaultPrefs);
       expect(mockUpsertPreferences).toHaveBeenCalledOnce();
       expect(mockUpsertPreferences).toHaveBeenCalledWith(USER_ID, defaultPrefs);
+    });
+
+    it("marks changes when non-goal cloud preference fields differ", async () => {
+      const cloudPrefsWithDifferentSettings: Preferences = {
+        dailyReviewGoal: defaultPrefs.dailyReviewGoal,
+        hidePatternsDuringReview: true,
+        enabledExtraPatterns: ["Sliding Window"],
+      };
+      mockFetchPreferences.mockResolvedValue({ data: cloudPrefsWithDifferentSettings, error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [], defaultPrefs);
+
+      expect(result.preferences).toEqual(cloudPrefsWithDifferentSettings);
+      expect(result.hasChanges).toBe(true);
+    });
+  });
+
+  describe("review event merge", () => {
+    it("does not reinsert old local events already present in cloud history", async () => {
+      const event = makeEvent({
+        problemId: "prob-old",
+        timestamp: "2025-01-10T12:00:00.000Z",
+        date: "2025-01-10",
+      });
+      mockFetchReviewEvents.mockResolvedValue({ data: [event], error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [event], defaultPrefs);
+
+      expect(result.reviewEvents).toEqual([event]);
+      expect(mockBatchInsertReviewLogs).not.toHaveBeenCalled();
+    });
+
+    it("does not push local review events with a near cloud duplicate", async () => {
+      const localEvent = makeEvent({
+        problemId: "prob-near",
+        timestamp: "2026-03-10T12:00:00.000Z",
+      });
+      const cloudEvent = makeEvent({
+        problemId: "prob-near",
+        timestamp: "2026-03-10T12:00:03.000Z",
+      });
+      mockFetchReviewEvents.mockResolvedValue({ data: [cloudEvent], error: null });
+
+      const result = await syncOnSignIn(USER_ID, [], [], [localEvent], defaultPrefs);
+
+      expect(result.reviewEvents).toHaveLength(1);
+      expect(mockBatchInsertReviewLogs).not.toHaveBeenCalled();
+    });
+
+    it("still pushes true local-only review events", async () => {
+      const localEvent = makeEvent({
+        problemId: "prob-local-only",
+        timestamp: "2026-03-10T12:00:00.000Z",
+      });
+
+      await syncOnSignIn(USER_ID, [], [], [localEvent], defaultPrefs);
+
+      expect(mockBatchInsertReviewLogs).toHaveBeenCalledWith(USER_ID, [localEvent]);
+    });
+
+    it("skips local review event backfill when cloud event fetch fails", async () => {
+      const localEvent = makeEvent({
+        problemId: "prob-fetch-fail",
+        timestamp: "2026-03-10T12:00:00.000Z",
+      });
+      const fetchError = new Error("review event fetch failed");
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      mockFetchReviewEvents.mockResolvedValue({ data: null, error: fetchError });
+
+      try {
+        const result = await syncOnSignIn(USER_ID, [], [], [localEvent], defaultPrefs);
+
+        expect(result.error).toBeNull();
+        expect(result.reviewEvents).toEqual([localEvent]);
+        expect(mockBatchInsertReviewLogs).not.toHaveBeenCalled();
+        expect(spy).toHaveBeenCalledWith("Sync: failed to fetch review events", fetchError);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 

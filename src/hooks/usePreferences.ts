@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { loadPreferences, savePreferences } from "../utils/storage";
 import { pushPreferencesToCloud } from "../utils/sync";
@@ -12,22 +12,41 @@ interface UsePreferencesReturn {
   preferences: Preferences;
   handleUpdatePreferences: (updates: Partial<Preferences>) => void;
   replacePreferences: (prefs: Preferences) => void;
+  getCurrentPreferences: () => Preferences;
+  getPreferenceRevision: () => number;
 }
 
 export default function usePreferences({ user }: UsePreferencesParams): UsePreferencesReturn {
   const [preferences, setPreferences] = useState<Preferences>(() => loadPreferences());
+  const preferencesRef = useRef(preferences);
+  const preferenceRevisionRef = useRef(0);
 
-  useEffect(() => { savePreferences(preferences); }, [preferences]);
+  useEffect(() => {
+    preferencesRef.current = preferences;
+    savePreferences(preferences);
+  }, [preferences]);
 
   const handleUpdatePreferences = useCallback((updates: Partial<Preferences>) => {
-    const next = { ...preferences, ...updates };
+    const next = { ...preferencesRef.current, ...updates };
+    preferencesRef.current = next;
+    preferenceRevisionRef.current += 1;
     setPreferences(next);
     if (user) pushPreferencesToCloud(user.id, next);
-  }, [user, preferences]);
+  }, [user]);
 
   const replacePreferences = useCallback((prefs: Preferences) => {
+    preferencesRef.current = prefs;
     setPreferences(prefs);
   }, []);
 
-  return { preferences, handleUpdatePreferences, replacePreferences };
+  const getPreferenceRevision = useCallback(() => preferenceRevisionRef.current, []);
+  const getCurrentPreferences = useCallback(() => preferencesRef.current, []);
+
+  return {
+    preferences,
+    handleUpdatePreferences,
+    replacePreferences,
+    getCurrentPreferences,
+    getPreferenceRevision,
+  };
 }

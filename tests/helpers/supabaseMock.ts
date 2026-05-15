@@ -17,11 +17,13 @@ export interface SupabaseMock {
   from: ReturnType<typeof vi.fn>;
   select: ReturnType<typeof vi.fn>;
   eq: ReturnType<typeof vi.fn>;
+  gte: ReturnType<typeof vi.fn>;
   in: ReturnType<typeof vi.fn>;
   upsert: ReturnType<typeof vi.fn>;
   insert: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
   order: ReturnType<typeof vi.fn>;
+  range: ReturnType<typeof vi.fn>;
   single: ReturnType<typeof vi.fn>;
   maybeSingle: ReturnType<typeof vi.fn>;
 }
@@ -33,11 +35,13 @@ export function createSupabaseMock(result: MockResult = { data: null, error: nul
     from: vi.fn(),
     select: vi.fn(),
     eq: vi.fn(),
+    gte: vi.fn(),
     in: vi.fn(),
     upsert: vi.fn(),
     insert: vi.fn(),
     delete: vi.fn(),
     order: vi.fn(),
+    range: vi.fn().mockResolvedValue(resolvedResult),
     single: vi.fn().mockResolvedValue(resolvedResult),
     maybeSingle: vi.fn().mockResolvedValue(resolvedResult),
   };
@@ -46,6 +50,7 @@ export function createSupabaseMock(result: MockResult = { data: null, error: nul
   mock.from.mockReturnValue(mock);
   mock.select.mockReturnValue(mock);
   mock.eq.mockReturnValue(mock);
+  mock.gte.mockReturnValue(mock);
   mock.in.mockReturnValue(mock);
   mock.upsert.mockReturnValue(mock);
   mock.insert.mockReturnValue(mock);

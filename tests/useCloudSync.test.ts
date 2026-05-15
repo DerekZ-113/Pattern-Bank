@@ -79,6 +79,7 @@ function makeDefaultParams(overrides: Partial<Parameters<typeof useCloudSync>[0]
     user: null as User | null,
     problems: [],
     preferences: defaultPreferences,
+    getPreferenceRevision: vi.fn(() => 0),
     showToast: vi.fn(),
     onSyncComplete: vi.fn(),
     ...overrides,
@@ -188,7 +189,37 @@ describe("useCloudSync", () => {
       expect(params.onSyncComplete).toHaveBeenCalledTimes(1);
     });
 
-    expect(params.onSyncComplete).toHaveBeenCalledWith(syncResult);
+    expect(params.onSyncComplete).toHaveBeenCalledWith(syncResult, { preferenceRevisionAtStart: 0 });
+  });
+
+  it("passes the preference revision captured at sync start", async () => {
+    let resolveSyncFn!: (value: ReturnType<typeof makeSuccessResult>) => void;
+    const pendingPromise = new Promise<ReturnType<typeof makeSuccessResult>>(
+      (resolve) => { resolveSyncFn = resolve; }
+    );
+    mockSyncOnSignIn.mockReturnValue(pendingPromise);
+    let revision = 7;
+    const params = makeDefaultParams({
+      getPreferenceRevision: vi.fn(() => revision),
+    });
+
+    const { rerender } = renderHook((props) => useCloudSync(props), {
+      initialProps: params,
+    });
+
+    rerender({ ...params, user: mockUser });
+
+    await waitFor(() => {
+      expect(mockSyncOnSignIn).toHaveBeenCalledTimes(1);
+    });
+
+    revision = 8;
+    const syncResult = makeSuccessResult();
+    resolveSyncFn(syncResult);
+
+    await waitFor(() => {
+      expect(params.onSyncComplete).toHaveBeenCalledWith(syncResult, { preferenceRevisionAtStart: 7 });
+    });
   });
 
   it("ignores an in-flight sync result after the user signs out", async () => {

@@ -8,18 +8,24 @@ interface UseCloudSyncParams {
   user: User | null;
   problems: Problem[];
   preferences: Preferences;
+  getPreferenceRevision: () => number;
   showToast: (msg: string) => void;
-  onSyncComplete: (result: SyncResult) => void;
+  onSyncComplete: (result: SyncResult, context: SyncCompleteContext) => void;
 }
 
 interface UseCloudSyncReturn {
   syncStatus: SyncStatus;
 }
 
+export interface SyncCompleteContext {
+  preferenceRevisionAtStart: number;
+}
+
 export default function useCloudSync({
   user,
   problems,
   preferences,
+  getPreferenceRevision,
   showToast,
   onSyncComplete,
 }: UseCloudSyncParams): UseCloudSyncReturn {
@@ -39,6 +45,7 @@ export default function useCloudSync({
     hasSyncedRef.current = true;
     const runId = syncRunRef.current + 1;
     syncRunRef.current = runId;
+    const preferenceRevisionAtStart = getPreferenceRevision();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSyncStatus("syncing");
 
@@ -58,7 +65,7 @@ export default function useCloudSync({
           showToast("Sync failed — working offline");
           return;
         }
-        onSyncComplete(result);
+        onSyncComplete(result, { preferenceRevisionAtStart });
         setSyncStatus("synced");
         if (result.hasChanges) {
           showToast("Data synced");
