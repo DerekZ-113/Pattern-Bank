@@ -716,7 +716,7 @@ export default function ProgressView({
 }: Props) {
   if (problems.length === 0) {
     return (
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-6">
+      <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-5 py-6">
         <header>
           <h1 className="text-2xl font-semibold tracking-normal text-pb-text">
             Progress
@@ -739,7 +739,7 @@ export default function ProgressView({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 py-6">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-5 py-6">
       <header>
         <h1 className="text-2xl font-semibold tracking-normal text-pb-text">
           Progress
