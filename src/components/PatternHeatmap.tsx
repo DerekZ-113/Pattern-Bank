@@ -66,14 +66,24 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
           const cell = getCellStyle(avgConf, data.count);
           const isHovered = hovered === pattern;
           const confColor = getConfTextColor(avgConf, data.count);
+          const problemLabel = data.count === 1 ? "problem" : "problems";
+          const confidenceLabel =
+            data.count > 0
+              ? `average confidence ${avgConf.toFixed(1)}`
+              : "no problems yet";
 
           return (
-            <div
+            <button
               key={pattern}
+              type="button"
+              aria-label={`${pattern}: ${data.count} ${problemLabel}, ${confidenceLabel}`}
               onClick={() => onPatternClick(pattern)}
               onMouseEnter={() => setHovered(pattern)}
               onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(pattern)}
+              onBlur={() => setHovered(null)}
               style={{
+                appearance: "none",
                 backgroundColor: cell.background,
                 border: `1px solid ${isHovered ? "#7c6bf5" : cell.border}`,
                 borderRadius: 10,
@@ -84,11 +94,15 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
+                width: "100%",
+                fontFamily: "inherit",
+                textAlign: "left",
                 boxShadow: isHovered
                   ? "0 0 0 1px rgba(124,107,245,0.3)"
                   : "none",
                 overflow: "hidden",
               }}
+              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
             >
               <div
                 style={{
@@ -122,13 +136,13 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
                     fontWeight: 700,
                     color: confColor,
                     lineHeight: 1,
-                    letterSpacing: -0.5,
+                    letterSpacing: 0,
                   }}
                 >
                   {data.count > 0 ? avgConf.toFixed(1) : ""}
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
