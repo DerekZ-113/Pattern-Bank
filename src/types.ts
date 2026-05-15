@@ -16,6 +16,7 @@ export interface Problem {
   dateAdded: string;
   lastReviewed: string | null;
   nextReviewDate: string;
+  fiveStarStreak?: number;
   updatedAt: string;
 }
 

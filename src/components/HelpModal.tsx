@@ -42,7 +42,7 @@ export default function HelpModal({ isOpen, onClose }: Props) {
               Review Schedule
             </h3>
             <p className="mb-3 text-[13px] leading-relaxed text-pb-text-muted">
-              Higher confidence means longer intervals.
+              Higher confidence means longer intervals. Repeated 5-star reviews graduate to longer intervals, up to one year.
             </p>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
