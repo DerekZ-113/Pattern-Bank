@@ -1,5 +1,6 @@
 export type Difficulty = "Easy" | "Medium" | "Hard";
 export type SyncStatus = "idle" | "syncing" | "synced" | "error" | "no_visible_submissions" | "rate_limited";
+export type SubmissionStatus = "detected" | "linked_existing" | "pending" | "imported" | "ignored" | "rated";
 
 export interface LeetCodeProfile {
   username: string;
@@ -135,6 +136,29 @@ export function dedupeSubmissionCandidates(submissions: SubmissionCandidate[]): 
     deduped.push(submission);
   }
   return deduped;
+}
+
+export function resolveSyncedSubmissionState({
+  existingStatus,
+  existingProblemId,
+  ignored,
+  linkedProblemId,
+}: {
+  existingStatus: SubmissionStatus | null;
+  existingProblemId: string | null;
+  ignored: boolean;
+  linkedProblemId: string | null;
+}): { status: SubmissionStatus; problemId: string | null } {
+  if (existingStatus === "imported" || existingStatus === "rated") {
+    return { status: existingStatus, problemId: existingProblemId };
+  }
+  if (existingStatus === "ignored" || ignored) {
+    return { status: "ignored", problemId: existingProblemId };
+  }
+  if (linkedProblemId) {
+    return { status: "linked_existing", problemId: linkedProblemId };
+  }
+  return { status: "detected", problemId: null };
 }
 
 export function mapLeetCodeError(error: unknown): { status: SyncStatus; message: string } {

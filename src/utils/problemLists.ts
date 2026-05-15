@@ -548,3 +548,9 @@ export function getListProblems(
 
   return { lcProblems, patternMap };
 }
+
+export function getPatternsForProblemNumber(problemNumber: number | null | undefined): string[] {
+  if (typeof problemNumber !== "number") return [];
+  const pattern = PATTERN_MAP[problemNumber];
+  return pattern ? [pattern] : [];
+}

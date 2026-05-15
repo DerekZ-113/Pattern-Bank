@@ -2,6 +2,7 @@ import {
   buildGraphQLRequestBody,
   corsHeaders,
   dedupeSubmissionCandidates,
+  resolveSyncedSubmissionState,
   handleOptionsRequest,
   mapLeetCodeDifficulty,
   mapLeetCodeError,
@@ -102,6 +103,29 @@ describe("sync-leetcode-activity helpers", () => {
     ]);
 
     expect(submissions).toHaveLength(2);
+  });
+
+  it("preserves terminal import statuses during sync", () => {
+    expect(resolveSyncedSubmissionState({
+      existingStatus: "imported",
+      existingProblemId: "problem-1",
+      ignored: false,
+      linkedProblemId: null,
+    })).toEqual({ status: "imported", problemId: "problem-1" });
+
+    expect(resolveSyncedSubmissionState({
+      existingStatus: "detected",
+      existingProblemId: null,
+      ignored: true,
+      linkedProblemId: null,
+    })).toEqual({ status: "ignored", problemId: null });
+
+    expect(resolveSyncedSubmissionState({
+      existingStatus: null,
+      existingProblemId: null,
+      ignored: false,
+      linkedProblemId: "problem-2",
+    })).toEqual({ status: "linked_existing", problemId: "problem-2" });
   });
 
   it("maps rate-limit and network failures to safe statuses", () => {

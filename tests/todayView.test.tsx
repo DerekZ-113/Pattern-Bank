@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import TodayView from "../src/components/TodayView";
-import type { Confidence, LeetCodeProblem, Problem, ReviewEvent } from "../src/types";
+import type { Confidence, LeetCodeProblem, PendingLeetCodeImport, Problem, ReviewEvent } from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
@@ -34,6 +34,21 @@ function makeReviewEvent(overrides: Partial<ReviewEvent> = {}): ReviewEvent {
   };
 }
 
+function makePendingImport(overrides: Partial<PendingLeetCodeImport> = {}): PendingLeetCodeImport {
+  return {
+    submissionDbId: "sub-db-1",
+    titleSlug: "number-of-islands",
+    title: "Number of Islands",
+    leetcodeNumber: 200,
+    difficulty: "Medium",
+    submittedAt: "2026-05-14T21:00:00.000Z",
+    firstSeenAt: "2026-05-14T21:01:00.000Z",
+    suggestedPatterns: ["BFS"],
+    expired: false,
+    ...overrides,
+  };
+}
+
 function renderTodayView(overrides: {
   problems?: Problem[];
   reviewEvents?: ReviewEvent[];
@@ -41,6 +56,9 @@ function renderTodayView(overrides: {
   onDismiss?: (id: string) => void;
   onUpdateNotes?: (id: string, notes: string) => void;
   onBulkAdd?: (problems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
+  pendingLeetCodeImports?: PendingLeetCodeImport[];
+  onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
+  onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
 } = {}) {
   return render(
     <TodayView
@@ -55,6 +73,9 @@ function renderTodayView(overrides: {
       onAddClick={vi.fn()}
       onBulkAdd={overrides.onBulkAdd ?? vi.fn()}
       existingProblemNumbers={new Set([1])}
+      pendingLeetCodeImports={overrides.pendingLeetCodeImports ?? []}
+      onConfirmLeetCodeImport={overrides.onConfirmLeetCodeImport ?? vi.fn()}
+      onIgnoreLeetCodeImport={overrides.onIgnoreLeetCodeImport ?? vi.fn()}
       today="2026-05-14"
     />,
   );
@@ -135,5 +156,36 @@ describe("TodayView", () => {
 
     expect(screen.getByText("Welcome to PatternBank")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Add Problem/i })).toBeTruthy();
+  });
+
+  it("renders From LeetCode only when pending imports exist", () => {
+    const onConfirm = vi.fn();
+    const onIgnore = vi.fn();
+    renderTodayView({
+      pendingLeetCodeImports: [makePendingImport()],
+      onConfirmLeetCodeImport: onConfirm,
+      onIgnoreLeetCodeImport: onIgnore,
+    });
+
+    expect(screen.getByText("From LeetCode")).toBeTruthy();
+    expect(screen.getByText("Solved on LC, not yet in your library")).toBeTruthy();
+    expect(screen.getByText("Number of Islands")).toBeTruthy();
+    expect(screen.getByText("BFS")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Import Number of Islands with 4-star confidence" }));
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }), 4);
+
+    fireEvent.click(screen.getByRole("button", { name: "Ignore Number of Islands" }));
+    expect(onIgnore).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }));
+  });
+
+  it("shows pending LeetCode imports instead of Quick Start when the library is empty", () => {
+    renderTodayView({
+      problems: [],
+      pendingLeetCodeImports: [makePendingImport({ suggestedPatterns: [] })],
+    });
+
+    expect(screen.getByText("From LeetCode")).toBeTruthy();
+    expect(screen.queryByText("Welcome to PatternBank")).toBeNull();
   });
 });

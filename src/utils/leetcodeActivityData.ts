@@ -2,6 +2,7 @@ import { supabase } from "./supabaseClient";
 import type {
   Difficulty,
   LeetCodeConnection,
+  LeetCodeIgnoredImport,
   LeetCodeSubmission,
   LeetCodeSubmissionStatus,
   LeetCodeSyncStatus,
@@ -39,9 +40,18 @@ interface SnakeCaseLeetCodeSubmission {
   updated_at?: string;
 }
 
+interface SnakeCaseLeetCodeIgnoredImport {
+  user_id: string;
+  title_slug: string;
+  leetcode_number?: number | null;
+  ignored_at?: string;
+  created_at?: string;
+}
+
 export interface LeetCodeActivityFunctionResponse {
   connection: LeetCodeConnection | null;
   submissions: LeetCodeSubmission[];
+  ignoredImports: LeetCodeIgnoredImport[];
   summary: LeetCodeSyncSummary;
   error?: string;
 }
@@ -138,11 +148,22 @@ export function toLeetCodeSubmission(row: SnakeCaseLeetCodeSubmission): LeetCode
   };
 }
 
+export function toLeetCodeIgnoredImport(row: SnakeCaseLeetCodeIgnoredImport): LeetCodeIgnoredImport {
+  return {
+    userId: row.user_id,
+    titleSlug: row.title_slug,
+    leetcodeNumber: row.leetcode_number ?? null,
+    ignoredAt: row.ignored_at,
+    createdAt: row.created_at,
+  };
+}
+
 function normalizeFunctionResponse(data: unknown): LeetCodeActivityFunctionResponse {
   const payload = (data ?? {}) as Partial<LeetCodeActivityFunctionResponse>;
   return {
     connection: payload.connection ?? null,
     submissions: payload.submissions ?? [],
+    ignoredImports: payload.ignoredImports ?? [],
     summary: payload.summary ?? {},
     error: payload.error,
   };
@@ -190,6 +211,26 @@ export async function fetchRecentLeetCodeSubmissions(
   }
 }
 
+export async function fetchLeetCodeIgnoredImports(
+  userId: string,
+): Promise<{ data: LeetCodeIgnoredImport[] | null; error: unknown }> {
+  if (!supabase) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase
+      .from("leetcode_ignored_imports")
+      .select("*")
+      .eq("user_id", userId)
+      .order("ignored_at", { ascending: false });
+    if (error) return { data: null, error };
+    return {
+      data: ((data ?? []) as SnakeCaseLeetCodeIgnoredImport[]).map(toLeetCodeIgnoredImport),
+      error: null,
+    };
+  } catch (err) {
+    return { data: null, error: err };
+  }
+}
+
 async function invokeLeetCodeActivity(body: Record<string, unknown>): Promise<LeetCodeActivityResult> {
   if (!supabase) {
     return { data: null, error: "LeetCode activity sync failed. Try again later." };
@@ -222,4 +263,26 @@ export function syncLeetCodeActivity(force = false): Promise<LeetCodeActivityRes
 
 export function disconnectLeetCodeActivity(): Promise<LeetCodeActivityResult> {
   return invokeLeetCodeActivity({ action: "disconnect" });
+}
+
+export function markLeetCodeImportImported(
+  submissionDbId: string,
+  problemId: string,
+): Promise<LeetCodeActivityResult> {
+  return invokeLeetCodeActivity({ action: "mark_imported", submissionDbId, problemId });
+}
+
+export function markLeetCodeImportLinkedExisting(
+  submissionDbId: string,
+  problemId: string,
+): Promise<LeetCodeActivityResult> {
+  return invokeLeetCodeActivity({ action: "mark_linked_existing", submissionDbId, problemId });
+}
+
+export function ignoreLeetCodeImport(submissionDbId: string): Promise<LeetCodeActivityResult> {
+  return invokeLeetCodeActivity({ action: "ignore_import", submissionDbId });
+}
+
+export function restoreIgnoredLeetCodeImport(titleSlug: string): Promise<LeetCodeActivityResult> {
+  return invokeLeetCodeActivity({ action: "restore_ignored_import", titleSlug });
 }

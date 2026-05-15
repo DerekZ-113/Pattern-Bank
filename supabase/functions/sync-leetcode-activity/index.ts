@@ -12,8 +12,10 @@ import {
   parseMatchedUser,
   parseQuestionData,
   parseRecentAcSubmissions,
+  resolveSyncedSubmissionState,
   type LeetCodeProfile,
   type QuestionMetadata,
+  type SubmissionStatus,
   type SubmissionCandidate,
   type SyncStatus,
 } from "./leetcode.ts";
@@ -22,7 +24,11 @@ type RequestBody =
   | { action: "validate"; username: string }
   | { action: "connect"; username: string }
   | { action: "sync"; force?: boolean }
-  | { action: "disconnect" };
+  | { action: "disconnect" }
+  | { action: "mark_imported"; submissionDbId: string; problemId: string }
+  | { action: "mark_linked_existing"; submissionDbId: string; problemId: string }
+  | { action: "ignore_import"; submissionDbId: string }
+  | { action: "restore_ignored_import"; titleSlug: string };
 
 interface ConnectionRow {
   user_id: string;
@@ -37,6 +43,30 @@ interface ConnectionRow {
   sync_error?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+interface SubmissionRow {
+  id: string;
+  user_id: string;
+  leetcode_username: string;
+  leetcode_submission_id: string;
+  title_slug: string;
+  title: string;
+  leetcode_number?: number | null;
+  difficulty?: string | null;
+  submitted_at: string;
+  problem_id?: string | null;
+  status: SubmissionStatus;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface IgnoredImportRow {
+  user_id: string;
+  title_slug: string;
+  leetcode_number?: number | null;
+  ignored_at?: string;
+  created_at?: string;
 }
 
 const LEETCODE_GRAPHQL_URL = "https://leetcode.com/graphql";
@@ -75,6 +105,16 @@ function toSubmission(row: Record<string, unknown>) {
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function toIgnoredImport(row: IgnoredImportRow) {
+  return {
+    userId: row.user_id,
+    titleSlug: row.title_slug,
+    leetcodeNumber: row.leetcode_number ?? null,
+    ignoredAt: row.ignored_at,
+    createdAt: row.created_at,
   };
 }
 
@@ -133,6 +173,144 @@ async function updateConnection(
   return data as ConnectionRow | null;
 }
 
+async function fetchActivityState(serviceClient: ReturnType<typeof createClient>, userId: string) {
+  const [{ data: connection }, { data: submissions }, { data: ignoredImports }] = await Promise.all([
+    serviceClient
+      .from("leetcode_connections")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    serviceClient
+      .from("leetcode_submissions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("submitted_at", { ascending: false })
+      .limit(20),
+    serviceClient
+      .from("leetcode_ignored_imports")
+      .select("*")
+      .eq("user_id", userId)
+      .order("ignored_at", { ascending: false }),
+  ]);
+
+  return {
+    connection: toConnection((connection as ConnectionRow | null) ?? null),
+    submissions: ((submissions ?? []) as SubmissionRow[]).map(toSubmission),
+    ignoredImports: ((ignoredImports ?? []) as IgnoredImportRow[]).map(toIgnoredImport),
+    summary: { insertedCount: 0 },
+  };
+}
+
+async function fetchOwnedSubmission(
+  serviceClient: ReturnType<typeof createClient>,
+  userId: string,
+  submissionDbId: string,
+): Promise<SubmissionRow | null> {
+  const { data, error } = await serviceClient
+    .from("leetcode_submissions")
+    .select("*")
+    .eq("id", submissionDbId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as SubmissionRow | null) ?? null;
+}
+
+async function validateProblemOwnershipIfPresent(
+  serviceClient: ReturnType<typeof createClient>,
+  userId: string,
+  problemId: string,
+) {
+  const { data, error } = await serviceClient
+    .from("problems")
+    .select("id, user_id")
+    .eq("id", problemId)
+    .maybeSingle();
+  if (error) throw error;
+  if (data && (data as { user_id?: string }).user_id !== userId) {
+    throw { status: 403 };
+  }
+}
+
+async function markSubmissionProblemStatus(
+  serviceClient: ReturnType<typeof createClient>,
+  userId: string,
+  submissionDbId: string,
+  problemId: string,
+  status: "imported" | "linked_existing",
+) {
+  const submission = await fetchOwnedSubmission(serviceClient, userId, submissionDbId);
+  if (!submission) return jsonResponse({ error: "Invalid request." }, { status: 404 });
+  await validateProblemOwnershipIfPresent(serviceClient, userId, problemId);
+
+  const { error } = await serviceClient
+    .from("leetcode_submissions")
+    .update({
+      status,
+      problem_id: problemId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", submissionDbId)
+    .eq("user_id", userId);
+  if (error) throw error;
+
+  return jsonResponse(await fetchActivityState(serviceClient, userId));
+}
+
+async function ignoreImport(
+  serviceClient: ReturnType<typeof createClient>,
+  userId: string,
+  submissionDbId: string,
+) {
+  const submission = await fetchOwnedSubmission(serviceClient, userId, submissionDbId);
+  if (!submission) return jsonResponse({ error: "Invalid request." }, { status: 404 });
+  const now = new Date().toISOString();
+
+  const { error: ignoredError } = await serviceClient
+    .from("leetcode_ignored_imports")
+    .upsert({
+      user_id: userId,
+      title_slug: submission.title_slug,
+      leetcode_number: submission.leetcode_number ?? null,
+      ignored_at: now,
+    }, { onConflict: "user_id,title_slug" });
+  if (ignoredError) throw ignoredError;
+
+  const { error: updateError } = await serviceClient
+    .from("leetcode_submissions")
+    .update({ status: "ignored", updated_at: now })
+    .eq("user_id", userId)
+    .eq("title_slug", submission.title_slug)
+    .eq("status", "detected");
+  if (updateError) throw updateError;
+
+  return jsonResponse(await fetchActivityState(serviceClient, userId));
+}
+
+async function restoreIgnoredImport(
+  serviceClient: ReturnType<typeof createClient>,
+  userId: string,
+  titleSlug: string,
+) {
+  const { error: deleteError } = await serviceClient
+    .from("leetcode_ignored_imports")
+    .delete()
+    .eq("user_id", userId)
+    .eq("title_slug", titleSlug);
+  if (deleteError) throw deleteError;
+
+  const { error: updateError } = await serviceClient
+    .from("leetcode_submissions")
+    .update({ status: "detected", updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("title_slug", titleSlug)
+    .eq("status", "ignored")
+    .is("problem_id", null);
+  if (updateError) throw updateError;
+
+  return jsonResponse(await fetchActivityState(serviceClient, userId));
+}
+
 async function upsertConnection(
   serviceClient: ReturnType<typeof createClient>,
   userId: string,
@@ -174,6 +352,7 @@ async function runSync(
     return {
       connection: null,
       submissions: [],
+      ignoredImports: [],
       summary: { fetchedCount: 0, insertedCount: 0, existingCount: 0, linkedExistingCount: 0 },
     };
   }
@@ -184,15 +363,9 @@ async function runSync(
     connectionRow.last_synced_at &&
     Date.now() - new Date(connectionRow.last_synced_at).getTime() < ONE_HOUR_MS
   ) {
-    const { data: submissions } = await serviceClient
-      .from("leetcode_submissions")
-      .select("*")
-      .eq("user_id", userId)
-      .order("submitted_at", { ascending: false })
-      .limit(20);
+    const activityState = await fetchActivityState(serviceClient, userId);
     return {
-      connection: toConnection(connectionRow),
-      submissions: (submissions ?? []).map(toSubmission),
+      ...activityState,
       summary: { fetchedCount: 0, insertedCount: 0, existingCount: 0, linkedExistingCount: 0, throttled: true },
     };
   }
@@ -211,9 +384,10 @@ async function runSync(
       sync_error: "We could not see recent accepted submissions.",
       last_synced_at: lastSyncedAt,
     });
+    const activityState = await fetchActivityState(serviceClient, userId);
     return {
+      ...activityState,
       connection: toConnection(nextConnection),
-      submissions: [],
       summary: { fetchedCount: 0, insertedCount: 0, existingCount: 0, linkedExistingCount: 0, lastSyncedAt },
     };
   }
@@ -221,10 +395,24 @@ async function runSync(
   const ids = submissions.map((item) => item.leetcodeSubmissionId);
   const { data: existingRows } = await serviceClient
     .from("leetcode_submissions")
-    .select("leetcode_submission_id")
+    .select("leetcode_submission_id, status, problem_id, title_slug")
     .eq("user_id", userId)
     .in("leetcode_submission_id", ids);
-  const existingIds = new Set((existingRows ?? []).map((row: { leetcode_submission_id: string }) => row.leetcode_submission_id));
+  const existingById = new Map(
+    ((existingRows ?? []) as Array<{
+      leetcode_submission_id: string;
+      status: SubmissionStatus;
+      problem_id?: string | null;
+      title_slug: string;
+    }>).map((row) => [row.leetcode_submission_id, row]),
+  );
+  const existingIds = new Set(existingById.keys());
+
+  const { data: ignoredRows } = await serviceClient
+    .from("leetcode_ignored_imports")
+    .select("*")
+    .eq("user_id", userId);
+  const ignoredSlugs = new Set(((ignoredRows ?? []) as Array<{ title_slug: string }>).map((row) => row.title_slug));
 
   const metadataEntries = await Promise.all(
     Array.from(new Set(submissions.map((item) => item.titleSlug))).map(async (titleSlug) => [
@@ -255,6 +443,13 @@ async function runSync(
     const metadata = metadataBySlug.get(submission.titleSlug) ?? null;
     const leetcodeNumber = metadata?.leetcodeNumber ?? null;
     const problemId = leetcodeNumber === null ? null : problemByNumber.get(leetcodeNumber) ?? null;
+    const existing = existingById.get(submission.leetcodeSubmissionId);
+    const resolved = resolveSyncedSubmissionState({
+      existingStatus: existing?.status ?? null,
+      existingProblemId: existing?.problem_id ?? null,
+      ignored: ignoredSlugs.has(submission.titleSlug),
+      linkedProblemId: problemId,
+    });
     return {
       user_id: userId,
       leetcode_username: connectionRow.leetcode_username,
@@ -264,8 +459,8 @@ async function runSync(
       leetcode_number: leetcodeNumber,
       difficulty: metadata?.difficulty ?? null,
       submitted_at: submission.submittedAt,
-      problem_id: problemId,
-      status: problemId ? "linked_existing" : "detected",
+      problem_id: resolved.problemId,
+      status: resolved.status,
       updated_at: new Date().toISOString(),
     };
   });
@@ -287,6 +482,7 @@ async function runSync(
   return {
     connection: toConnection(nextConnection),
     submissions: (upsertedRows ?? []).map(toSubmission),
+    ignoredImports: ((ignoredRows ?? []) as IgnoredImportRow[]).map(toIgnoredImport),
     summary: {
       fetchedCount: submissions.length,
       insertedCount: ids.filter((id) => !existingIds.has(id)).length,
@@ -325,9 +521,10 @@ Deno.serve(async (req) => {
 
   try {
     if (body.action === "disconnect") {
+      await serviceClient.from("leetcode_ignored_imports").delete().eq("user_id", user.id);
       await serviceClient.from("leetcode_submissions").delete().eq("user_id", user.id);
       await serviceClient.from("leetcode_connections").delete().eq("user_id", user.id);
-      return jsonResponse({ connection: null, submissions: [], summary: { insertedCount: 0 } });
+      return jsonResponse({ connection: null, submissions: [], ignoredImports: [], summary: { insertedCount: 0 } });
     }
 
     if (body.action === "validate" || body.action === "connect") {
@@ -340,7 +537,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Invalid LeetCode username." }, { status: 400 });
       }
       if (body.action === "validate") {
-        return jsonResponse({ profile, connection: null, submissions: [], summary: { insertedCount: 0 } });
+        return jsonResponse({ profile, connection: null, submissions: [], ignoredImports: [], summary: { insertedCount: 0 } });
       }
       await upsertConnection(serviceClient, user.id, username, profile);
       const syncResult = await runSync(serviceClient, user.id, true);
@@ -349,6 +546,34 @@ Deno.serve(async (req) => {
 
     if (body.action === "sync") {
       return jsonResponse(await runSync(serviceClient, user.id, body.force ?? false));
+    }
+
+    if (body.action === "mark_imported") {
+      return await markSubmissionProblemStatus(
+        serviceClient,
+        user.id,
+        body.submissionDbId,
+        body.problemId,
+        "imported",
+      );
+    }
+
+    if (body.action === "mark_linked_existing") {
+      return await markSubmissionProblemStatus(
+        serviceClient,
+        user.id,
+        body.submissionDbId,
+        body.problemId,
+        "linked_existing",
+      );
+    }
+
+    if (body.action === "ignore_import") {
+      return await ignoreImport(serviceClient, user.id, body.submissionDbId);
+    }
+
+    if (body.action === "restore_ignored_import") {
+      return await restoreIgnoredImport(serviceClient, user.id, body.titleSlug);
     }
 
     return jsonResponse({ error: "Invalid request." }, { status: 400 });
