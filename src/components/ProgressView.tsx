@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { PATTERN_COLORS, getVisiblePatterns } from "../utils/constants";
 import { calculateStreak } from "../utils/storage";
 import { todayStr, addDays, formatLocalDate } from "../utils/dateHelpers";
@@ -11,6 +11,7 @@ import {
   getTopPatterns,
   CONFIDENCE_BAR_COLORS,
 } from "../utils/progressUtils";
+import PatternHeatmap from "./PatternHeatmap";
 import ProjectionCalculator from "./ProjectionCalculator";
 import type { Problem, ReviewLogEntry, ReviewEvent } from "../types";
 
@@ -19,6 +20,7 @@ interface Props {
   reviewLog: ReviewLogEntry[];
   reviewEvents: ReviewEvent[];
   enabledExtraPatterns: string[];
+  onPatternClick: (pattern: string) => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -49,7 +51,10 @@ function StatsRow({
 }) {
   const totalReviews =
     reviewEvents.length > 0 ? reviewEvents.length : reviewLog.length;
-  const activeDays = new Set(reviewLog.map((e) => e.date)).size;
+  const activeDays = new Set([
+    ...reviewLog.map((e) => e.date),
+    ...reviewEvents.map((e) => e.date),
+  ]).size;
   const streak = calculateStreak();
   const avgConf =
     problems.length > 0
@@ -67,6 +72,11 @@ function StatsRow({
 
   const stats = [
     {
+      label: "Total Problems",
+      value: problems.length,
+      color: problems.length > 0 ? "text-pb-text" : "text-pb-text-muted",
+    },
+    {
       label: "Total Reviews",
       value: totalReviews,
       color: "text-pb-text",
@@ -77,7 +87,7 @@ function StatsRow({
       color: activeDays > 0 ? "text-pb-accent" : "text-pb-text-muted",
     },
     {
-      label: "Streak",
+      label: "Current Streak",
       value: `${streak}d`,
       color: streak > 0 ? "text-pb-accent" : "text-pb-text-muted",
     },
@@ -89,11 +99,15 @@ function StatsRow({
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-2 max-sm:grid-cols-2">
+    <div
+      aria-label="Progress overview"
+      className="grid gap-2.5"
+      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(136px, 1fr))" }}
+    >
       {stats.map((s) => (
         <div
           key={s.label}
-          className="rounded-lg border border-pb-border bg-pb-surface px-2 py-2.5 text-center"
+          className="rounded-lg border border-pb-border bg-pb-surface px-3 py-3 text-center"
         >
           <div className={`text-lg font-bold leading-tight ${s.color}`}>
             {s.value}
@@ -104,6 +118,35 @@ function StatsRow({
         </div>
       ))}
     </div>
+  );
+}
+
+// ── Section Shell ────────────────────────────────────────
+
+function ProgressSection({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+}) {
+  const headingId = `progress-${title.toLowerCase().replace(/\s+/g, "-")}`;
+
+  return (
+    <section
+      aria-labelledby={headingId}
+      className="rounded-xl border border-pb-border bg-pb-surface p-5"
+    >
+      <div className="mb-4">
+        <h2 id={headingId} className="text-[15px] font-semibold text-pb-text">
+          {title}
+        </h2>
+        <p className="mt-1 text-[13px] text-pb-text-muted">{subtitle}</p>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -669,30 +712,59 @@ export default function ProgressView({
   reviewLog,
   reviewEvents,
   enabledExtraPatterns,
+  onPatternClick,
 }: Props) {
   if (problems.length === 0) {
     return (
-      <div className="p-5">
+      <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-5 py-6">
+        <header>
+          <h1 className="text-2xl font-semibold tracking-normal text-pb-text">
+            Progress
+          </h1>
+          <p className="mt-1 text-sm text-pb-text-muted">
+            Patterns, streaks, and review history
+          </p>
+        </header>
+
         <div className="rounded-xl border border-pb-border bg-pb-surface px-6 py-12 text-center">
-          <div className="mb-2 text-2xl">📊</div>
           <h2 className="mb-2 text-lg font-semibold text-pb-text">
-            No data yet
+            No progress yet
           </h2>
-          <p className="text-sm text-pb-text-muted">
-            Start adding problems to see your progress here.
+          <p className="mx-auto max-w-md text-sm text-pb-text-muted">
+            Add problems and complete reviews to see patterns, streaks, and trends.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="flex flex-col gap-5 p-5">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-5 py-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-normal text-pb-text">
+          Progress
+        </h1>
+        <p className="mt-1 text-sm text-pb-text-muted">
+          Patterns, streaks, and review history
+        </p>
+      </header>
+
       <StatsRow
         problems={problems}
         reviewEvents={reviewEvents}
         reviewLog={reviewLog}
       />
+
+      <ProgressSection
+        title="Pattern Confidence"
+        subtitle="Average confidence by pattern"
+      >
+        <PatternHeatmap
+          problems={problems}
+          onPatternClick={onPatternClick}
+          enabledExtraPatterns={enabledExtraPatterns}
+        />
+      </ProgressSection>
 
       <StreakHeatmap reviewLog={reviewLog} reviewEvents={reviewEvents} />
 
@@ -708,6 +780,6 @@ export default function ProgressView({
         <ConfidenceSpread problems={problems} />
         <TopPatterns problems={problems} />
       </div>
-    </div>
+    </main>
   );
 }

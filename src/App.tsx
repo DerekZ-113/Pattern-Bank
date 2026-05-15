@@ -127,6 +127,7 @@ export default function App() {
           reviewLog={reviewLog}
           reviewEvents={reviewEvents}
           enabledExtraPatterns={preferences.enabledExtraPatterns}
+          onPatternClick={ui.handlePatternClick}
         />
       )}
       {ui.activeTab === "problems" && (
