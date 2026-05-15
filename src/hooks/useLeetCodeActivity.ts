@@ -45,8 +45,13 @@ export default function useLeetCodeActivity({
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadRunRef = useRef(0);
+  const latestUserIdRef = useRef<string | null>(null);
   const backgroundSyncUsersRef = useRef(new Set<string>());
   const userId = user?.id ?? null;
+
+  useEffect(() => {
+    latestUserIdRef.current = userId;
+  }, [userId]);
 
   const load = useCallback(async () => {
     if (!userId) {
@@ -91,8 +96,11 @@ export default function useLeetCodeActivity({
       isConnectionStale(nextConnection) &&
       !backgroundSyncUsersRef.current.has(userId)
     ) {
+      const activeUserId = userId;
       backgroundSyncUsersRef.current.add(userId);
       syncLeetCodeActivity(false).then((result) => {
+        if (loadRunRef.current !== runId) return;
+        if (latestUserIdRef.current !== activeUserId) return;
         if (result.data?.connection) setConnection(result.data.connection);
         if (result.data?.submissions) setSubmissions(result.data.submissions);
         if (result.error) setError(result.error);

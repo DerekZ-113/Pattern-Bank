@@ -52,24 +52,11 @@ on public.leetcode_connections
 for select
 using (auth.uid() = user_id);
 
+-- Browser clients are read-only for LeetCode activity. The Edge Function writes
+-- with the service role after validating public LeetCode data server-side.
 drop policy if exists "Users can insert own LeetCode connection" on public.leetcode_connections;
-create policy "Users can insert own LeetCode connection"
-on public.leetcode_connections
-for insert
-with check (auth.uid() = user_id);
-
 drop policy if exists "Users can update own LeetCode connection" on public.leetcode_connections;
-create policy "Users can update own LeetCode connection"
-on public.leetcode_connections
-for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
 drop policy if exists "Users can delete own LeetCode connection" on public.leetcode_connections;
-create policy "Users can delete own LeetCode connection"
-on public.leetcode_connections
-for delete
-using (auth.uid() = user_id);
 
 drop policy if exists "Users can read own LeetCode submissions" on public.leetcode_submissions;
 create policy "Users can read own LeetCode submissions"
@@ -78,22 +65,7 @@ for select
 using (auth.uid() = user_id);
 
 drop policy if exists "Users can insert own LeetCode submissions" on public.leetcode_submissions;
-create policy "Users can insert own LeetCode submissions"
-on public.leetcode_submissions
-for insert
-with check (auth.uid() = user_id);
-
 drop policy if exists "Users can update own LeetCode submissions" on public.leetcode_submissions;
-create policy "Users can update own LeetCode submissions"
-on public.leetcode_submissions
-for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
-
 drop policy if exists "Users can delete own LeetCode submissions" on public.leetcode_submissions;
-create policy "Users can delete own LeetCode submissions"
-on public.leetcode_submissions
-for delete
-using (auth.uid() = user_id);
 
 commit;

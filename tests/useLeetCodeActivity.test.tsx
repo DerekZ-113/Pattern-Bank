@@ -82,6 +82,50 @@ describe("useLeetCodeActivity", () => {
     expect(showToast).not.toHaveBeenCalled();
   });
 
+  it("ignores stale background sync results after the user changes", async () => {
+    const nextUser = { id: "user-2" } as User;
+    const staleConnection = {
+      ...oldConnection,
+      leetcodeUsername: "stale-user",
+      lastSyncedAt: "2026-05-15T10:00:00.000Z",
+    };
+    let resolveBackgroundSync!: (result: Awaited<ReturnType<typeof syncLeetCodeActivity>>) => void;
+
+    vi.mocked(fetchLeetCodeConnection).mockImplementation(async (requestedUserId: string) => ({
+      data: requestedUserId === "user-1" ? oldConnection : null,
+      error: null,
+    }));
+    vi.mocked(syncLeetCodeActivity).mockReturnValue(
+      new Promise((resolve) => {
+        resolveBackgroundSync = resolve;
+      }),
+    );
+
+    const { result, rerender } = renderHook(
+      ({ user }) => useLeetCodeActivity({ user }),
+      { initialProps: { user: mockUser as User | null } },
+    );
+
+    await waitFor(() => {
+      expect(syncLeetCodeActivity).toHaveBeenCalledWith(false);
+    });
+
+    rerender({ user: nextUser });
+
+    await waitFor(() => {
+      expect(fetchLeetCodeConnection).toHaveBeenCalledWith("user-2");
+    });
+
+    await act(async () => {
+      resolveBackgroundSync({
+        data: { connection: staleConnection, submissions: [], summary: { insertedCount: 1 } },
+        error: null,
+      });
+    });
+
+    expect(result.current.connection).toBeNull();
+  });
+
   it("manual sync passes force true", async () => {
     vi.mocked(fetchLeetCodeConnection).mockResolvedValue({ data: oldConnection, error: null });
     const { result } = renderHook(() => useLeetCodeActivity({ user: mockUser }));
