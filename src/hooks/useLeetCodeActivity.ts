@@ -7,6 +7,7 @@ import {
   fetchLeetCodeConnection,
   fetchLeetCodeIgnoredImports,
   fetchRecentLeetCodeSubmissions,
+  markLeetCodeSubmissionRated,
   sanitizeLeetCodeActivityError,
   syncLeetCodeActivity,
   type LeetCodeActivityResult,
@@ -29,6 +30,7 @@ export interface UseLeetCodeActivityState {
   connect: (username: string) => Promise<LeetCodeActivityResult>;
   syncNow: () => Promise<LeetCodeActivityResult>;
   disconnect: () => Promise<LeetCodeActivityResult>;
+  markRated: (submissionDbId: string, problemId: string) => Promise<LeetCodeActivityResult>;
   refresh: () => Promise<void>;
 }
 
@@ -176,6 +178,20 @@ export default function useLeetCodeActivity({
     return result;
   }, []);
 
+  const markRated = useCallback(async (submissionDbId: string, problemId: string) => {
+    const runId = loadRunRef.current + 1;
+    loadRunRef.current = runId;
+    const result = await markLeetCodeSubmissionRated(submissionDbId, problemId);
+    if (loadRunRef.current !== runId) return result;
+    if (result.data) {
+      setConnection(result.data.connection);
+      setSubmissions(result.data.submissions);
+      setIgnoredImports(result.data.ignoredImports ?? []);
+    }
+    if (result.error) setError(result.error);
+    return result;
+  }, []);
+
   return {
     connection,
     submissions,
@@ -186,6 +202,7 @@ export default function useLeetCodeActivity({
     connect,
     syncNow,
     disconnect,
+    markRated,
     refresh: load,
   };
 }

@@ -188,6 +188,7 @@ describe("leetcodeActivityData", () => {
       disconnectLeetCodeActivity,
       markLeetCodeImportImported,
       markLeetCodeImportLinkedExisting,
+      markLeetCodeSubmissionRated,
       ignoreLeetCodeImport,
       restoreIgnoredLeetCodeImport,
     } = await import("../src/utils/leetcodeActivityData");
@@ -203,6 +204,7 @@ describe("leetcodeActivityData", () => {
     await markLeetCodeImportLinkedExisting("sub-db-2", "problem-2");
     await ignoreLeetCodeImport("sub-db-3");
     await restoreIgnoredLeetCodeImport("two-sum");
+    await markLeetCodeSubmissionRated("sub-db-4", "problem-4");
 
     expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(1, "sync-leetcode-activity", {
       body: { action: "connect", username: "derek113" },
@@ -224,6 +226,9 @@ describe("leetcodeActivityData", () => {
     });
     expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(7, "sync-leetcode-activity", {
       body: { action: "restore_ignored_import", titleSlug: "two-sum" },
+    });
+    expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(8, "sync-leetcode-activity", {
+      body: { action: "mark_rated", submissionDbId: "sub-db-4", problemId: "problem-4" },
     });
   });
 });

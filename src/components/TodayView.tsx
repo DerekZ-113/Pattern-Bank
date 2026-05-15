@@ -4,8 +4,12 @@ import TodayQuickStart from "./TodayQuickStart";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
 import { formatDisplayDate, todayStr } from "../utils/dateHelpers";
-import { buildDoneTodayFeedItems, buildTodayReviewState } from "../utils/todayView";
-import type { Confidence, LeetCodeProblem, PendingLeetCodeImport, Problem, ReviewEvent } from "../types";
+import {
+  buildSolvedOnLeetCodeTodayIndex,
+  buildTodayActivityFeedItems,
+  buildTodayReviewState,
+} from "../utils/todayView";
+import type { Confidence, LeetCodeProblem, LeetCodeSubmission, PendingLeetCodeImport, Problem, ReviewEvent } from "../types";
 
 interface Props {
   problems: Problem[];
@@ -22,6 +26,8 @@ interface Props {
   pendingLeetCodeImports?: PendingLeetCodeImport[];
   onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
+  leetcodeSubmissions?: LeetCodeSubmission[];
+  onRateLeetCodeReview?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
   today?: string;
 }
 
@@ -40,6 +46,8 @@ export default function TodayView({
   pendingLeetCodeImports = [],
   onConfirmLeetCodeImport,
   onIgnoreLeetCodeImport,
+  leetcodeSubmissions = [],
+  onRateLeetCodeReview,
   today = todayStr(),
 }: Props) {
   const {
@@ -48,7 +56,13 @@ export default function TodayView({
     reviewedToday,
     effectiveGoal,
   } = buildTodayReviewState(problems, dailyGoal, today);
-  const doneTodayItems = buildDoneTodayFeedItems(problems, reviewEvents, today);
+  const doneTodayItems = buildTodayActivityFeedItems({
+    problems,
+    reviewEvents,
+    leetcodeSubmissions,
+    today,
+  });
+  const solvedOnLeetCodeToday = buildSolvedOnLeetCodeTodayIndex(leetcodeSubmissions, today);
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-6 md:px-8">
@@ -128,6 +142,11 @@ export default function TodayView({
                     key={problem.id}
                     problem={problem}
                     hidePatterns={hidePatterns}
+                    solvedOnLeetCodeToday={
+                      solvedOnLeetCodeToday.problemIds.has(problem.id)
+                      || (typeof problem.leetcodeNumber === "number"
+                        && solvedOnLeetCodeToday.leetcodeNumbers.has(problem.leetcodeNumber))
+                    }
                     onReview={onReview}
                     onDismiss={onDismiss}
                     onUpdateNotes={onUpdateNotes}
@@ -155,7 +174,10 @@ export default function TodayView({
                 subcopy="Reverse chronological"
                 accent
               />
-              <TodayDoneFeed items={doneTodayItems} />
+              <TodayDoneFeed
+                items={doneTodayItems}
+                onRateLeetCodeReview={onRateLeetCodeReview}
+              />
             </section>
           )}
         </>

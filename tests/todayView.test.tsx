@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import TodayView from "../src/components/TodayView";
-import type { Confidence, LeetCodeProblem, PendingLeetCodeImport, Problem, ReviewEvent } from "../src/types";
+import type { Confidence, LeetCodeProblem, LeetCodeSubmission, PendingLeetCodeImport, Problem, ReviewEvent } from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
@@ -49,6 +49,25 @@ function makePendingImport(overrides: Partial<PendingLeetCodeImport> = {}): Pend
   };
 }
 
+function makeSubmission(overrides: Partial<LeetCodeSubmission> = {}): LeetCodeSubmission {
+  return {
+    id: "sub-db-1",
+    userId: "user-1",
+    leetcodeUsername: "derek113",
+    leetcodeSubmissionId: "lc-sub-1",
+    titleSlug: "two-sum",
+    title: "Two Sum",
+    leetcodeNumber: 1,
+    difficulty: "Easy",
+    submittedAt: "2026-05-14T21:30:00.000Z",
+    problemId: "p1",
+    status: "linked_existing",
+    createdAt: "2026-05-14T21:31:00.000Z",
+    updatedAt: "2026-05-14T21:31:00.000Z",
+    ...overrides,
+  };
+}
+
 function renderTodayView(overrides: {
   problems?: Problem[];
   reviewEvents?: ReviewEvent[];
@@ -59,6 +78,8 @@ function renderTodayView(overrides: {
   pendingLeetCodeImports?: PendingLeetCodeImport[];
   onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
+  leetcodeSubmissions?: LeetCodeSubmission[];
+  onRateLeetCodeReview?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
 } = {}) {
   return render(
     <TodayView
@@ -76,6 +97,8 @@ function renderTodayView(overrides: {
       pendingLeetCodeImports={overrides.pendingLeetCodeImports ?? []}
       onConfirmLeetCodeImport={overrides.onConfirmLeetCodeImport ?? vi.fn()}
       onIgnoreLeetCodeImport={overrides.onIgnoreLeetCodeImport ?? vi.fn()}
+      leetcodeSubmissions={overrides.leetcodeSubmissions ?? []}
+      onRateLeetCodeReview={overrides.onRateLeetCodeReview ?? vi.fn()}
       today="2026-05-14"
     />,
   );
@@ -187,5 +210,76 @@ describe("TodayView", () => {
 
     expect(screen.getByText("From LeetCode")).toBeTruthy();
     expect(screen.queryByText("Welcome to PatternBank")).toBeNull();
+  });
+
+  it("shows a Solved on LC today badge on due review cards matched to today's LeetCode solves", () => {
+    renderTodayView({
+      leetcodeSubmissions: [makeSubmission()],
+    });
+
+    expect(screen.getByText("Solved on LC today")).toBeTruthy();
+  });
+
+  it("renders PatternBank and LeetCode Done today rows together", () => {
+    renderTodayView({
+      problems: [
+        makeProblem({ id: "p1", title: "Two Sum", leetcodeNumber: 1 }),
+        makeProblem({
+          id: "p2",
+          title: "Number of Islands",
+          leetcodeNumber: 200,
+          difficulty: "Medium",
+          nextReviewDate: "2026-05-20",
+        }),
+        makeProblem({
+          id: "p3",
+          title: "LRU Cache",
+          leetcodeNumber: 146,
+          difficulty: "Medium",
+          nextReviewDate: "2026-05-20",
+        }),
+      ],
+      reviewEvents: [makeReviewEvent({ problemId: "p1" })],
+      leetcodeSubmissions: [
+        makeSubmission({
+          id: "sub-imported",
+          problemId: "p2",
+          title: "Number of Islands",
+          leetcodeNumber: 200,
+          difficulty: "Medium",
+          status: "imported",
+        }),
+        makeSubmission({
+          id: "sub-rated",
+          problemId: "p3",
+          title: "LRU Cache",
+          leetcodeNumber: 146,
+          difficulty: "Medium",
+          status: "rated",
+          submittedAt: "2026-05-14T20:00:00.000Z",
+        }),
+      ],
+    });
+
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).getByText("rated")).toBeTruthy();
+    expect(within(doneSection).getByText("solved on LC · imported")).toBeTruthy();
+    expect(within(doneSection).getByText("solved on LC · rated")).toBeTruthy();
+  });
+
+  it("opens Rate star controls and disables them after selecting a confidence", () => {
+    const onRate = vi.fn();
+    renderTodayView({
+      problems: [makeProblem({ nextReviewDate: "2026-05-14", lastReviewed: null })],
+      leetcodeSubmissions: [makeSubmission()],
+      onRateLeetCodeReview: onRate,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
+    const rateButton = screen.getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
+    fireEvent.click(rateButton);
+
+    expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 4);
+    expect((rateButton as HTMLButtonElement).disabled).toBe(true);
   });
 });
