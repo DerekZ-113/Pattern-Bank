@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { todayStr, utcToLocalDateStr } from "./dateHelpers";
+import { getDefaultFiveStarStreak } from "./spacedRepetition";
 import type {
   Problem,
   Confidence,
@@ -28,6 +29,7 @@ interface SnakeCaseProblem {
   date_added: string;
   last_reviewed: string | null;
   next_review_date: string;
+  five_star_streak?: number | null;
   updated_at: string;
   exclude_from_review: boolean;
 }
@@ -68,6 +70,7 @@ export function toSnakeCase(problem: Problem): SnakeCaseProblem {
     date_added: problem.dateAdded,
     last_reviewed: problem.lastReviewed ?? null,
     next_review_date: problem.nextReviewDate,
+    five_star_streak: problem.fiveStarStreak ?? getDefaultFiveStarStreak(problem.confidence),
     updated_at: problem.updatedAt || new Date().toISOString(),
     exclude_from_review: problem.excludeFromReview ?? false,
   };
@@ -86,6 +89,7 @@ export function toCamelCase(row: SnakeCaseProblem): Problem {
     dateAdded: row.date_added,
     lastReviewed: row.last_reviewed ?? null,
     nextReviewDate: row.next_review_date,
+    fiveStarStreak: row.five_star_streak ?? getDefaultFiveStarStreak(row.confidence),
     updatedAt: row.updated_at || new Date().toISOString(),
     excludeFromReview: row.exclude_from_review ?? false,
   };

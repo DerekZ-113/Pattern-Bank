@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { DIFFICULTIES } from "../utils/constants";
 import { todayStr, generateId } from "../utils/dateHelpers";
 import { computeNextReviewDate } from "../utils/problemTransforms";
+import { getDefaultFiveStarStreak } from "../utils/spacedRepetition";
 import StarRating from "./StarRating";
 import InlineError from "./InlineError";
 import LeetCodeSearch from "./LeetCodeSearch";
@@ -130,6 +131,10 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
     const today = todayStr();
     const confidenceChanged =
       initialData && form.confidence !== initialData.confidence;
+    const fiveStarStreak =
+      !initialData || confidenceChanged
+        ? 0
+        : initialData.fiveStarStreak ?? getDefaultFiveStarStreak(initialData.confidence);
     const problem: Problem = {
       id: initialData?.id || generateId(),
       title: form.title.trim(),
@@ -147,6 +152,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
         ? today
         : initialData?.lastReviewed || null,
       nextReviewDate: computeNextReviewDate(initialData, form.confidence, today),
+      fiveStarStreak,
       updatedAt: new Date().toISOString(),
     };
     onSave(problem, !!confidenceChanged);

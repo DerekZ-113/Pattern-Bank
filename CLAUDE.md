@@ -16,7 +16,7 @@ React app for tracking LeetCode problems with spaced repetition. localStorage-fi
 - **Sync**: Fire-and-forget — write local first, push to cloud non-blocking. Errors logged, never thrown to UI.
 - **Conflict resolution**: most recent `updatedAt` timestamp wins
 - **Field mapping**: camelCase (frontend) ↔ snake_case (Supabase) via `toSnakeCase()`/`toCamelCase()` in `src/utils/supabaseData.ts`
-- **Spaced repetition**: SM-2 simplified — confidence 1→1d, 2→1d, 3→3d, 4→7d, 5→14d
+- **Spaced repetition**: SM-2 simplified — confidence 1→1d, 2→2d, 3→5d, 4→10d, 5→30d; repeated 5-star reviews graduate up to 365d
 
 ## Code Conventions
 

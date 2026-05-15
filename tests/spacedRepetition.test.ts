@@ -1,24 +1,34 @@
 import { describe, it, expect } from "vitest";
-import { INTERVALS, getIntervalDays, prioritizeProblems } from "../src/utils/spacedRepetition";
+import {
+  FIVE_STAR_GRADUATION_INTERVALS,
+  INTERVALS,
+  getDefaultFiveStarStreak,
+  getFiveStarGraduationIntervalDays,
+  getIntervalDays,
+  getNextFiveStarStreak,
+  getPreviousFiveStarStreak,
+  getReviewIntervalDays,
+  prioritizeProblems,
+} from "../src/utils/spacedRepetition";
 import type { Confidence, Problem } from "../src/types";
 
 describe("INTERVALS", () => {
   it("maps confidence 1-5 to expected days", () => {
     expect(INTERVALS[1]).toBe(1);
-    expect(INTERVALS[2]).toBe(1);
-    expect(INTERVALS[3]).toBe(3);
-    expect(INTERVALS[4]).toBe(7);
-    expect(INTERVALS[5]).toBe(14);
+    expect(INTERVALS[2]).toBe(2);
+    expect(INTERVALS[3]).toBe(5);
+    expect(INTERVALS[4]).toBe(10);
+    expect(INTERVALS[5]).toBe(30);
   });
 });
 
 describe("getIntervalDays", () => {
   it("returns correct interval for each confidence level", () => {
     expect(getIntervalDays(1)).toBe(1);
-    expect(getIntervalDays(2)).toBe(1);
-    expect(getIntervalDays(3)).toBe(3);
-    expect(getIntervalDays(4)).toBe(7);
-    expect(getIntervalDays(5)).toBe(14);
+    expect(getIntervalDays(2)).toBe(2);
+    expect(getIntervalDays(3)).toBe(5);
+    expect(getIntervalDays(4)).toBe(10);
+    expect(getIntervalDays(5)).toBe(30);
   });
 
   it("returns 1 as fallback for invalid confidence", () => {
@@ -26,6 +36,51 @@ describe("getIntervalDays", () => {
     expect(getIntervalDays(6 as unknown as Confidence)).toBe(1);
     expect(getIntervalDays(undefined as unknown as Confidence)).toBe(1);
     expect(getIntervalDays(null as unknown as Confidence)).toBe(1);
+  });
+});
+
+describe("5-star graduation", () => {
+  it("defines the graduation intervals", () => {
+    expect(FIVE_STAR_GRADUATION_INTERVALS).toEqual([30, 60, 120, 240, 365]);
+  });
+
+  it("returns graduated intervals capped at one year", () => {
+    expect(getFiveStarGraduationIntervalDays(0)).toBe(30);
+    expect(getFiveStarGraduationIntervalDays(1)).toBe(30);
+    expect(getFiveStarGraduationIntervalDays(2)).toBe(60);
+    expect(getFiveStarGraduationIntervalDays(3)).toBe(120);
+    expect(getFiveStarGraduationIntervalDays(4)).toBe(240);
+    expect(getFiveStarGraduationIntervalDays(5)).toBe(365);
+    expect(getFiveStarGraduationIntervalDays(12)).toBe(365);
+  });
+
+  it("defaults old 5-star problems to previous streak 1", () => {
+    const problem = { confidence: 5 } as Problem;
+    expect(getDefaultFiveStarStreak(problem.confidence)).toBe(1);
+    expect(getPreviousFiveStarStreak(problem)).toBe(1);
+    expect(getNextFiveStarStreak(problem, 5)).toBe(2);
+    expect(getReviewIntervalDays(problem, 5)).toBe(60);
+  });
+
+  it("defaults old non-5-star problems to previous streak 0", () => {
+    const problem = { confidence: 4 } as Problem;
+    expect(getDefaultFiveStarStreak(problem.confidence)).toBe(0);
+    expect(getPreviousFiveStarStreak(problem)).toBe(0);
+    expect(getNextFiveStarStreak(problem, 5)).toBe(1);
+    expect(getReviewIntervalDays(problem, 5)).toBe(30);
+  });
+
+  it("preserves explicit streak 0 for a 5-star problem", () => {
+    const problem = { confidence: 5, fiveStarStreak: 0 } as Problem;
+    expect(getPreviousFiveStarStreak(problem)).toBe(0);
+    expect(getNextFiveStarStreak(problem, 5)).toBe(1);
+    expect(getReviewIntervalDays(problem, 5)).toBe(30);
+  });
+
+  it("resets streak on ratings below 5 and uses base intervals", () => {
+    const problem = { confidence: 5, fiveStarStreak: 4 } as Problem;
+    expect(getNextFiveStarStreak(problem, 4)).toBe(0);
+    expect(getReviewIntervalDays(problem, 4)).toBe(10);
   });
 });
 

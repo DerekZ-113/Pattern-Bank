@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { todayStr, addDays } from "../utils/dateHelpers";
-import { getIntervalDays } from "../utils/spacedRepetition";
+import { getIntervalDays, getReviewIntervalDays } from "../utils/spacedRepetition";
 import {
   loadProblems,
   saveProblems,
@@ -208,7 +208,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
       const reviewTimestamp = new Date().toISOString();
 
       setProblems((prev) =>
-        prev.map((p) => (p.id === problemId ? buildReviewedProblem(p, newConfidence) : p))
+        prev.map((p) => (p.id === problemId ? (updatedProblem ?? buildReviewedProblem(p, newConfidence)) : p))
       );
       logReviewToday();
       logReviewEvent(problemId, newConfidence, original?.patterns ?? [], reviewTimestamp);
@@ -220,7 +220,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
         pushReviewToCloud(user.id, problemId, original.confidence, newConfidence, original.patterns, reviewTimestamp);
       }
 
-      const intervalDays = getIntervalDays(newConfidence);
+      const intervalDays = original ? getReviewIntervalDays(original, newConfidence) : getIntervalDays(newConfidence);
       const newReviewedCount = currentReviewed + 1;
       const progress = `${newReviewedCount} of ${effectiveGoal} done`;
       const interval = `Next review in ${intervalDays} day${intervalDays !== 1 ? "s" : ""}`;

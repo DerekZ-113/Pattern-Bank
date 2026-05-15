@@ -1,12 +1,40 @@
 import { todayStr } from "./dateHelpers";
 import type { Confidence, Problem } from "../types";
 
-// Simplified SM-2 intervals based on confidence rating
-// confidence 1 → 1 day, 2 → 1 day, 3 → 3 days, 4 → 7 days, 5 → 14 days
-export const INTERVALS: Record<Confidence, number> = { 1: 1, 2: 1, 3: 3, 4: 7, 5: 14 };
+// Simplified SM-2 intervals based on confidence rating.
+// 5-star reviews can graduate beyond this base interval through explicit reviews.
+export const INTERVALS: Record<Confidence, number> = { 1: 1, 2: 2, 3: 5, 4: 10, 5: 30 };
+export const FIVE_STAR_GRADUATION_INTERVALS = [30, 60, 120, 240, 365] as const;
 
 export function getIntervalDays(confidence: Confidence): number {
   return INTERVALS[confidence] || 1;
+}
+
+export function getDefaultFiveStarStreak(confidence: number): number {
+  return confidence === 5 ? 1 : 0;
+}
+
+export function getFiveStarGraduationIntervalDays(streak: number): number {
+  if (streak <= 1) return FIVE_STAR_GRADUATION_INTERVALS[0];
+  if (streak === 2) return FIVE_STAR_GRADUATION_INTERVALS[1];
+  if (streak === 3) return FIVE_STAR_GRADUATION_INTERVALS[2];
+  if (streak === 4) return FIVE_STAR_GRADUATION_INTERVALS[3];
+  return FIVE_STAR_GRADUATION_INTERVALS[4];
+}
+
+export function getPreviousFiveStarStreak(problem: Problem): number {
+  if (problem.confidence !== 5) return 0;
+  return problem.fiveStarStreak ?? getDefaultFiveStarStreak(problem.confidence);
+}
+
+export function getNextFiveStarStreak(problem: Problem, newConfidence: Confidence): number {
+  if (newConfidence !== 5) return 0;
+  return getPreviousFiveStarStreak(problem) + 1;
+}
+
+export function getReviewIntervalDays(problem: Problem, newConfidence: Confidence): number {
+  if (newConfidence !== 5) return getIntervalDays(newConfidence);
+  return getFiveStarGraduationIntervalDays(getNextFiveStarStreak(problem, newConfidence));
 }
 
 // ============================================================

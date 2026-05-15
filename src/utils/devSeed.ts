@@ -21,6 +21,7 @@ interface DemoProblemInput {
   notes?: string;
   excludeFromReview?: boolean;
   dateAdded?: string;
+  fiveStarStreak?: number;
 }
 
 export interface TodayDemoSeedData {
@@ -67,6 +68,7 @@ function makeProblem(input: DemoProblemInput, today: string, now: string): Probl
     dateAdded: input.dateAdded ?? addDays(today, -21),
     lastReviewed: input.lastReviewed ?? null,
     nextReviewDate: input.nextReviewDate,
+    fiveStarStreak: input.fiveStarStreak ?? 0,
     updatedAt: now,
   };
 }
@@ -124,7 +126,7 @@ export function buildTodayDemoSeedData(baseDate = new Date()): TodayDemoSeedData
       difficulty: "Medium",
       patterns: ["Hash Table", "Linked List", "OOD"],
       confidence: 4,
-      nextReviewDate: addDays(today, 7),
+      nextReviewDate: addDays(today, 10),
       lastReviewed: today,
       notes: "Map nodes to keys so eviction can delete from both structures.",
     }, today, now),
@@ -135,7 +137,7 @@ export function buildTodayDemoSeedData(baseDate = new Date()): TodayDemoSeedData
       difficulty: "Medium",
       patterns: ["Hash Table", "Sorting"],
       confidence: 3,
-      nextReviewDate: addDays(today, 3),
+      nextReviewDate: addDays(today, 5),
       lastReviewed: today,
     }, today, now),
     makeProblem({
@@ -145,8 +147,9 @@ export function buildTodayDemoSeedData(baseDate = new Date()): TodayDemoSeedData
       difficulty: "Easy",
       patterns: ["Tree", "DFS"],
       confidence: 5,
-      nextReviewDate: addDays(today, 14),
+      nextReviewDate: addDays(today, 30),
       lastReviewed: today,
+      fiveStarStreak: 1,
     }, today, now),
     makeProblem({
       id: "demo-binary-search",
@@ -188,6 +191,7 @@ export function buildTodayDemoSeedData(baseDate = new Date()): TodayDemoSeedData
       nextReviewDate: addDays(today, -30),
       lastReviewed: addDays(today, -60),
       excludeFromReview: true,
+      fiveStarStreak: 1,
       notes: "Excluded from reviews to demonstrate library-only problems.",
     }, today, now),
   ];

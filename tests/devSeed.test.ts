@@ -16,6 +16,7 @@ function expectCompleteProblem(problem: Problem) {
   expect(typeof problem.excludeFromReview).toBe("boolean");
   expect(problem.dateAdded).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   expect(problem.nextReviewDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(problem.fiveStarStreak).toBeGreaterThanOrEqual(0);
   expect(problem.updatedAt).toBeTruthy();
 }
 
@@ -66,6 +67,20 @@ describe("buildTodayDemoSeedData", () => {
         "demo-max-depth-binary-tree",
       ]),
     );
+  });
+
+  it("uses retuned SRS schedules for reviewed-today demo problems", () => {
+    const data = buildTodayDemoSeedData(baseDate);
+    const lru = data.problems.find((p) => p.id === "demo-lru-cache");
+    const anagrams = data.problems.find((p) => p.id === "demo-group-anagrams");
+    const maxDepth = data.problems.find((p) => p.id === "demo-max-depth-binary-tree");
+
+    expect(lru?.nextReviewDate).toBe("2026-05-24");
+    expect(lru?.fiveStarStreak).toBe(0);
+    expect(anagrams?.nextReviewDate).toBe("2026-05-19");
+    expect(anagrams?.fiveStarStreak).toBe(0);
+    expect(maxDepth?.nextReviewDate).toBe("2026-06-13");
+    expect(maxDepth?.fiveStarStreak).toBe(1);
   });
 
   it("seeds recent review log days and demo preferences", () => {

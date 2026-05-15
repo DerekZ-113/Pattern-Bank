@@ -109,6 +109,7 @@ describe("fetchProblems", () => {
     expect(p.dateAdded).toBe(row.date_added);
     expect(p.nextReviewDate).toBe(row.next_review_date);
     expect(p.excludeFromReview).toBe(row.exclude_from_review);
+    expect(p.fiveStarStreak).toBe(0);
   });
 
   it("returns { data: null, error } on Supabase error", async () => {
@@ -158,9 +159,30 @@ describe("upsertProblem", () => {
       title: "Two Sum",
       leetcode_number: 1,
       difficulty: "Easy",
+      five_star_streak: 0,
       user_id: USER_ID,
     });
     expect(upsertCall).toHaveProperty("updated_at");
+  });
+
+  it("converts old local 5-star problems to snake_case with default streak 1", async () => {
+    const row = makeSnakeRow({ confidence: 5, five_star_streak: 1 });
+    mockSupabase = createSupabaseMock({ data: row, error: null });
+
+    await upsertProblem(USER_ID, makeProblem({ confidence: 5 }));
+
+    const upsertCall = mockSupabase.upsert.mock.calls[0][0];
+    expect(upsertCall.five_star_streak).toBe(1);
+  });
+
+  it("preserves explicit fiveStarStreak 0 when upserting", async () => {
+    const row = makeSnakeRow({ confidence: 5, five_star_streak: 0 });
+    mockSupabase = createSupabaseMock({ data: row, error: null });
+
+    await upsertProblem(USER_ID, makeProblem({ confidence: 5, fiveStarStreak: 0 }));
+
+    const upsertCall = mockSupabase.upsert.mock.calls[0][0];
+    expect(upsertCall.five_star_streak).toBe(0);
   });
 
   it("returns camelCase problem on success", async () => {
@@ -174,6 +196,7 @@ describe("upsertProblem", () => {
     expect(result.data!.id).toBe(row.id);
     expect(result.data!.leetcodeNumber).toBe(row.leetcode_number);
     expect(result.data!.dateAdded).toBe(row.date_added);
+    expect(result.data!.fiveStarStreak).toBe(0);
   });
 
   it("returns error on failure", async () => {

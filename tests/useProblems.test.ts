@@ -477,10 +477,42 @@ describe("useProblems", () => {
         result.current.handleReview("review-toast-1", 3 as Confidence);
       });
 
-      // confidence 3 → 3 day interval
+      // confidence 3 → 5 day interval
       expect(mockShowToast).toHaveBeenCalledWith(
-        expect.stringMatching(/Next review in 3 days/)
+        expect.stringMatching(/Next review in 5 days/)
       );
+    });
+
+    it("shows graduated interval in review toast for second consecutive 5-star review", () => {
+      const p = makeProblem({ id: "review-toast-5", confidence: 5 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-toast-5", 5 as Confidence);
+      });
+
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.stringMatching(/Next review in 60 days/)
+      );
+    });
+
+    it("resets fiveStarStreak when reviewing below 5 stars", () => {
+      const p = makeProblem({ id: "review-reset-streak", confidence: 5, fiveStarStreak: 3 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-reset-streak", 4 as Confidence);
+      });
+
+      expect(result.current.problems[0].fiveStarStreak).toBe(0);
     });
   });
 

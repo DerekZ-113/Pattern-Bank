@@ -1,5 +1,5 @@
 import { todayStr, addDays, generateId } from "./dateHelpers";
-import { getIntervalDays } from "./spacedRepetition";
+import { getIntervalDays, getNextFiveStarStreak, getReviewIntervalDays } from "./spacedRepetition";
 import { countReviewedToday } from "./storage";
 import { buildLeetCodeUrl } from "./leetcodeProblems";
 import type { Problem, LeetCodeProblem, Confidence } from "../types";
@@ -69,6 +69,7 @@ export function buildNewProblems(
     dateAdded: today,
     lastReviewed: null,
     nextReviewDate: addDays(today, Math.floor(i / dailyGoal)),
+    fiveStarStreak: 0,
     updatedAt: now,
   }));
 }
@@ -121,10 +122,12 @@ export function computeReviewProgress(
  */
 export function buildReviewedProblem(problem: Problem, newConfidence: Confidence): Problem {
   const today = todayStr();
-  const intervalDays = getIntervalDays(newConfidence);
+  const intervalDays = getReviewIntervalDays(problem, newConfidence);
+  const fiveStarStreak = getNextFiveStarStreak(problem, newConfidence);
   return {
     ...problem,
     confidence: newConfidence,
+    fiveStarStreak,
     lastReviewed: today,
     nextReviewDate: addDays(today, intervalDays),
     updatedAt: new Date().toISOString(),

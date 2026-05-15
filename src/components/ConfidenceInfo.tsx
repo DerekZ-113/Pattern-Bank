@@ -47,6 +47,9 @@ export default function ConfidenceInfo() {
               </div>
             ))}
           </div>
+          <p className="mt-2 text-[11px] leading-snug text-pb-text-dim">
+            5-star reviews can graduate longer.
+          </p>
         </div>
       )}
     </span>

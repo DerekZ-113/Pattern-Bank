@@ -110,10 +110,12 @@ Simplified SM-2 with confidence-based intervals:
 | Confidence | Interval | Meaning |
 |-----------|----------|---------|
 | 1 star | 1 day | No recall |
-| 2 stars | 1 day | Struggled |
-| 3 stars | 3 days | With effort |
-| 4 stars | 7 days | Comfortable |
-| 5 stars | 14 days | Automatic |
+| 2 stars | 2 days | Struggled |
+| 3 stars | 5 days | With effort |
+| 4 stars | 10 days | Comfortable |
+| 5 stars | 30 days | Automatic |
+
+Repeated 5-star reviews graduate to longer intervals: 30, 60, 120, 240, then 365 days.
 
 When more problems are due than the daily goal allows, a three-tier priority sort determines which surface first:
 
