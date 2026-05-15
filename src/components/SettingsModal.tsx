@@ -9,8 +9,10 @@ import DataSection from "./DataSection";
 import FeedbackSection from "./FeedbackSection";
 import DangerZoneSection from "./DangerZoneSection";
 import ExtraPatternsSection from "./ExtraPatternsSection";
+import LeetCodeActivitySection from "./LeetCodeActivitySection";
 import type { User } from "@supabase/supabase-js";
 import type { Preferences, LeetCodeProblem } from "../types";
+import type { UseLeetCodeActivityState } from "../hooks/useLeetCodeActivity";
 
 function CollapsibleSection({ title, defaultOpen = false, children }: {
   title: string;
@@ -48,6 +50,7 @@ interface Props {
   problemCount: number;
   existingProblemNumbers: Set<number>;
   user: User | null;
+  leetcodeActivity: UseLeetCodeActivityState;
   onSignInGoogle: () => Promise<{ error: Error | null }>;
   onSignInGitHub: () => Promise<{ error: Error | null }>;
   onSignInApple: () => Promise<{ error: Error | null }>;
@@ -67,6 +70,7 @@ export default function SettingsModal({
   problemCount,
   existingProblemNumbers,
   user,
+  leetcodeActivity,
   onSignInGoogle,
   onSignInGitHub,
   onSignInApple,
@@ -111,6 +115,17 @@ export default function SettingsModal({
             onSignInGitHub={onSignInGitHub}
             onSignInApple={onSignInApple}
             onSignOut={onSignOut}
+          />
+
+          <LeetCodeActivitySection
+            user={user}
+            connection={leetcodeActivity.connection}
+            loading={leetcodeActivity.loading}
+            actionLoading={leetcodeActivity.actionLoading}
+            error={leetcodeActivity.error}
+            onConnect={leetcodeActivity.connect}
+            onSyncNow={leetcodeActivity.syncNow}
+            onDisconnect={leetcodeActivity.disconnect}
           />
 
           <div>

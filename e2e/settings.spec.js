@@ -28,6 +28,13 @@ test.describe("Settings", () => {
     await expect(goalDisplay).toHaveText("6");
   });
 
+  test("shows signed-out LeetCode Activity copy", async ({ page }) => {
+    await page.getByRole("button", { name: "Settings" }).click();
+
+    await expect(page.getByText("LeetCode Activity", { exact: true })).toBeVisible();
+    await expect(page.getByText("Sign in to track LeetCode activity across devices.")).toBeVisible();
+  });
+
   test("bulk add problems by number", async ({ page }) => {
     await page.getByRole("button", { name: "Settings" }).click();
 
