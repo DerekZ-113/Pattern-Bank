@@ -1,10 +1,11 @@
 import TodayDoneFeed from "./TodayDoneFeed";
+import TodayPendingImportCard from "./TodayPendingImportCard";
 import TodayQuickStart from "./TodayQuickStart";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
 import { formatDisplayDate, todayStr } from "../utils/dateHelpers";
 import { buildDoneTodayFeedItems, buildTodayReviewState } from "../utils/todayView";
-import type { Confidence, LeetCodeProblem, Problem, ReviewEvent } from "../types";
+import type { Confidence, LeetCodeProblem, PendingLeetCodeImport, Problem, ReviewEvent } from "../types";
 
 interface Props {
   problems: Problem[];
@@ -18,6 +19,9 @@ interface Props {
   onAddClick: () => void;
   onBulkAdd: (problems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
   existingProblemNumbers: Set<number>;
+  pendingLeetCodeImports?: PendingLeetCodeImport[];
+  onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
+  onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   today?: string;
 }
 
@@ -33,6 +37,9 @@ export default function TodayView({
   onAddClick,
   onBulkAdd,
   existingProblemNumbers,
+  pendingLeetCodeImports = [],
+  onConfirmLeetCodeImport,
+  onIgnoreLeetCodeImport,
   today = todayStr(),
 }: Props) {
   const {
@@ -52,7 +59,7 @@ export default function TodayView({
         <p className="mt-1 text-sm text-pb-text-muted">{formatDisplayDate(today)}</p>
       </header>
 
-      {problems.length === 0 ? (
+      {problems.length === 0 && pendingLeetCodeImports.length === 0 ? (
         <TodayQuickStart
           onAddClick={onAddClick}
           onBulkAdd={onBulkAdd}
@@ -60,6 +67,28 @@ export default function TodayView({
         />
       ) : (
         <>
+          {pendingLeetCodeImports.length > 0 && (
+            <section aria-labelledby="today-leetcode-title">
+              <TodaySectionHeader
+                id="today-leetcode-title"
+                title="From LeetCode"
+                count={pendingLeetCodeImports.length}
+                subcopy="Solved on LC, not yet in your library"
+                accent
+              />
+              <div className="flex flex-col gap-2.5">
+                {pendingLeetCodeImports.map((item) => (
+                  <TodayPendingImportCard
+                    key={item.submissionDbId}
+                    item={item}
+                    onConfirm={(pendingItem, confidence) => onConfirmLeetCodeImport?.(pendingItem, confidence)}
+                    onIgnore={(pendingItem) => onIgnoreLeetCodeImport?.(pendingItem)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           <section aria-labelledby="today-reviews-title">
             <TodaySectionHeader
               id="today-reviews-title"

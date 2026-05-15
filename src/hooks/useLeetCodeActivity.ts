@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import type { LeetCodeConnection, LeetCodeSubmission } from "../types";
+import type { LeetCodeConnection, LeetCodeIgnoredImport, LeetCodeSubmission } from "../types";
 import {
   connectLeetCodeActivity,
   disconnectLeetCodeActivity,
   fetchLeetCodeConnection,
+  fetchLeetCodeIgnoredImports,
   fetchRecentLeetCodeSubmissions,
   sanitizeLeetCodeActivityError,
   syncLeetCodeActivity,
@@ -21,6 +22,7 @@ interface UseLeetCodeActivityParams {
 export interface UseLeetCodeActivityState {
   connection: LeetCodeConnection | null;
   submissions: LeetCodeSubmission[];
+  ignoredImports: LeetCodeIgnoredImport[];
   loading: boolean;
   actionLoading: boolean;
   error: string | null;
@@ -41,6 +43,7 @@ export default function useLeetCodeActivity({
 }: UseLeetCodeActivityParams): UseLeetCodeActivityState {
   const [connection, setConnection] = useState<LeetCodeConnection | null>(null);
   const [submissions, setSubmissions] = useState<LeetCodeSubmission[]>([]);
+  const [ignoredImports, setIgnoredImports] = useState<LeetCodeIgnoredImport[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +60,7 @@ export default function useLeetCodeActivity({
     if (!userId) {
       setConnection(null);
       setSubmissions([]);
+      setIgnoredImports([]);
       setError(null);
       return;
     }
@@ -72,6 +76,7 @@ export default function useLeetCodeActivity({
       setError(sanitizeLeetCodeActivityError(connectionResult.error));
       setConnection(null);
       setSubmissions([]);
+      setIgnoredImports([]);
       setLoading(false);
       return;
     }
@@ -82,12 +87,19 @@ export default function useLeetCodeActivity({
     const submissionsResult = await fetchRecentLeetCodeSubmissions(userId, 20);
     if (loadRunRef.current !== runId) return;
 
+    const ignoredResult = await fetchLeetCodeIgnoredImports(userId);
+    if (loadRunRef.current !== runId) return;
+
     if (submissionsResult.error) {
       setError(sanitizeLeetCodeActivityError(submissionsResult.error));
       setSubmissions([]);
+    } else if (ignoredResult.error) {
+      setError(sanitizeLeetCodeActivityError(ignoredResult.error));
+      setIgnoredImports([]);
     } else {
       setError(null);
       setSubmissions(submissionsResult.data ?? []);
+      setIgnoredImports(ignoredResult.data ?? []);
     }
     setLoading(false);
 
@@ -103,6 +115,7 @@ export default function useLeetCodeActivity({
         if (latestUserIdRef.current !== activeUserId) return;
         if (result.data?.connection) setConnection(result.data.connection);
         if (result.data?.submissions) setSubmissions(result.data.submissions);
+        if (result.data) setIgnoredImports(result.data.ignoredImports ?? []);
         if (result.error) setError(result.error);
       });
     }
@@ -130,6 +143,7 @@ export default function useLeetCodeActivity({
     if (result.data) {
       setConnection(result.data.connection);
       setSubmissions(result.data.submissions);
+      setIgnoredImports(result.data.ignoredImports ?? []);
     }
     setError(result.error);
     setActionLoading(false);
@@ -142,6 +156,7 @@ export default function useLeetCodeActivity({
     if (result.data) {
       setConnection(result.data.connection);
       setSubmissions(result.data.submissions);
+      setIgnoredImports(result.data.ignoredImports ?? []);
     }
     setError(result.error);
     setActionLoading(false);
@@ -154,6 +169,7 @@ export default function useLeetCodeActivity({
     if (!result.error) {
       setConnection(null);
       setSubmissions([]);
+      setIgnoredImports([]);
     }
     setError(result.error);
     setActionLoading(false);
@@ -163,6 +179,7 @@ export default function useLeetCodeActivity({
   return {
     connection,
     submissions,
+    ignoredImports,
     loading,
     actionLoading,
     error,

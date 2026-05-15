@@ -1,5 +1,5 @@
 import { createSupabaseMock, type SupabaseMock } from "./helpers/supabaseMock";
-import type { LeetCodeConnection, LeetCodeSubmission } from "../src/types";
+import type { LeetCodeConnection, LeetCodeIgnoredImport, LeetCodeSubmission } from "../src/types";
 
 let mockSupabase: (SupabaseMock & {
   functions: { invoke: ReturnType<typeof vi.fn> };
@@ -53,6 +53,14 @@ const submissionRow = {
   updated_at: "2026-05-15T08:05:00.000Z",
 };
 
+const ignoredImportRow = {
+  user_id: "user-1",
+  title_slug: "two-sum",
+  leetcode_number: 1,
+  ignored_at: "2026-05-15T09:00:00.000Z",
+  created_at: "2026-05-15T09:00:00.000Z",
+};
+
 describe("leetcodeActivityData", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -102,6 +110,20 @@ describe("leetcodeActivityData", () => {
     });
   });
 
+  it("maps ignored import rows to camelCase", async () => {
+    const { toLeetCodeIgnoredImport } = await import("../src/utils/leetcodeActivityData");
+
+    const ignored = toLeetCodeIgnoredImport(ignoredImportRow);
+
+    expect(ignored).toEqual<LeetCodeIgnoredImport>({
+      userId: "user-1",
+      titleSlug: "two-sum",
+      leetcodeNumber: 1,
+      ignoredAt: "2026-05-15T09:00:00.000Z",
+      createdAt: "2026-05-15T09:00:00.000Z",
+    });
+  });
+
   it("normalizes usernames and pasted public profile URLs", async () => {
     const { normalizeLeetCodeUsername } = await import("../src/utils/leetcodeActivityData");
 
@@ -147,20 +169,40 @@ describe("leetcodeActivityData", () => {
     expect(result.data?.[0].status).toBe("linked_existing");
   });
 
+  it("fetches ignored imports for the signed-in user", async () => {
+    const { fetchLeetCodeIgnoredImports } = await import("../src/utils/leetcodeActivityData");
+    mockSupabase!.order.mockResolvedValue({ data: [ignoredImportRow], error: null });
+
+    const result = await fetchLeetCodeIgnoredImports("user-1");
+
+    expect(mockSupabase!.from).toHaveBeenCalledWith("leetcode_ignored_imports");
+    expect(mockSupabase!.eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(result.error).toBeNull();
+    expect(result.data?.[0].titleSlug).toBe("two-sum");
+  });
+
   it("invokes Edge Function actions through Supabase functions.invoke", async () => {
     const {
       connectLeetCodeActivity,
       syncLeetCodeActivity,
       disconnectLeetCodeActivity,
+      markLeetCodeImportImported,
+      markLeetCodeImportLinkedExisting,
+      ignoreLeetCodeImport,
+      restoreIgnoredLeetCodeImport,
     } = await import("../src/utils/leetcodeActivityData");
     mockSupabase!.functions.invoke.mockResolvedValue({
-      data: { connection: null, submissions: [], summary: { insertedCount: 0 } },
+      data: { connection: null, submissions: [], ignoredImports: [], summary: { insertedCount: 0 } },
       error: null,
     });
 
     await connectLeetCodeActivity(" https://leetcode.com/u/derek113/ ");
     await syncLeetCodeActivity(true);
     await disconnectLeetCodeActivity();
+    await markLeetCodeImportImported("sub-db-1", "problem-1");
+    await markLeetCodeImportLinkedExisting("sub-db-2", "problem-2");
+    await ignoreLeetCodeImport("sub-db-3");
+    await restoreIgnoredLeetCodeImport("two-sum");
 
     expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(1, "sync-leetcode-activity", {
       body: { action: "connect", username: "derek113" },
@@ -170,6 +212,18 @@ describe("leetcodeActivityData", () => {
     });
     expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(3, "sync-leetcode-activity", {
       body: { action: "disconnect" },
+    });
+    expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(4, "sync-leetcode-activity", {
+      body: { action: "mark_imported", submissionDbId: "sub-db-1", problemId: "problem-1" },
+    });
+    expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(5, "sync-leetcode-activity", {
+      body: { action: "mark_linked_existing", submissionDbId: "sub-db-2", problemId: "problem-2" },
+    });
+    expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(6, "sync-leetcode-activity", {
+      body: { action: "ignore_import", submissionDbId: "sub-db-3" },
+    });
+    expect(mockSupabase!.functions.invoke).toHaveBeenNthCalledWith(7, "sync-leetcode-activity", {
+      body: { action: "restore_ignored_import", titleSlug: "two-sum" },
     });
   });
 });

@@ -72,6 +72,26 @@ export interface LeetCodeSubmission {
   updatedAt?: string;
 }
 
+export interface LeetCodeIgnoredImport {
+  userId: string;
+  titleSlug: string;
+  leetcodeNumber: number | null;
+  ignoredAt?: string;
+  createdAt?: string;
+}
+
+export interface PendingLeetCodeImport {
+  submissionDbId: string;
+  titleSlug: string;
+  title: string;
+  leetcodeNumber: number | null;
+  difficulty: Difficulty | null;
+  submittedAt: string;
+  firstSeenAt?: string;
+  suggestedPatterns: string[];
+  expired: boolean;
+}
+
 export interface LeetCodeSyncSummary {
   fetchedCount?: number;
   insertedCount?: number;
@@ -111,6 +131,10 @@ export interface Preferences {
 export interface ToastState {
   visible: boolean;
   message: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export interface BackupData {

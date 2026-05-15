@@ -59,16 +59,26 @@ describe("useUI", () => {
       expect(result.current.toast.message).toBe("Problem added!");
     });
 
+    it("showToast can attach a minimal action", () => {
+      const action = { label: "Undo", onClick: vi.fn() };
+      const { result } = renderHook(() => useUI());
+      act(() => {
+        result.current.showToast("Ignored Two Sum.", action);
+      });
+      expect(result.current.toast.action).toBe(action);
+    });
+
     it("hideToast clears toast", () => {
       const { result } = renderHook(() => useUI());
       act(() => {
-        result.current.showToast("Hello");
+        result.current.showToast("Hello", { label: "Undo", onClick: vi.fn() });
       });
       act(() => {
         result.current.hideToast();
       });
       expect(result.current.toast.visible).toBe(false);
       expect(result.current.toast.message).toBe("");
+      expect(result.current.toast.action).toBeUndefined();
     });
   });
 

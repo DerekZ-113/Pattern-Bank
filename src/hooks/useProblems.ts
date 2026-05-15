@@ -60,6 +60,7 @@ interface UseProblemsReturn {
   syncStatus: SyncStatus;
   reviewCount: number;
   handleSaveProblem: (problem: Problem, confidenceChanged?: boolean) => void;
+  handleCreateProblemFromLeetCodeImport: (problem: Problem) => { status: "created" | "duplicate"; problem: Problem };
   handleDeleteConfirm: (deleteTarget: Problem | null) => void;
   handleReview: (problemId: string, newConfidence: Confidence) => void;
   handleUpdateNotes: (problemId: string, newNotes: string) => void;
@@ -186,6 +187,26 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     }
     if (user) pushProblemToCloud(user.id, problem);
   }, [showToast, user]);
+
+  const handleCreateProblemFromLeetCodeImport = useCallback((problem: Problem) => {
+    if (problem.leetcodeNumber) {
+      const duplicate = problemsRef.current.find((p) => p.leetcodeNumber === problem.leetcodeNumber);
+      if (duplicate) {
+        return { status: "duplicate" as const, problem: duplicate };
+      }
+    }
+
+    problemsRef.current = [...problemsRef.current, problem];
+    setProblems(problemsRef.current);
+    posthog.capture("leetcode_import_confirmed", {
+      difficulty: problem.difficulty,
+      confidence: problem.confidence,
+      pattern_count: problem.patterns.length,
+      platform: "web",
+    });
+    if (user) pushProblemToCloud(user.id, problem);
+    return { status: "created" as const, problem };
+  }, [user]);
 
   const handleDeleteConfirm = useCallback((deleteTarget: Problem | null) => {
     if (deleteTarget) {
@@ -363,6 +384,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     syncStatus,
     reviewCount,
     handleSaveProblem,
+    handleCreateProblemFromLeetCodeImport,
     handleDeleteConfirm,
     handleReview,
     handleUpdateNotes,

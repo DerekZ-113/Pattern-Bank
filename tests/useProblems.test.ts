@@ -301,6 +301,49 @@ describe("useProblems", () => {
 
       expect(pushProblemToCloud).toHaveBeenCalledWith("user-123", newProblem);
     });
+
+    it("creates a local-first problem from a LeetCode import without logging a review", () => {
+      const imported = makeProblem({
+        id: "lc-import",
+        title: "Imported From LC",
+        leetcodeNumber: 200,
+        confidence: 5,
+        lastReviewed: null,
+        fiveStarStreak: 0,
+      });
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      let response!: ReturnType<typeof result.current.handleCreateProblemFromLeetCodeImport>;
+      act(() => {
+        response = result.current.handleCreateProblemFromLeetCodeImport(imported);
+      });
+
+      expect(response.status).toBe("created");
+      expect(result.current.problems).toContainEqual(imported);
+      expect(pushProblemToCloud).toHaveBeenCalledWith("user-123", imported);
+      expect(logReviewToday).not.toHaveBeenCalled();
+    });
+
+    it("rejects a LeetCode import duplicate and returns the existing problem", () => {
+      const existing = makeProblem({ id: "existing", leetcodeNumber: 200 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([existing]);
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      let response!: ReturnType<typeof result.current.handleCreateProblemFromLeetCodeImport>;
+      act(() => {
+        response = result.current.handleCreateProblemFromLeetCodeImport(
+          makeProblem({ id: "new-import", leetcodeNumber: 200 }),
+        );
+      });
+
+      expect(response.status).toBe("duplicate");
+      expect(response.problem.id).toBe("existing");
+      expect(result.current.problems).toHaveLength(1);
+    });
   });
 
   // ── handleSaveProblem — edit ───────────────────────────────────────────────

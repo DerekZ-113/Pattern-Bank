@@ -8,6 +8,7 @@ import {
   connectLeetCodeActivity,
   disconnectLeetCodeActivity,
   fetchLeetCodeConnection,
+  fetchLeetCodeIgnoredImports,
   fetchRecentLeetCodeSubmissions,
   syncLeetCodeActivity,
 } from "../src/utils/leetcodeActivityData";
@@ -16,6 +17,7 @@ vi.mock("../src/utils/leetcodeActivityData", () => ({
   connectLeetCodeActivity: vi.fn(),
   disconnectLeetCodeActivity: vi.fn(),
   fetchLeetCodeConnection: vi.fn(),
+  fetchLeetCodeIgnoredImports: vi.fn(),
   fetchRecentLeetCodeSubmissions: vi.fn(),
   syncLeetCodeActivity: vi.fn(),
 }));
@@ -32,9 +34,10 @@ describe("useLeetCodeActivity", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(fetchLeetCodeConnection).mockResolvedValue({ data: null, error: null });
+    vi.mocked(fetchLeetCodeIgnoredImports).mockResolvedValue({ data: [], error: null });
     vi.mocked(fetchRecentLeetCodeSubmissions).mockResolvedValue({ data: [], error: null });
     vi.mocked(syncLeetCodeActivity).mockResolvedValue({
-      data: { connection: oldConnection, submissions: [], summary: { insertedCount: 3 } },
+      data: { connection: oldConnection, submissions: [], ignoredImports: [], summary: { insertedCount: 3 } },
       error: null,
     });
   });
@@ -55,6 +58,7 @@ describe("useLeetCodeActivity", () => {
       expect(result.current.connection?.leetcodeUsername).toBe("derek113");
     });
     expect(fetchRecentLeetCodeSubmissions).toHaveBeenCalledWith("user-1", 20);
+    expect(fetchLeetCodeIgnoredImports).toHaveBeenCalledWith("user-1");
   });
 
   it("runs stale app-open sync once under StrictMode double effects", async () => {
@@ -118,7 +122,7 @@ describe("useLeetCodeActivity", () => {
 
     await act(async () => {
       resolveBackgroundSync({
-        data: { connection: staleConnection, submissions: [], summary: { insertedCount: 1 } },
+        data: { connection: staleConnection, submissions: [], ignoredImports: [], summary: { insertedCount: 1 } },
         error: null,
       });
     });
@@ -139,7 +143,7 @@ describe("useLeetCodeActivity", () => {
 
   it("connect validates through the connect action and refreshes state", async () => {
     vi.mocked(connectLeetCodeActivity).mockResolvedValue({
-      data: { connection: oldConnection, submissions: [], summary: { insertedCount: 0 } },
+      data: { connection: oldConnection, submissions: [], ignoredImports: [], summary: { insertedCount: 0 } },
       error: null,
     });
     const { result } = renderHook(() => useLeetCodeActivity({ user: mockUser }));
@@ -157,7 +161,7 @@ describe("useLeetCodeActivity", () => {
   it("disconnect clears local LeetCode activity state", async () => {
     vi.mocked(fetchLeetCodeConnection).mockResolvedValue({ data: oldConnection, error: null });
     vi.mocked(disconnectLeetCodeActivity).mockResolvedValue({
-      data: { connection: null, submissions: [], summary: { insertedCount: 0 } },
+      data: { connection: null, submissions: [], ignoredImports: [], summary: { insertedCount: 0 } },
       error: null,
     });
     const { result } = renderHook(() => useLeetCodeActivity({ user: mockUser }));

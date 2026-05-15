@@ -5,6 +5,7 @@ import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";
 import useProblems from "./hooks/useProblems";
 import useLeetCodeActivity from "./hooks/useLeetCodeActivity";
+import useLeetCodePendingImports from "./hooks/useLeetCodePendingImports";
 
 import Toast from "./components/Toast";
 import ConfirmDialog from "./components/ConfirmDialog";
@@ -28,6 +29,7 @@ export default function App() {
     reviewCount,
     handleSaveProblem,
     handleDeleteConfirm,
+    handleCreateProblemFromLeetCodeImport,
     handleReview,
     handleUpdateNotes,
     handleDismiss,
@@ -39,6 +41,16 @@ export default function App() {
     handleClearAllData,
   } = useProblems({ user, showToast: ui.showToast });
   const leetcodeActivity = useLeetCodeActivity({ user, showToast: ui.showToast });
+  const leetcodePendingImports = useLeetCodePendingImports({
+    user,
+    problems,
+    submissions: leetcodeActivity.submissions,
+    ignoredImports: leetcodeActivity.ignoredImports,
+    loading: leetcodeActivity.loading,
+    onCreateProblem: handleCreateProblemFromLeetCodeImport,
+    showToast: ui.showToast,
+    refreshLeetCodeActivity: leetcodeActivity.refresh,
+  });
 
   const existingProblemNumbers = useMemo(
     () => new Set(problems.map((p) => p.leetcodeNumber).filter((n): n is number => Boolean(n))),
@@ -57,6 +69,7 @@ export default function App() {
         message={ui.toast.message}
         isVisible={ui.toast.visible}
         onDone={ui.hideToast}
+        action={ui.toast.action}
       />
       <ConfirmDialog
         isOpen={!!ui.deleteTarget}
@@ -122,6 +135,9 @@ export default function App() {
           onAddClick={ui.openAddModal}
           onBulkAdd={handleBulkAdd}
           existingProblemNumbers={existingProblemNumbers}
+          pendingLeetCodeImports={leetcodePendingImports.pendingImports}
+          onConfirmLeetCodeImport={leetcodePendingImports.confirmImport}
+          onIgnoreLeetCodeImport={leetcodePendingImports.ignoreImport}
         />
       )}
       {ui.activeTab === "progress" && (

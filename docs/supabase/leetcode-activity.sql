@@ -34,6 +34,15 @@ create table if not exists public.leetcode_submissions (
   unique (user_id, leetcode_submission_id)
 );
 
+create table if not exists public.leetcode_ignored_imports (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title_slug text not null,
+  leetcode_number integer,
+  ignored_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  primary key (user_id, title_slug)
+);
+
 create index if not exists leetcode_submissions_user_submitted_at_idx
   on public.leetcode_submissions (user_id, submitted_at desc);
 
@@ -45,6 +54,7 @@ create index if not exists leetcode_submissions_user_status_idx
 
 alter table public.leetcode_connections enable row level security;
 alter table public.leetcode_submissions enable row level security;
+alter table public.leetcode_ignored_imports enable row level security;
 
 drop policy if exists "Users can read own LeetCode connection" on public.leetcode_connections;
 create policy "Users can read own LeetCode connection"
@@ -67,5 +77,15 @@ using (auth.uid() = user_id);
 drop policy if exists "Users can insert own LeetCode submissions" on public.leetcode_submissions;
 drop policy if exists "Users can update own LeetCode submissions" on public.leetcode_submissions;
 drop policy if exists "Users can delete own LeetCode submissions" on public.leetcode_submissions;
+
+drop policy if exists "Users can read own ignored LeetCode imports" on public.leetcode_ignored_imports;
+create policy "Users can read own ignored LeetCode imports"
+on public.leetcode_ignored_imports
+for select
+using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own ignored LeetCode imports" on public.leetcode_ignored_imports;
+drop policy if exists "Users can update own ignored LeetCode imports" on public.leetcode_ignored_imports;
+drop policy if exists "Users can delete own ignored LeetCode imports" on public.leetcode_ignored_imports;
 
 commit;
