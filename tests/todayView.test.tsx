@@ -2,7 +2,15 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import TodayView from "../src/components/TodayView";
-import type { Confidence, LeetCodeProblem, LeetCodeSubmission, PendingLeetCodeImport, Problem, ReviewEvent } from "../src/types";
+import type {
+  Confidence,
+  LeetCodeProblem,
+  LeetCodeSubmission,
+  PendingLeetCodeImport,
+  Problem,
+  ReviewEvent,
+  TodayLeetCodeItem,
+} from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
@@ -49,6 +57,22 @@ function makePendingImport(overrides: Partial<PendingLeetCodeImport> = {}): Pend
   };
 }
 
+function makeTodayLeetCodeItem(overrides: Partial<TodayLeetCodeItem> = {}): TodayLeetCodeItem {
+  return {
+    kind: "linked_existing",
+    submissionDbId: "sub-db-1",
+    titleSlug: "two-sum",
+    title: "Two Sum",
+    leetcodeNumber: 1,
+    difficulty: "Easy",
+    submittedAt: "2026-05-14T21:30:00.000Z",
+    suggestedPatterns: ["Hash Table"],
+    matchedProblemId: "p1",
+    statusLabel: "Review due",
+    ...overrides,
+  } as TodayLeetCodeItem;
+}
+
 function makeSubmission(overrides: Partial<LeetCodeSubmission> = {}): LeetCodeSubmission {
   return {
     id: "sub-db-1",
@@ -76,6 +100,7 @@ function renderTodayView(overrides: {
   onUpdateNotes?: (id: string, notes: string) => void;
   onBulkAdd?: (problems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
   pendingLeetCodeImports?: PendingLeetCodeImport[];
+  todayLeetCodeItems?: TodayLeetCodeItem[];
   onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   leetcodeSubmissions?: LeetCodeSubmission[];
@@ -95,6 +120,7 @@ function renderTodayView(overrides: {
       onBulkAdd={overrides.onBulkAdd ?? vi.fn()}
       existingProblemNumbers={new Set([1])}
       pendingLeetCodeImports={overrides.pendingLeetCodeImports ?? []}
+      todayLeetCodeItems={overrides.todayLeetCodeItems}
       onConfirmLeetCodeImport={overrides.onConfirmLeetCodeImport ?? vi.fn()}
       onIgnoreLeetCodeImport={overrides.onIgnoreLeetCodeImport ?? vi.fn()}
       leetcodeSubmissions={overrides.leetcodeSubmissions ?? []}
@@ -191,7 +217,7 @@ describe("TodayView", () => {
     });
 
     expect(screen.getByText("From LeetCode")).toBeTruthy();
-    expect(screen.getByText("Solved on LC, not yet in your library")).toBeTruthy();
+    expect(screen.getByText("Solved on LC today")).toBeTruthy();
     expect(screen.getByText("Number of Islands")).toBeTruthy();
     expect(screen.getByText("BFS")).toBeTruthy();
 
@@ -200,6 +226,43 @@ describe("TodayView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Ignore Number of Islands" }));
     expect(onIgnore).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }));
+  });
+
+  it("renders From LeetCode for already-linked solves without import actions", () => {
+    renderTodayView({
+      todayLeetCodeItems: [makeTodayLeetCodeItem()],
+      leetcodeSubmissions: [makeSubmission()],
+    });
+
+    const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
+    const title = within(leetcodeSection).getByRole("heading", { name: "Two Sum" });
+    const problemNumber = within(leetcodeSection).getByText("#1");
+    expect(title).toBeTruthy();
+    expect(title.className).toContain("text-[15px]");
+    expect(problemNumber.className).toContain("text-[13px]");
+    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("rounded-full");
+    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("border");
+    expect(within(leetcodeSection).getByText("Easy").className).toContain("border");
+    expect(within(leetcodeSection).queryByText("LEETCODE")).toBeNull();
+    expect(within(leetcodeSection).queryByText("Review due")).toBeNull();
+    expect(within(leetcodeSection).queryByRole("button", { name: "Import Two Sum with 4-star confidence" })).toBeNull();
+    expect(within(leetcodeSection).queryByRole("button", { name: "Ignore Two Sum" })).toBeNull();
+
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).getByText("solved on LC · review due")).toBeTruthy();
+  });
+
+  it("hides Quick Start when today's LeetCode section has linked activity", () => {
+    renderTodayView({
+      problems: [],
+      todayLeetCodeItems: [makeTodayLeetCodeItem({
+        statusLabel: "In library",
+        matchedProblemId: null,
+      })],
+    });
+
+    expect(screen.getByText("From LeetCode")).toBeTruthy();
+    expect(screen.queryByText("Welcome to PatternBank")).toBeNull();
   });
 
   it("shows pending LeetCode imports instead of Quick Start when the library is empty", () => {
@@ -217,6 +280,10 @@ describe("TodayView", () => {
       leetcodeSubmissions: [makeSubmission()],
     });
 
+    const reviewsSection = screen.getByText("Reviews due").closest("section")!;
+    expect(within(reviewsSection).getByText("Hash Table").className).toContain("rounded-full");
+    expect(within(reviewsSection).getByText("Hash Table").className).toContain("border");
+    expect(within(reviewsSection).getByText("Easy").className).toContain("border");
     expect(screen.getByText("Solved on LC today")).toBeTruthy();
   });
 

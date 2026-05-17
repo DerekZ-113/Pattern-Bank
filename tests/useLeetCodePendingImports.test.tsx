@@ -158,6 +158,21 @@ describe("useLeetCodePendingImports", () => {
     expect(showToast).toHaveBeenCalledWith("Already in your library — linked LeetCode activity.");
   });
 
+  it("exposes today's linked LeetCode solves without adding them to pending imports", () => {
+    const { result } = renderPendingHook({
+      problems: [makeProblem()],
+      submissions: [makeSubmission({ status: "linked_existing", problemId: "p-existing" })],
+    });
+
+    expect(result.current.pendingImports).toEqual([]);
+    expect(result.current.todayLeetCodeItems).toHaveLength(1);
+    expect(result.current.todayLeetCodeItems[0]).toMatchObject({
+      kind: "linked_existing",
+      title: "Two Sum",
+      matchedProblemId: "p-existing",
+    });
+  });
+
   it("ignores an import and offers an undo action that restores it", async () => {
     const { result, showToast, refresh } = renderPendingHook();
 

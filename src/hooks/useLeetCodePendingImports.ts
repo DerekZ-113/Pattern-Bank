@@ -6,6 +6,7 @@ import type {
   LeetCodeSubmission,
   PendingLeetCodeImport,
   Problem,
+  TodayLeetCodeItem,
   ToastState,
 } from "../types";
 import {
@@ -17,6 +18,7 @@ import {
 import {
   buildPendingLeetCodeImports,
   buildProblemFromLeetCodeImport,
+  buildTodayLeetCodeItems,
 } from "../utils/leetcodeImportTransforms";
 import { todayStr } from "../utils/dateHelpers";
 
@@ -33,6 +35,7 @@ interface UseLeetCodePendingImportsParams {
 
 export interface UseLeetCodePendingImportsState {
   pendingImports: PendingLeetCodeImport[];
+  todayLeetCodeItems: TodayLeetCodeItem[];
   confirmImport: (item: PendingLeetCodeImport, confidence: Confidence) => Promise<void>;
   ignoreImport: (item: PendingLeetCodeImport) => Promise<void>;
 }
@@ -49,6 +52,15 @@ export default function useLeetCodePendingImports({
 }: UseLeetCodePendingImportsParams): UseLeetCodePendingImportsState {
   const processedAutoImportsRef = useRef(new Set<string>());
 
+  const todayLeetCodeItems = useMemo(
+    () => buildTodayLeetCodeItems({
+      submissions,
+      problems,
+      ignoredImports,
+      today: todayStr(),
+    }),
+    [ignoredImports, problems, submissions],
+  );
   const pendingImports = useMemo(
     () => buildPendingLeetCodeImports({
       submissions,
@@ -146,6 +158,7 @@ export default function useLeetCodePendingImports({
 
   return {
     pendingImports,
+    todayLeetCodeItems,
     confirmImport,
     ignoreImport,
   };

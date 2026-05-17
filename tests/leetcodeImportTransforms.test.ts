@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  buildTodayLeetCodeItems,
   buildPendingLeetCodeImports,
   buildProblemFromLeetCodeImport,
 } from "../src/utils/leetcodeImportTransforms";
@@ -126,6 +127,93 @@ describe("buildPendingLeetCodeImports", () => {
     expect(imports[0].submissionDbId).toBe("newer-display");
     expect(imports[0].firstSeenAt).toBe("2026-05-14T08:10:00.000Z");
     expect(imports[0].expired).toBe(true);
+  });
+});
+
+describe("buildTodayLeetCodeItems", () => {
+  it("includes today's detected unsaved submissions as pending imports", () => {
+    const items = buildTodayLeetCodeItems({
+      submissions: [makeSubmission()],
+      problems: [],
+      ignoredImports: [],
+      today: "2026-05-15",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: "pending_import",
+      submissionDbId: "sub-1",
+      title: "Two Sum",
+      suggestedPatterns: ["Hash Table"],
+      expired: false,
+    });
+  });
+
+  it("includes today's linked, imported, and rated LeetCode submissions", () => {
+    const items = buildTodayLeetCodeItems({
+      submissions: [
+        makeSubmission({ id: "linked", status: "linked_existing", problemId: "p1" }),
+        makeSubmission({
+          id: "imported",
+          status: "imported",
+          problemId: "p1",
+          leetcodeSubmissionId: "lc-sub-2",
+          titleSlug: "number-of-islands",
+          title: "Number of Islands",
+          leetcodeNumber: 200,
+        }),
+        makeSubmission({
+          id: "rated",
+          status: "rated",
+          problemId: "p1",
+          leetcodeSubmissionId: "lc-sub-3",
+          titleSlug: "lru-cache",
+          title: "LRU Cache",
+          leetcodeNumber: 146,
+        }),
+      ],
+      problems: [makeProblem({ id: "p1", nextReviewDate: "2026-05-15" })],
+      ignoredImports: [],
+      today: "2026-05-15",
+    });
+
+    expect(items.map((item) => item.kind)).toEqual(["linked_existing", "imported", "rated"]);
+    expect(items[0]).toMatchObject({
+      matchedProblemId: "p1",
+      statusLabel: "Review due",
+      suggestedPatterns: ["Hash Table"],
+    });
+  });
+
+  it("excludes older and ignored LeetCode submissions from today's section", () => {
+    const items = buildTodayLeetCodeItems({
+      submissions: [
+        makeSubmission({ id: "old", submittedAt: "2026-05-14T18:00:00.000Z" }),
+        makeSubmission({ id: "ignored-status", status: "ignored" }),
+        makeSubmission({ id: "ignored-slug", titleSlug: "two-sum" }),
+      ],
+      problems: [],
+      ignoredImports: [makeIgnored({ titleSlug: "two-sum" })],
+      today: "2026-05-15",
+    });
+
+    expect(items).toEqual([]);
+  });
+
+  it("does not turn detected submissions for existing local problems into importable items", () => {
+    const items = buildTodayLeetCodeItems({
+      submissions: [makeSubmission()],
+      problems: [makeProblem()],
+      ignoredImports: [],
+      today: "2026-05-15",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: "linked_existing",
+      matchedProblemId: "p1",
+      statusLabel: "Review due",
+    });
   });
 });
 
