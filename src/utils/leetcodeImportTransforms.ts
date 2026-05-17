@@ -8,6 +8,7 @@ import type {
   LeetCodeSubmission,
   PendingLeetCodeImport,
   Problem,
+  TodayLeetCodeItem,
 } from "../types";
 
 interface BuildPendingLeetCodeImportsArgs {
@@ -33,9 +34,31 @@ function isPendingSubmission(submission: LeetCodeSubmission): boolean {
   return submission.status === "detected" && !submission.problemId;
 }
 
-function hasExistingProblem(submission: LeetCodeSubmission, problems: Problem[]): boolean {
-  if (submission.leetcodeNumber === null) return false;
-  return problems.some((problem) => problem.leetcodeNumber === submission.leetcodeNumber);
+function findExistingProblem(submission: LeetCodeSubmission, problems: Problem[]): Problem | null {
+  if (submission.problemId) {
+    const byId = problems.find((problem) => problem.id === submission.problemId);
+    if (byId) return byId;
+  }
+  if (submission.leetcodeNumber === null) return null;
+  return problems.find((problem) => problem.leetcodeNumber === submission.leetcodeNumber) ?? null;
+}
+
+function isKnownLeetCodeStatus(status: LeetCodeSubmission["status"]): status is "linked_existing" | "imported" | "rated" {
+  return status === "linked_existing" || status === "imported" || status === "rated";
+}
+
+function getLinkedStatusLabel(kind: "linked_existing" | "imported" | "rated", problem: Problem | null, today: string) {
+  if (kind === "imported") return "Imported";
+  if (kind === "rated") return "Rated";
+  if (
+    problem
+    && !problem.excludeFromReview
+    && problem.lastReviewed !== today
+    && problem.nextReviewDate <= today
+  ) {
+    return "Review due";
+  }
+  return "In library";
 }
 
 function isExpired(firstSeenAt: string | undefined, today: string): boolean {
@@ -55,7 +78,7 @@ export function buildPendingLeetCodeImports({
   for (const submission of submissions) {
     if (!isPendingSubmission(submission)) continue;
     if (ignoredSlugs.has(submission.titleSlug)) continue;
-    if (hasExistingProblem(submission, problems)) continue;
+    if (findExistingProblem(submission, problems)) continue;
 
     const existing = bySlug.get(submission.titleSlug);
     const firstSeenAt = minTimestamp(existing?.firstSeenAt, submission.createdAt);
@@ -74,6 +97,83 @@ export function buildPendingLeetCodeImports({
     if (!existing || submission.submittedAt > existing.submittedAt) {
       bySlug.set(submission.titleSlug, candidate);
     } else {
+      bySlug.set(submission.titleSlug, {
+        ...existing,
+        firstSeenAt,
+        expired: isExpired(firstSeenAt, today),
+      });
+    }
+  }
+
+  return Array.from(bySlug.values()).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+}
+
+export function buildTodayLeetCodeItems({
+  submissions,
+  problems,
+  ignoredImports,
+  today = todayStr(),
+}: BuildPendingLeetCodeImportsArgs): TodayLeetCodeItem[] {
+  const ignoredSlugs = new Set(ignoredImports.map((item) => item.titleSlug));
+  const bySlug = new Map<string, TodayLeetCodeItem>();
+
+  for (const submission of submissions) {
+    if (utcToLocalDateStr(submission.submittedAt) !== today) continue;
+    if (submission.status === "ignored") continue;
+    if (ignoredSlugs.has(submission.titleSlug)) continue;
+
+    const existing = bySlug.get(submission.titleSlug);
+    const matchedProblem = findExistingProblem(submission, problems);
+    const suggestedPatterns = matchedProblem?.patterns.length
+      ? matchedProblem.patterns
+      : getPatternsForProblemNumber(submission.leetcodeNumber);
+    const knownKind = isKnownLeetCodeStatus(submission.status)
+      ? submission.status
+      : matchedProblem
+        ? "linked_existing"
+        : null;
+
+    let candidate: TodayLeetCodeItem | null = null;
+    if (knownKind) {
+      candidate = {
+        kind: knownKind,
+        submissionDbId: submission.id,
+        titleSlug: submission.titleSlug,
+        title: submission.title,
+        leetcodeNumber: submission.leetcodeNumber,
+        difficulty: submission.difficulty,
+        submittedAt: submission.submittedAt,
+        suggestedPatterns,
+        matchedProblemId: matchedProblem?.id ?? submission.problemId ?? null,
+        status: knownKind,
+        statusLabel: getLinkedStatusLabel(knownKind, matchedProblem, today),
+      };
+    } else if (isPendingSubmission(submission)) {
+      const pendingExisting = existing?.kind === "pending_import" ? existing : undefined;
+      const firstSeenAt = minTimestamp(pendingExisting?.firstSeenAt, submission.createdAt);
+      candidate = {
+        kind: "pending_import",
+        status: "detected",
+        matchedProblemId: null,
+        statusLabel: "Rate to add",
+        submissionDbId: submission.id,
+        titleSlug: submission.titleSlug,
+        title: submission.title,
+        leetcodeNumber: submission.leetcodeNumber,
+        difficulty: submission.difficulty,
+        submittedAt: submission.submittedAt,
+        firstSeenAt,
+        suggestedPatterns,
+        expired: isExpired(firstSeenAt, today),
+      };
+    }
+
+    if (!candidate) continue;
+
+    if (!existing || submission.submittedAt > existing.submittedAt) {
+      bySlug.set(submission.titleSlug, candidate);
+    } else if (existing.kind === "pending_import" && candidate.kind === "pending_import") {
+      const firstSeenAt = minTimestamp(existing.firstSeenAt, candidate.firstSeenAt);
       bySlug.set(submission.titleSlug, {
         ...existing,
         firstSeenAt,

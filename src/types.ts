@@ -92,6 +92,27 @@ export interface PendingLeetCodeImport {
   expired: boolean;
 }
 
+export type TodayLeetCodeItem =
+  | (PendingLeetCodeImport & {
+    kind: "pending_import";
+    status: "detected";
+    matchedProblemId: null;
+    statusLabel: "Rate to add";
+  })
+  | {
+    kind: "linked_existing" | "imported" | "rated";
+    submissionDbId: string;
+    titleSlug: string;
+    title: string;
+    leetcodeNumber: number | null;
+    difficulty: Difficulty | null;
+    submittedAt: string;
+    suggestedPatterns: string[];
+    matchedProblemId: string | null;
+    status: "linked_existing" | "imported" | "rated";
+    statusLabel: "In library" | "Review due" | "Imported" | "Rated";
+  };
+
 export interface LeetCodeSyncSummary {
   fetchedCount?: number;
   insertedCount?: number;

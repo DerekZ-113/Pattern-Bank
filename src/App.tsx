@@ -154,6 +154,7 @@ export default function App() {
           onBulkAdd={handleBulkAdd}
           existingProblemNumbers={existingProblemNumbers}
           pendingLeetCodeImports={leetcodePendingImports.pendingImports}
+          todayLeetCodeItems={leetcodePendingImports.todayLeetCodeItems}
           onConfirmLeetCodeImport={leetcodePendingImports.confirmImport}
           onIgnoreLeetCodeImport={leetcodePendingImports.ignoreImport}
           leetcodeSubmissions={leetcodeActivity.submissions}

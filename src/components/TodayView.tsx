@@ -1,5 +1,5 @@
 import TodayDoneFeed from "./TodayDoneFeed";
-import TodayPendingImportCard from "./TodayPendingImportCard";
+import TodayLeetCodeCard from "./TodayLeetCodeCard";
 import TodayQuickStart from "./TodayQuickStart";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
@@ -9,7 +9,15 @@ import {
   buildTodayActivityFeedItems,
   buildTodayReviewState,
 } from "../utils/todayView";
-import type { Confidence, LeetCodeProblem, LeetCodeSubmission, PendingLeetCodeImport, Problem, ReviewEvent } from "../types";
+import type {
+  Confidence,
+  LeetCodeProblem,
+  LeetCodeSubmission,
+  PendingLeetCodeImport,
+  Problem,
+  ReviewEvent,
+  TodayLeetCodeItem,
+} from "../types";
 
 interface Props {
   problems: Problem[];
@@ -24,6 +32,7 @@ interface Props {
   onBulkAdd: (problems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
   existingProblemNumbers: Set<number>;
   pendingLeetCodeImports?: PendingLeetCodeImport[];
+  todayLeetCodeItems?: TodayLeetCodeItem[];
   onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   leetcodeSubmissions?: LeetCodeSubmission[];
@@ -44,6 +53,7 @@ export default function TodayView({
   onBulkAdd,
   existingProblemNumbers,
   pendingLeetCodeImports = [],
+  todayLeetCodeItems,
   onConfirmLeetCodeImport,
   onIgnoreLeetCodeImport,
   leetcodeSubmissions = [],
@@ -63,6 +73,13 @@ export default function TodayView({
     today,
   });
   const solvedOnLeetCodeToday = buildSolvedOnLeetCodeTodayIndex(leetcodeSubmissions, today);
+  const leetcodeSectionItems = todayLeetCodeItems ?? pendingLeetCodeImports.map((item) => ({
+    ...item,
+    kind: "pending_import" as const,
+    status: "detected" as const,
+    matchedProblemId: null,
+    statusLabel: "Rate to add" as const,
+  }));
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-6 md:px-8">
@@ -73,7 +90,7 @@ export default function TodayView({
         <p className="mt-1 text-sm text-pb-text-muted">{formatDisplayDate(today)}</p>
       </header>
 
-      {problems.length === 0 && pendingLeetCodeImports.length === 0 ? (
+      {problems.length === 0 && leetcodeSectionItems.length === 0 ? (
         <TodayQuickStart
           onAddClick={onAddClick}
           onBulkAdd={onBulkAdd}
@@ -81,18 +98,18 @@ export default function TodayView({
         />
       ) : (
         <>
-          {pendingLeetCodeImports.length > 0 && (
+          {leetcodeSectionItems.length > 0 && (
             <section aria-labelledby="today-leetcode-title">
               <TodaySectionHeader
                 id="today-leetcode-title"
                 title="From LeetCode"
-                count={pendingLeetCodeImports.length}
-                subcopy="Solved on LC, not yet in your library"
+                count={leetcodeSectionItems.length}
+                subcopy="Solved on LC today"
                 accent
               />
               <div className="flex flex-col gap-2.5">
-                {pendingLeetCodeImports.map((item) => (
-                  <TodayPendingImportCard
+                {leetcodeSectionItems.map((item) => (
+                  <TodayLeetCodeCard
                     key={item.submissionDbId}
                     item={item}
                     onConfirm={(pendingItem, confidence) => onConfirmLeetCodeImport?.(pendingItem, confidence)}
