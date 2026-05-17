@@ -145,6 +145,16 @@ describe("TodayView", () => {
     expect(screen.getByText("Binary Search")).toBeTruthy();
   });
 
+  it("renders review card number before the problem title", () => {
+    renderTodayView({ problems: [makeProblem({ title: "Two Sum", leetcodeNumber: 1 })] });
+
+    const reviewsSection = screen.getByRole("region", { name: "Reviews due" });
+    const titleRow = within(reviewsSection).getByText("#1").parentElement;
+    const rowText = titleRow?.textContent ?? "";
+
+    expect(rowText.indexOf("#1")).toBeLessThan(rowText.indexOf("Two Sum"));
+  });
+
   it("calls onReview from the review flow", () => {
     const onReview = vi.fn();
     renderTodayView({ onReview });

@@ -51,15 +51,15 @@ export default function TodayReviewCard({
 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="mb-2 flex flex-wrap items-baseline gap-2">
-            <h3 className="text-[15px] font-semibold leading-tight text-pb-text">
-              {problem.title}
-            </h3>
+          <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-2">
             {problem.leetcodeNumber && (
-              <span className="font-mono text-[13px] text-pb-text-dim">
+              <span className="font-mono text-[13px] font-semibold leading-tight text-pb-text-dim">
                 #{problem.leetcodeNumber}
               </span>
             )}
+            <h3 className="text-[15px] font-semibold leading-tight text-pb-text">
+              {problem.title}
+            </h3>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
