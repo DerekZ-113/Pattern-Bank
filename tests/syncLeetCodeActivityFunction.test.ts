@@ -9,6 +9,7 @@ import {
   parseMatchedUser,
   parseQuestionData,
   parseRecentAcSubmissions,
+  unwrapSupabaseResult,
 } from "../supabase/functions/sync-leetcode-activity/leetcode";
 
 describe("sync-leetcode-activity helpers", () => {
@@ -29,6 +30,18 @@ describe("sync-leetcode-activity helpers", () => {
     expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Origin")).toBe(corsHeaders["Access-Control-Allow-Origin"]);
     expect(response.headers.get("Access-Control-Allow-Methods")).toContain("POST");
+  });
+
+  it("unwraps successful Supabase results", () => {
+    const data = [{ id: "row-1" }];
+
+    expect(unwrapSupabaseResult({ data, error: null })).toBe(data);
+  });
+
+  it("throws failed Supabase results", () => {
+    const error = new Error("missing table");
+
+    expect(() => unwrapSupabaseResult({ data: null, error })).toThrow(error);
   });
 
   it("parses matchedUser profile data", () => {

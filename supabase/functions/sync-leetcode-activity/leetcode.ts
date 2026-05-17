@@ -43,6 +43,11 @@ export function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   });
 }
 
+export function unwrapSupabaseResult<T>(result: { data: T; error: unknown }): T {
+  if (result.error) throw result.error;
+  return result.data;
+}
+
 export function buildGraphQLRequestBody(query: string, variables: Record<string, unknown>): string {
   return JSON.stringify({ query, variables });
 }

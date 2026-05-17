@@ -13,6 +13,7 @@ import {
   parseQuestionData,
   parseRecentAcSubmissions,
   resolveSyncedSubmissionState,
+  unwrapSupabaseResult,
   type LeetCodeProfile,
   type QuestionMetadata,
   type SubmissionStatus,
@@ -175,7 +176,7 @@ async function updateConnection(
 }
 
 async function fetchActivityState(serviceClient: ReturnType<typeof createClient>, userId: string) {
-  const [{ data: connection }, { data: submissions }, { data: ignoredImports }] = await Promise.all([
+  const [connectionResult, submissionsResult, ignoredImportsResult] = await Promise.all([
     serviceClient
       .from("leetcode_connections")
       .select("*")
@@ -193,11 +194,14 @@ async function fetchActivityState(serviceClient: ReturnType<typeof createClient>
       .eq("user_id", userId)
       .order("ignored_at", { ascending: false }),
   ]);
+  const connection = unwrapSupabaseResult(connectionResult) as ConnectionRow | null;
+  const submissions = unwrapSupabaseResult(submissionsResult) as SubmissionRow[] | null;
+  const ignoredImports = unwrapSupabaseResult(ignoredImportsResult) as IgnoredImportRow[] | null;
 
   return {
-    connection: toConnection((connection as ConnectionRow | null) ?? null),
-    submissions: ((submissions ?? []) as SubmissionRow[]).map(toSubmission),
-    ignoredImports: ((ignoredImports ?? []) as IgnoredImportRow[]).map(toIgnoredImport),
+    connection: toConnection(connection ?? null),
+    submissions: (submissions ?? []).map(toSubmission),
+    ignoredImports: (ignoredImports ?? []).map(toIgnoredImport),
     summary: { insertedCount: 0 },
   };
 }
@@ -394,26 +398,26 @@ async function runSync(
   }
 
   const ids = submissions.map((item) => item.leetcodeSubmissionId);
-  const { data: existingRows } = await serviceClient
+  const existingRows = unwrapSupabaseResult(await serviceClient
     .from("leetcode_submissions")
     .select("leetcode_submission_id, status, problem_id, title_slug")
     .eq("user_id", userId)
-    .in("leetcode_submission_id", ids);
-  const existingById = new Map(
-    ((existingRows ?? []) as Array<{
+    .in("leetcode_submission_id", ids)) as Array<{
       leetcode_submission_id: string;
       status: SubmissionStatus;
       problem_id?: string | null;
       title_slug: string;
-    }>).map((row) => [row.leetcode_submission_id, row]),
+    }> | null;
+  const existingById = new Map(
+    (existingRows ?? []).map((row) => [row.leetcode_submission_id, row]),
   );
   const existingIds = new Set(existingById.keys());
 
-  const { data: ignoredRows } = await serviceClient
+  const ignoredRows = unwrapSupabaseResult(await serviceClient
     .from("leetcode_ignored_imports")
     .select("*")
-    .eq("user_id", userId);
-  const ignoredSlugs = new Set(((ignoredRows ?? []) as Array<{ title_slug: string }>).map((row) => row.title_slug));
+    .eq("user_id", userId)) as IgnoredImportRow[] | null;
+  const ignoredSlugs = new Set((ignoredRows ?? []).map((row) => row.title_slug));
 
   const metadataEntries = await Promise.all(
     Array.from(new Set(submissions.map((item) => item.titleSlug))).map(async (titleSlug) => [
@@ -428,11 +432,11 @@ async function runSync(
 
   const problemByNumber = new Map<number, string>();
   if (numbers.length > 0) {
-    const { data: problems } = await serviceClient
+    const problems = unwrapSupabaseResult(await serviceClient
       .from("problems")
       .select("id, leetcode_number")
       .eq("user_id", userId)
-      .in("leetcode_number", numbers);
+      .in("leetcode_number", numbers)) as Array<{ id: string; leetcode_number?: number | null }> | null;
     for (const problem of problems ?? []) {
       if (typeof problem.leetcode_number === "number") {
         problemByNumber.set(problem.leetcode_number, problem.id);
@@ -483,7 +487,7 @@ async function runSync(
   return {
     connection: toConnection(nextConnection),
     submissions: (upsertedRows ?? []).map(toSubmission),
-    ignoredImports: ((ignoredRows ?? []) as IgnoredImportRow[]).map(toIgnoredImport),
+    ignoredImports: (ignoredRows ?? []).map(toIgnoredImport),
     summary: {
       fetchedCount: submissions.length,
       insertedCount: ids.filter((id) => !existingIds.has(id)).length,
@@ -522,9 +526,9 @@ Deno.serve(async (req) => {
 
   try {
     if (body.action === "disconnect") {
-      await serviceClient.from("leetcode_ignored_imports").delete().eq("user_id", user.id);
-      await serviceClient.from("leetcode_submissions").delete().eq("user_id", user.id);
-      await serviceClient.from("leetcode_connections").delete().eq("user_id", user.id);
+      unwrapSupabaseResult(await serviceClient.from("leetcode_ignored_imports").delete().eq("user_id", user.id));
+      unwrapSupabaseResult(await serviceClient.from("leetcode_submissions").delete().eq("user_id", user.id));
+      unwrapSupabaseResult(await serviceClient.from("leetcode_connections").delete().eq("user_id", user.id));
       return jsonResponse({ connection: null, submissions: [], ignoredImports: [], summary: { insertedCount: 0 } });
     }
 
