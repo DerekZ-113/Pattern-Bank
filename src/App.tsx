@@ -75,6 +75,25 @@ export default function App() {
     });
   }, [handleReview, leetcodeActivity]);
 
+  const hasLeetCodeActivityState =
+    Boolean(leetcodeActivity.connection) ||
+    leetcodeActivity.submissions.length > 0 ||
+    leetcodeActivity.ignoredImports.length > 0;
+
+  const handleConfirmClearAllData = useCallback(async () => {
+    if (user && hasLeetCodeActivityState) {
+      const result = await leetcodeActivity.disconnect();
+      if (result.error) {
+        ui.showToast(result.error, undefined, "error");
+        return;
+      }
+    }
+
+    await handleClearAllData();
+    if (user) signOut();
+    ui.setClearDataConfirm(false);
+  }, [handleClearAllData, hasLeetCodeActivityState, leetcodeActivity, signOut, ui, user]);
+
   // Re-read from localStorage when review data changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const reviewLog = useMemo(() => loadReviewLog(), [reviewCount]);
@@ -88,6 +107,7 @@ export default function App() {
         isVisible={ui.toast.visible}
         onDone={ui.hideToast}
         action={ui.toast.action}
+        variant={ui.toast.variant}
       />
       <ConfirmDialog
         isOpen={!!ui.deleteTarget}
@@ -102,13 +122,9 @@ export default function App() {
       <ConfirmDialog
         isOpen={ui.clearDataConfirm}
         title="Clear all data?"
-        message="This will permanently delete all problems, review history, and streak data. You will be signed out. If you use PatternBank on another device, clear your data there too."
+        message="This will permanently delete all problems, review history, streak data, and LeetCode Activity connection, submissions, and ignored imports. You will be signed out. If you use PatternBank on another device, clear your data there too."
         confirmLabel="Clear Everything"
-        onConfirm={async () => {
-          await handleClearAllData();
-          if (user) signOut();
-          ui.setClearDataConfirm(false);
-        }}
+        onConfirm={handleConfirmClearAllData}
         onCancel={() => ui.setClearDataConfirm(false)}
       />
       <SettingsModal

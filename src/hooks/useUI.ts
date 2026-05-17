@@ -16,7 +16,7 @@ interface UseUIReturn {
   setHelpOpen: (open: boolean) => void;
   setDeleteTarget: (problem: Problem | null) => void;
   setClearDataConfirm: (confirm: boolean) => void;
-  showToast: (msg: string, action?: ToastState["action"]) => void;
+  showToast: (msg: string, action?: ToastState["action"], variant?: ToastState["variant"]) => void;
   hideToast: () => void;
   handleEdit: (problem: Problem) => void;
   handleDeleteRequest: (problem: Problem) => void;
@@ -41,7 +41,8 @@ export default function useUI(): UseUIReturn {
   const [clearDataConfirm, setClearDataConfirm] = useState(false);
 
   const showToast = useCallback(
-    (msg: string, action?: ToastState["action"]) => setToast({ visible: true, message: msg, action }),
+    (msg: string, action?: ToastState["action"], variant: ToastState["variant"] = "success") =>
+      setToast({ visible: true, message: msg, action, variant }),
     []
   );
 
