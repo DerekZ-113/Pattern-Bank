@@ -152,6 +152,7 @@ export interface Preferences {
 export interface ToastState {
   visible: boolean;
   message: string;
+  variant?: "success" | "error";
   action?: {
     label: string;
     onClick: () => void;
