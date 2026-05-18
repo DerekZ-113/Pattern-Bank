@@ -74,12 +74,12 @@ export default function TodayDoneFeed({ items, onRateLeetCodeReview }: Props) {
             </span>
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <span className="truncate text-sm font-medium text-pb-text">{item.title}</span>
                 {item.leetcodeNumber && (
                   <span className="font-mono text-[13px] text-pb-text-dim">
                     #{item.leetcodeNumber}
                   </span>
                 )}
-                <span className="truncate text-sm font-medium text-pb-text">{item.title}</span>
                 <DifficultyBadge difficulty={item.difficulty} />
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-pb-text-muted">
