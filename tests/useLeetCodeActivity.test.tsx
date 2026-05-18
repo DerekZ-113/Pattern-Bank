@@ -12,6 +12,7 @@ import {
   fetchRecentLeetCodeSubmissions,
   markLeetCodeSubmissionRated,
   syncLeetCodeActivity,
+  LEETCODE_RECENT_ACTIVITY_LIMIT,
 } from "../src/utils/leetcodeActivityData";
 
 vi.mock("../src/utils/leetcodeActivityData", () => ({
@@ -20,6 +21,7 @@ vi.mock("../src/utils/leetcodeActivityData", () => ({
   fetchLeetCodeConnection: vi.fn(),
   fetchLeetCodeIgnoredImports: vi.fn(),
   fetchRecentLeetCodeSubmissions: vi.fn(),
+  LEETCODE_RECENT_ACTIVITY_LIMIT: 100,
   markLeetCodeSubmissionRated: vi.fn(),
   syncLeetCodeActivity: vi.fn(),
 }));
@@ -63,7 +65,7 @@ describe("useLeetCodeActivity", () => {
     await waitFor(() => {
       expect(result.current.connection?.leetcodeUsername).toBe("derek113");
     });
-    expect(fetchRecentLeetCodeSubmissions).toHaveBeenCalledWith("user-1", 20);
+    expect(fetchRecentLeetCodeSubmissions).toHaveBeenCalledWith("user-1", LEETCODE_RECENT_ACTIVITY_LIMIT);
     expect(fetchLeetCodeIgnoredImports).toHaveBeenCalledWith("user-1");
   });
 

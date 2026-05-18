@@ -9,6 +9,8 @@ import type {
   LeetCodeSyncSummary,
 } from "../types";
 
+export const LEETCODE_RECENT_ACTIVITY_LIMIT = 100;
+
 interface SnakeCaseLeetCodeConnection {
   user_id: string;
   leetcode_username: string;
@@ -191,7 +193,7 @@ export async function fetchLeetCodeConnection(
 
 export async function fetchRecentLeetCodeSubmissions(
   userId: string,
-  limit = 20,
+  limit = LEETCODE_RECENT_ACTIVITY_LIMIT,
 ): Promise<{ data: LeetCodeSubmission[] | null; error: unknown }> {
   if (!supabase) return { data: [], error: null };
   try {
