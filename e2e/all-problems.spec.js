@@ -27,8 +27,7 @@ test.describe("All Problems View", () => {
   });
 
   test("filter by difficulty", async ({ page }) => {
-    // Difficulty is the 2nd select (1st is Pattern filter)
-    await page.locator("select").nth(1).selectOption({ label: "Medium" });
+    await page.getByLabel("Difficulty").selectOption({ label: "Medium" });
     // Wait for filter to apply
     await expect(page.getByText("Add Two Numbers")).toBeVisible();
     await expect(page.getByText("Longest Palindromic Substring")).toBeVisible();
@@ -51,7 +50,7 @@ test.describe("All Problems View", () => {
     await expect(page.getByText(/cannot be undone/i)).toBeVisible();
 
     // Confirm deletion
-    await page.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
 
     // Should show 3 problems now
     const stored = await getStoredProblems(page);

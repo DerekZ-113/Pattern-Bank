@@ -7,15 +7,25 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   options: FilterOption[];
+  ariaLabel?: string;
+  active?: boolean;
 }
 
-export default function FilterSelect({ value, onChange, options }: Props) {
+export default function FilterSelect({ value, onChange, options, ariaLabel, active = false }: Props) {
   return (
-    <div className="relative min-w-[130px] flex-1">
+    <div
+      data-active-filter={active ? "true" : "false"}
+      className="relative min-w-0"
+    >
       <select
+        aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full cursor-pointer appearance-none rounded-lg border border-pb-border bg-pb-surface py-2 pr-7 pl-2.5 text-[13px] text-pb-text outline-none transition-colors duration-150 focus:border-pb-accent"
+        className={`h-9 w-full cursor-pointer appearance-none rounded-lg border py-0 pr-8 pl-3 text-[13px] outline-none transition-colors duration-150 hover:border-pb-border-strong hover:bg-pb-surface-2 focus:border-pb-accent ${
+          active
+            ? "border-pb-accent/45 bg-pb-accent-subtle text-pb-accent"
+            : "border-pb-border bg-pb-surface text-pb-text"
+        }`}
       >
         {options.map((opt) => (
           <option
@@ -27,9 +37,20 @@ export default function FilterSelect({ value, onChange, options }: Props) {
           </option>
         ))}
       </select>
-      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-pb-text-dim">
-        ▼
-      </span>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={`pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 ${
+          active ? "text-pb-accent" : "text-pb-text-dim"
+        }`}
+      >
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
     </div>
   );
 }

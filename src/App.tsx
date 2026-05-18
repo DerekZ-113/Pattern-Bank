@@ -196,6 +196,7 @@ export default function App() {
           initialPatternFilter={ui.problemsInitialPatternFilter}
           enabledExtraPatterns={preferences.enabledExtraPatterns}
           onAddClick={ui.openAddModal}
+          onSortChange={ui.handleProblemsSortChange}
         />
       )}
 
