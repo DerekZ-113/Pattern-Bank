@@ -1,8 +1,8 @@
 import { todayStr } from "./dateHelpers";
 import type { Confidence, Problem } from "../types";
 
-// Simplified SM-2 intervals based on confidence rating.
-// 5-star reviews can graduate beyond this base interval through explicit reviews.
+// V2 base intervals based on confidence rating.
+// Explicit 5-star reviews can graduate beyond this base interval.
 export const INTERVALS: Record<Confidence, number> = { 1: 1, 2: 2, 3: 5, 4: 10, 5: 30 };
 export const FIVE_STAR_GRADUATION_INTERVALS = [30, 60, 120, 240, 365] as const;
 

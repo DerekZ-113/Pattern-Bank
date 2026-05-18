@@ -106,6 +106,7 @@ export function sanitizeLeetCodeActivityError(error: unknown): string {
     if (SAFE_ERROR_MESSAGES.has(message)) return message;
     if (/invalid leetcode username/i.test(message)) return "Invalid LeetCode username.";
     if (/rate limit|rate_limited|429/i.test(message)) return "LeetCode rate limited the request. Try again later.";
+    // Keep private_or_empty for older Edge responses from before the status rename.
     if (/no visible|private_or_empty|no_visible_submissions/i.test(message)) {
       return "We could not see recent accepted submissions.";
     }
