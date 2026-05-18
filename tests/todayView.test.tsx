@@ -163,7 +163,7 @@ describe("TodayView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sign in to set up LeetCode" }));
     expect(onOpen).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss V2 LeetCode Activity intro" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close V2 LeetCode Activity intro" }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 

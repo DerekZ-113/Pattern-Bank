@@ -44,7 +44,7 @@ export default function TodayLeetCodeIntroCard({
           <button
             type="button"
             onClick={onDismiss}
-            aria-label="Dismiss V2 LeetCode Activity intro"
+            aria-label="Close V2 LeetCode Activity intro"
             className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-pb-border bg-transparent text-lg leading-none text-pb-text-dim transition-colors hover:border-pb-border-strong hover:text-pb-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
           >
             ×
