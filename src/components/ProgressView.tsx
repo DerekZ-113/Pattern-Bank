@@ -9,7 +9,6 @@ import {
   groupEventsByWeek,
   getConfidenceDistribution,
   getTopPatterns,
-  CONFIDENCE_BAR_COLORS,
 } from "../utils/progressUtils";
 import PatternHeatmap from "./PatternHeatmap";
 import ProjectionCalculator from "./ProjectionCalculator";
@@ -22,6 +21,19 @@ interface Props {
   enabledExtraPatterns: string[];
   onPatternClick: (pattern: string) => void;
 }
+
+const PROGRESS_CARD =
+  "rounded-[10px] border border-[#23232f] bg-[#12121a]";
+const PROGRESS_CARD_PADDED = `${PROGRESS_CARD} p-[18px]`;
+const SECTION_TITLE_CLASS = "text-[15px] font-semibold text-[#ededf2]";
+const SECTION_SUB_CLASS = "ml-auto text-right text-xs text-[#5e5e6e] max-sm:hidden";
+const PROGRESS_CONFIDENCE_COLORS = [
+  "#f76060",
+  "#fb923c",
+  "#f5b942",
+  "#60a5fa",
+  "#4ade80",
+];
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -56,6 +68,7 @@ function StatsRow({
     ...reviewEvents.map((e) => e.date),
   ]).size;
   const streak = calculateStreak();
+  const bestStreak = calculateLongestStreak(reviewLog);
   const avgConf =
     problems.length > 0
       ? problems.reduce((s, p) => s + p.confidence, 0) / problems.length
@@ -63,58 +76,66 @@ function StatsRow({
 
   const avgConfColor =
     avgConf === 0
-      ? "text-pb-text-muted"
+      ? "text-[#8a8a99]"
       : avgConf < 2.5
-        ? "text-pb-hard"
+        ? "text-[#f76060]"
         : avgConf < 3.5
-          ? "text-pb-medium"
-          : "text-pb-success";
+          ? "text-[#f5b942]"
+          : "text-[#4ade80]";
 
   const stats = [
     {
       label: "Total Problems",
       value: problems.length,
-      color: problems.length > 0 ? "text-pb-text" : "text-pb-text-muted",
+      color: problems.length > 0 ? "text-[#ededf2]" : "text-[#8a8a99]",
+      meta: "",
     },
     {
       label: "Total Reviews",
       value: totalReviews,
-      color: "text-pb-text",
+      color: "text-[#ededf2]",
+      meta: "",
     },
     {
       label: "Active Days",
       value: activeDays,
-      color: activeDays > 0 ? "text-pb-accent" : "text-pb-text-muted",
+      color: activeDays > 0 ? "text-[#7c6bf5]" : "text-[#8a8a99]",
+      meta: activeDays > 0 ? "review days" : "",
     },
     {
       label: "Current Streak",
       value: `${streak}d`,
-      color: streak > 0 ? "text-pb-accent" : "text-pb-text-muted",
+      color: streak > 0 ? "text-[#7c6bf5]" : "text-[#8a8a99]",
+      meta: bestStreak > 0 ? `best: ${bestStreak}d` : "",
     },
     {
       label: "Avg Confidence",
       value: avgConf > 0 ? avgConf.toFixed(1) : "—",
       color: avgConfColor,
+      meta: problems.length > 0 ? `${problems.length} problems` : "",
     },
   ];
 
   return (
     <div
       aria-label="Progress overview"
-      className="grid gap-2.5"
-      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(136px, 1fr))" }}
+      className="grid gap-3"
+      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}
     >
       {stats.map((s) => (
         <div
           key={s.label}
-          className="rounded-lg border border-pb-border bg-pb-surface px-3 py-3 text-center"
+          className={`${PROGRESS_CARD} flex min-h-[92px] flex-col justify-center px-5 py-[18px]`}
         >
-          <div className={`text-lg font-bold leading-tight ${s.color}`}>
+          <div className={`text-[28px] font-semibold leading-none tracking-normal tabular-nums ${s.color}`}>
             {s.value}
           </div>
-          <div className="mt-1 text-[11px] font-medium uppercase tracking-wide text-pb-text-muted">
+          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5e5e6e]">
             {s.label}
           </div>
+          {s.meta && (
+            <div className="mt-1 text-[11px] text-[#8a8a99]">{s.meta}</div>
+          )}
         </div>
       ))}
     </div>
@@ -126,10 +147,12 @@ function StatsRow({
 function ProgressSection({
   title,
   subtitle,
+  count,
   children,
 }: {
   title: string;
   subtitle: string;
+  count?: number;
   children: ReactNode;
 }) {
   const headingId = `progress-${title.toLowerCase().replace(/\s+/g, "-")}`;
@@ -137,13 +160,18 @@ function ProgressSection({
   return (
     <section
       aria-labelledby={headingId}
-      className="rounded-xl border border-pb-border bg-pb-surface p-5"
+      className="flex flex-col gap-3"
     >
-      <div className="mb-4">
-        <h2 id={headingId} className="text-[15px] font-semibold text-pb-text">
+      <div className="flex items-center gap-2.5">
+        <h2 id={headingId} className={SECTION_TITLE_CLASS}>
           {title}
         </h2>
-        <p className="mt-1 text-[13px] text-pb-text-muted">{subtitle}</p>
+        {typeof count === "number" && (
+          <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full border border-[#23232f] bg-[#12121a] px-2 text-[11px] font-semibold text-[#8a8a99]">
+            {count}
+          </span>
+        )}
+        <p className={SECTION_SUB_CLASS}>{subtitle}</p>
       </div>
       {children}
     </section>
@@ -277,13 +305,15 @@ function StreakHeatmap({
   ];
 
   return (
-    <div className="rounded-xl border border-pb-border bg-pb-surface p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-[15px] font-semibold text-pb-text">
+    <section aria-labelledby="progress-review-activity" className="flex flex-col gap-3">
+      <div className="flex items-center gap-2.5">
+        <h2 id="progress-review-activity" className={SECTION_TITLE_CLASS}>
           Review Activity
-        </h3>
-        <span className="text-[13px] text-pb-text-dim">Last 12 months</span>
+        </h2>
+        <span className={SECTION_SUB_CLASS}>Last 12 months</span>
       </div>
+
+      <div className={PROGRESS_CARD_PADDED}>
 
       <div ref={containerRef} className="overflow-x-auto">
         <div className="flex">
@@ -363,23 +393,23 @@ function StreakHeatmap({
       </div>
 
       {/* Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-pb-border-light pt-3 text-[11px]">
-        <div className="flex gap-4 text-pb-text-muted">
+      <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-3 text-[11px] max-sm:flex-col max-sm:items-start max-sm:gap-3">
+        <div className="flex gap-4 text-[#8a8a99]">
           <span>
             Current streak:{" "}
-            <span className="font-semibold text-pb-text">
+            <span className="font-semibold text-[#ededf2]">
               {currentStreak}d
             </span>
           </span>
           <span>
             Longest streak:{" "}
-            <span className="font-semibold text-pb-text">
+            <span className="font-semibold text-[#ededf2]">
               {longestStreak}d
             </span>
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-pb-text-dim">Less</span>
+          <span className="text-[#5e5e6e]">Less</span>
           {legendColors.map((c, i) => (
             <div
               key={i}
@@ -395,10 +425,11 @@ function StreakHeatmap({
               }}
             />
           ))}
-          <span className="text-pb-text-dim">More</span>
+          <span className="text-[#5e5e6e]">More</span>
         </div>
       </div>
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -452,14 +483,19 @@ function ConfidenceTrend({
   const showInfoBanner =
     reviewEvents.length === 0 ||
     new Set(reviewEvents.map((e) => getWeekStart(e.date))).size < 2;
+  const firstAvg = dataPoints.length > 0 ? dataPoints[0].avg : null;
+  const currentAvg =
+    dataPoints.length > 0 ? dataPoints[dataPoints.length - 1].avg : null;
+  const trendDelta =
+    firstAvg !== null && currentAvg !== null ? currentAvg - firstAvg : null;
 
   // SVG dimensions
-  const svgW = 560;
-  const svgH = 150;
-  const padL = 28;
-  const padR = 10;
-  const padT = 10;
-  const padB = 24;
+  const svgW = 1100;
+  const svgH = 240;
+  const padL = 36;
+  const padR = 24;
+  const padT = 18;
+  const padB = 32;
   const chartW = svgW - padL - padR;
   const chartH = svgH - padT - padB;
 
@@ -469,15 +505,16 @@ function ConfidenceTrend({
     padT + chartH - ((conf - 1) / 4) * chartH;
 
   return (
-    <div className="rounded-xl border border-pb-border bg-pb-surface p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-[15px] font-semibold text-pb-text">
+    <section aria-labelledby="progress-confidence-trend" className="flex flex-col gap-3">
+      <div className="flex items-center gap-2.5">
+        <h2 id="progress-confidence-trend" className={SECTION_TITLE_CLASS}>
           Confidence Trend
-        </h3>
+        </h2>
+        <span className={SECTION_SUB_CLASS}>Last 12 weeks</span>
         <select
           value={selectedPattern}
           onChange={(e) => setSelectedPattern(e.target.value)}
-          className="cursor-pointer appearance-none rounded-lg border border-pb-border bg-pb-bg px-2.5 py-1.5 text-[12px] text-pb-text outline-none focus:border-pb-accent"
+          className="ml-3 cursor-pointer appearance-none rounded-lg border border-[#23232f] bg-[#0a0a0f] px-2.5 py-1.5 text-xs text-[#ededf2] outline-none focus:border-[#7c6bf5] max-sm:ml-auto"
         >
           <option value="all">All Patterns</option>
           {availablePatterns.map((p) => (
@@ -488,14 +525,16 @@ function ConfidenceTrend({
         </select>
       </div>
 
+      <div className={`${PROGRESS_CARD} px-[18px] pb-2 pt-[18px]`}>
+
       {!hasEnoughData ? (
-        <div className="flex h-[150px] items-center justify-center text-[13px] text-pb-text-dim">
+        <div className="flex h-[240px] items-center justify-center text-[13px] text-[#5e5e6e]">
           Not enough data yet
         </div>
       ) : (
         <svg
           viewBox={`0 0 ${svgW} ${svgH}`}
-          style={{ width: "100%", display: "block" }}
+          style={{ width: "100%", height: 240, display: "block" }}
         >
           <defs>
             <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
@@ -512,7 +551,7 @@ function ConfidenceTrend({
                 y1={toY(v)}
                 x2={svgW - padR}
                 y2={toY(v)}
-                stroke="var(--color-pb-border)"
+                stroke="#22222d"
                 strokeDasharray="4 4"
                 strokeWidth={0.5}
               />
@@ -520,8 +559,8 @@ function ConfidenceTrend({
                 x={padL - 6}
                 y={toY(v) + 3.5}
                 textAnchor="end"
-                fill="var(--color-pb-text-dim)"
-                fontSize={10}
+                fill="#5e5e6e"
+                fontSize={11}
               >
                 {v}
               </text>
@@ -536,8 +575,8 @@ function ConfidenceTrend({
                 x={toX(i)}
                 y={svgH - 4}
                 textAnchor="middle"
-                fill="var(--color-pb-text-dim)"
-                fontSize={9}
+                fill="#5e5e6e"
+                fontSize={11}
               >
                 {w.label}
               </text>
@@ -582,7 +621,7 @@ function ConfidenceTrend({
                 cx={toX(i)}
                 cy={toY(w.avg)}
                 r={3}
-                fill="var(--color-pb-bg)"
+                fill="#12121a"
                 stroke={lineColor}
                 strokeWidth={2}
               />
@@ -591,12 +630,33 @@ function ConfidenceTrend({
         </svg>
       )}
 
+      <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#23232f] px-1 pb-1 pt-3 text-xs text-[#8a8a99]">
+        <span>
+          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#7c6bf5]" />
+          Avg confidence
+        </span>
+        {trendDelta !== null && (
+          <span className={trendDelta >= 0 ? "text-[#4ade80]" : "text-[#f76060]"}>
+            {trendDelta >= 0 ? "↑" : "↓"}{" "}
+            <strong>{Math.abs(trendDelta).toFixed(1)}</strong>{" "}
+            <span className="text-[#8a8a99]">vs first week</span>
+          </span>
+        )}
+        <span className="ml-auto">
+          <span className="text-[#8a8a99]">Current</span>{" "}
+          <strong className="font-semibold text-[#ededf2]">
+            {currentAvg !== null ? currentAvg.toFixed(1) : "—"}
+          </strong>
+        </span>
+      </div>
+
       {showInfoBanner && (
-        <div className="mt-3 rounded-md bg-pb-accent-subtle px-3 py-2 text-[11px] text-pb-text-dim">
+        <div className="mt-3 rounded-md bg-[#1c1838] px-3 py-2 text-[11px] text-[#8a8a99]">
           Trend data is collected from reviews going forward.
         </div>
       )}
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -605,47 +665,61 @@ function ConfidenceTrend({
 function ConfidenceSpread({ problems }: { problems: Problem[] }) {
   const counts = getConfidenceDistribution(problems.map((p) => p.confidence));
   const maxCount = Math.max(...counts, 1);
-  const barHeight = 100;
+  const highConfidence = counts[3] + counts[4];
+  const lowConfidence = counts[0] + counts[1];
+  const masteredPct =
+    problems.length > 0 ? Math.round((highConfidence / problems.length) * 100) : 0;
 
   return (
-    <div className="rounded-xl border border-pb-border bg-pb-surface p-5">
-      <h3 className="mb-4 text-[15px] font-semibold text-pb-text">
-        Confidence Spread
-      </h3>
-      <div className="flex items-end justify-around" style={{ height: barHeight + 40 }}>
+    <section aria-labelledby="progress-confidence-spread" className="flex flex-col gap-3">
+      <div className="flex items-center gap-2.5">
+        <h2 id="progress-confidence-spread" className={SECTION_TITLE_CLASS}>
+          Confidence Spread
+        </h2>
+        <span className={SECTION_SUB_CLASS}>{problems.length} problems</span>
+      </div>
+      <div className={`${PROGRESS_CARD} px-5 py-[18px]`}>
+        <div className="flex flex-col gap-3">
         {counts.map((count, i) => {
-          const height = count > 0 ? (count / maxCount) * barHeight : 2;
-          const color = CONFIDENCE_BAR_COLORS[i];
+          const color = PROGRESS_CONFIDENCE_COLORS[i];
+          const pct = count > 0 ? (count / maxCount) * 100 : 0;
           return (
             <div
               key={i}
-              className="flex flex-col items-center gap-1"
-              style={{ width: 36 }}
+              className="grid grid-cols-[58px_1fr_36px] items-center gap-3"
             >
-              <span
-                className="text-[11px] font-semibold tabular-nums"
-                style={{ color: count > 0 ? color : "var(--color-pb-text-dim)" }}
-              >
-                {count}
+              <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-[#8a8a99]">
+                <span style={{ color }}>{"★".repeat(i + 1)}</span>
+                <span className="text-[#5e5e6e]">{i + 1}</span>
               </span>
-              <div
-                style={{
-                  width: 24,
-                  height,
-                  borderRadius: 4,
-                  backgroundColor: color,
-                  opacity: count > 0 ? 1 : 0.15,
-                  transition: "height 0.3s ease",
-                }}
-              />
-              <span className="text-[10px] text-pb-text-dim">
-                {i + 1} ★
+              <span className="relative h-3.5 overflow-hidden rounded bg-[#15151e]">
+                <span
+                  className="absolute inset-y-0 left-0 rounded"
+                  style={{
+                    width: `${pct}%`,
+                    background: `linear-gradient(90deg, ${color}55, ${color})`,
+                  }}
+                />
+              </span>
+              <span className="text-right text-[13px] font-semibold tabular-nums text-[#ededf2]">
+                {count}
               </span>
             </div>
           );
         })}
+        </div>
+        <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-4 text-xs text-[#8a8a99] max-sm:flex-col max-sm:items-start max-sm:gap-2">
+          <span>
+            <strong className="font-semibold text-[#ededf2]">{highConfidence}</strong>{" "}
+            at 4–5★ <span className="text-[#5e5e6e]">· {masteredPct}% mastered</span>
+          </span>
+          <span>
+            <strong className="font-semibold text-[#ededf2]">{lowConfidence}</strong>{" "}
+            at 1–2★ <span className="text-[#5e5e6e]">· need work</span>
+          </span>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -660,48 +734,56 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
   const maxCount = patternCounts.length > 0 ? patternCounts[0][1] : 1;
 
   return (
-    <div className="rounded-xl border border-pb-border bg-pb-surface p-5">
-      <h3 className="mb-4 text-[15px] font-semibold text-pb-text">
-        Top Patterns
-      </h3>
-      {patternCounts.length === 0 ? (
-        <div className="py-4 text-center text-[13px] text-pb-text-dim">
-          No patterns yet
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {patternCounts.map(([pattern, count]) => {
+    <section aria-labelledby="progress-top-patterns" className="flex flex-col gap-3">
+      <div className="flex items-center gap-2.5">
+        <h2 id="progress-top-patterns" className={SECTION_TITLE_CLASS}>
+          Top Patterns
+        </h2>
+        <span className={SECTION_SUB_CLASS}>By problem count</span>
+      </div>
+      <div className={`${PROGRESS_CARD} px-5 py-[18px]`}>
+        {patternCounts.length === 0 ? (
+          <div className="py-4 text-center text-[13px] text-[#5e5e6e]">
+            No patterns yet
+          </div>
+        ) : (
+          <div className="flex flex-col gap-[11px]">
+          {patternCounts.map(([pattern, count], index) => {
             const color =
               PATTERN_COLORS[pattern]?.text ?? "#8b949e";
             const pct = (count / maxCount) * 100;
             return (
-              <div key={pattern} className="flex items-center gap-2.5">
-                <span
-                  className="w-[90px] shrink-0 truncate text-[13px] font-medium"
-                  style={{ color }}
-                >
+              <div key={pattern} className="grid grid-cols-[18px_1fr_1fr_36px] items-center gap-3 max-sm:grid-cols-[18px_1fr_36px]">
+                <span className="text-[11px] font-semibold tabular-nums text-[#5e5e6e]">
+                  {index + 1}
+                </span>
+                <span className="truncate text-[13px] font-medium text-[#ededf2]">
                   {pattern}
                 </span>
-                <div className="relative h-[18px] flex-1 overflow-hidden rounded bg-pb-border-light">
+                <div className="relative h-2 overflow-hidden rounded-full bg-[#15151e] max-sm:hidden">
                   <div
-                    className="absolute inset-y-0 left-0 rounded"
+                    className="absolute inset-y-0 left-0 rounded-full"
                     style={{
                       width: `${pct}%`,
-                      backgroundColor: color,
-                      opacity: 0.6,
+                      background: `linear-gradient(90deg, ${color}66, #7c6bf5)`,
                       transition: "width 0.3s ease",
                     }}
                   />
                 </div>
-                <span className="w-[28px] shrink-0 text-right text-[12px] font-semibold tabular-nums text-pb-text-muted">
+                <span className="w-[28px] shrink-0 text-right text-[13px] font-semibold tabular-nums text-[#ededf2]">
                   {count}
                 </span>
               </div>
             );
           })}
+          </div>
+        )}
+        <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-4 text-xs text-[#8a8a99]">
+          <span>Showing {patternCounts.length} patterns</span>
+          <span className="font-medium text-[#7c6bf5]">Use heatmap to filter</span>
         </div>
-      )}
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -714,23 +796,25 @@ export default function ProgressView({
   enabledExtraPatterns,
   onPatternClick,
 }: Props) {
+  const visiblePatternCount = getVisiblePatterns(enabledExtraPatterns).length;
+
   if (problems.length === 0) {
     return (
-      <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-5 py-6">
+      <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-6 md:px-8">
         <header>
-          <h1 className="text-2xl font-semibold tracking-normal text-pb-text">
+          <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-[#ededf2]">
             Progress
           </h1>
-          <p className="mt-1 text-sm text-pb-text-muted">
+          <p className="mt-1 text-sm text-[#8a8a99]">
             Patterns, streaks, and review history
           </p>
         </header>
 
-        <div className="rounded-xl border border-pb-border bg-pb-surface px-6 py-12 text-center">
-          <h2 className="mb-2 text-lg font-semibold text-pb-text">
+        <div className={`${PROGRESS_CARD} px-6 py-12 text-center`}>
+          <h2 className="mb-2 text-lg font-semibold text-[#ededf2]">
             No progress yet
           </h2>
-          <p className="mx-auto max-w-md text-sm text-pb-text-muted">
+          <p className="mx-auto max-w-md text-sm text-[#8a8a99]">
             Add problems and complete reviews to see patterns, streaks, and trends.
           </p>
         </div>
@@ -739,12 +823,12 @@ export default function ProgressView({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-5 py-6">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-5 pb-8 pt-6 md:px-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-normal text-pb-text">
+        <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-[#ededf2]">
           Progress
         </h1>
-        <p className="mt-1 text-sm text-pb-text-muted">
+        <p className="mt-1 text-sm text-[#8a8a99]">
           Patterns, streaks, and review history
         </p>
       </header>
@@ -756,8 +840,9 @@ export default function ProgressView({
       />
 
       <ProgressSection
-        title="Pattern Confidence"
-        subtitle="Average confidence by pattern"
+        title="Patterns"
+        count={visiblePatternCount}
+        subtitle={`Confidence across ${visiblePatternCount} algorithmic patterns`}
       >
         <PatternHeatmap
           problems={problems}
@@ -776,7 +861,7 @@ export default function ProgressView({
 
       <ProjectionCalculator problems={problems} reviewEvents={reviewEvents} />
 
-      <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+      <div className="grid grid-cols-[1.05fr_1fr] gap-3 max-md:grid-cols-1">
         <ConfidenceSpread problems={problems} />
         <TopPatterns problems={problems} />
       </div>

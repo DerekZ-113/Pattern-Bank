@@ -100,17 +100,20 @@ describe("ProgressView", () => {
     expect(screen.getByText("Active Days")).toBeTruthy();
     expect(screen.getByText("Current Streak")).toBeTruthy();
     expect(screen.getByText("Avg Confidence")).toBeTruthy();
+
+    const overview = screen.getByLabelText("Progress overview");
+    expect(Array.from(overview.children)).toHaveLength(5);
   });
 
-  it("renders Pattern Confidence and preserves pattern click behavior", () => {
+  it("renders Patterns heatmap and preserves pattern click behavior", () => {
     const { onPatternClick } = renderProgress();
 
     expect(
-      screen.getByRole("heading", { name: "Pattern Confidence", level: 2 }),
+      screen.getByRole("heading", { name: "Patterns", level: 2 }),
     ).toBeTruthy();
 
     const section = screen
-      .getByRole("heading", { name: "Pattern Confidence" })
+      .getByRole("heading", { name: "Patterns" })
       .closest("section");
     expect(section).not.toBeNull();
 
@@ -130,6 +133,9 @@ describe("ProgressView", () => {
     expect(screen.getByText("30-Day Projection")).toBeTruthy();
     expect(screen.getByText("Confidence Spread")).toBeTruthy();
     expect(screen.getByText("Top Patterns")).toBeTruthy();
+    expect(screen.getAllByText(/1★/).some((el) => el.textContent?.includes("1d interval"))).toBe(true);
+    expect(screen.getAllByText(/2★/).some((el) => el.textContent?.includes("2d interval"))).toBe(true);
+    expect(screen.getAllByText(/5★/).some((el) => el.textContent?.includes("30d interval"))).toBe(true);
   });
 
   it("renders the Progress empty state when there are no problems", () => {
@@ -141,6 +147,6 @@ describe("ProgressView", () => {
         "Add problems and complete reviews to see patterns, streaks, and trends.",
       ),
     ).toBeTruthy();
-    expect(screen.queryByText("Pattern Confidence")).toBeNull();
+    expect(screen.queryByText("Patterns")).toBeNull();
   });
 });
