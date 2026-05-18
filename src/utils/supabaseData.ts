@@ -326,6 +326,49 @@ export async function logReview(
   }
 }
 
+export async function replaceReviewLog(
+  userId: string,
+  problemId: string,
+  oldConfidence: Confidence,
+  newConfidence: Confidence,
+  patterns: string[],
+  timestamp?: string
+): Promise<{ data: unknown; error: unknown }> {
+  if (!supabase) return { data: null, error: null };
+  try {
+    const reviewTimestamp = timestamp ?? new Date().toISOString();
+    const reviewDate = utcToLocalDateStr(reviewTimestamp) ?? todayStr();
+    const dedupeKey = `leetcode-rating:${userId}:${problemId}:${reviewDate}`;
+    const { error: deleteError } = await supabase
+      .from("review_log")
+      .delete()
+      .eq("user_id", userId)
+      .eq("problem_id", problemId)
+      .eq("review_date", reviewDate);
+
+    if (deleteError) return { data: null, error: deleteError };
+
+    const row: Record<string, unknown> = {
+      user_id: userId,
+      problem_id: problemId,
+      old_confidence: oldConfidence,
+      new_confidence: newConfidence,
+      patterns,
+      review_date: reviewDate,
+      created_at: reviewTimestamp,
+      dedupe_key: dedupeKey,
+    };
+    const { data, error } = await supabase
+      .from("review_log")
+      .upsert(row, { onConflict: "dedupe_key" })
+      .select()
+      .single();
+    return { data, error: error || null };
+  } catch (err) {
+    return { data: null, error: err };
+  }
+}
+
 export async function fetchProblemReviewHistory(
   userId: string,
   problemId: string

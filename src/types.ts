@@ -111,6 +111,8 @@ export type TodayLeetCodeItem =
     matchedProblemId: string | null;
     status: "linked_existing" | "imported" | "rated";
     statusLabel: "In library" | "Review due" | "Imported" | "Rated";
+    confidence: Confidence | null;
+    reviewedTodayConfidence: Confidence | null;
   };
 
 export interface LeetCodeSyncSummary {

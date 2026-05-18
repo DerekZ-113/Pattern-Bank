@@ -29,6 +29,7 @@ const {
   loadReviewEvents,
   saveReviewEvents,
   logReviewEvent,
+  logOrReplaceReviewEvent,
   loadProblemTombstones,
   saveProblemTombstones,
   recordProblemTombstone,
@@ -217,6 +218,80 @@ describe("logReviewEvent", () => {
     logReviewEvent("p2", 5, ["Tree"]);
     logReviewEvent("p1", 4, ["DP"]);
     expect(loadReviewEvents()).toHaveLength(3);
+  });
+});
+
+describe("logOrReplaceReviewEvent", () => {
+  it("inserts when there is no event for the problem today", () => {
+    logOrReplaceReviewEvent("p1", 4, ["BFS"], "2026-03-10T12:00:00.000Z");
+
+    expect(loadReviewEvents()).toEqual([
+      {
+        date: "2026-03-10",
+        problemId: "p1",
+        confidence: 4,
+        patterns: ["BFS"],
+        timestamp: "2026-03-10T12:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("replaces an existing same-day event for the same problem", () => {
+    saveReviewEvents([
+      {
+        date: "2026-03-10",
+        problemId: "p1",
+        confidence: 2,
+        patterns: ["Array"],
+        timestamp: "2026-03-10T09:00:00.000Z",
+      },
+    ]);
+
+    logOrReplaceReviewEvent("p1", 5, ["BFS"], "2026-03-10T12:00:00.000Z");
+
+    expect(loadReviewEvents()).toEqual([
+      {
+        date: "2026-03-10",
+        problemId: "p1",
+        confidence: 5,
+        patterns: ["BFS"],
+        timestamp: "2026-03-10T12:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("does not replace another problem's same-day event", () => {
+    saveReviewEvents([
+      {
+        date: "2026-03-10",
+        problemId: "p2",
+        confidence: 2,
+        patterns: ["Array"],
+        timestamp: "2026-03-10T09:00:00.000Z",
+      },
+    ]);
+
+    logOrReplaceReviewEvent("p1", 5, ["BFS"], "2026-03-10T12:00:00.000Z");
+
+    expect(loadReviewEvents()).toHaveLength(2);
+    expect(loadReviewEvents().map((event) => event.problemId)).toEqual(["p2", "p1"]);
+  });
+
+  it("does not replace an older event for the same problem", () => {
+    saveReviewEvents([
+      {
+        date: "2026-03-09",
+        problemId: "p1",
+        confidence: 2,
+        patterns: ["Array"],
+        timestamp: "2026-03-09T09:00:00.000Z",
+      },
+    ]);
+
+    logOrReplaceReviewEvent("p1", 5, ["BFS"], "2026-03-10T12:00:00.000Z");
+
+    expect(loadReviewEvents()).toHaveLength(2);
+    expect(loadReviewEvents().map((event) => event.date)).toEqual(["2026-03-09", "2026-03-10"]);
   });
 });
 

@@ -14,10 +14,12 @@ import {
   fetchReviewLog,
   fetchReviewEvents,
   logReview,
+  replaceReviewLog,
   batchInsertReviewLogs,
   fetchPreferences,
   upsertPreferences,
 } from "./supabaseData";
+import { todayStr, utcToLocalDateStr } from "./dateHelpers";
 import type {
   Problem,
   ReviewLogEntry,
@@ -618,6 +620,40 @@ export async function pushReviewToCloud(
 ): Promise<void> {
   const { error } = await logReview(userId, problemId, oldConfidence, newConfidence, patterns, timestamp);
   if (error) console.error("Cloud push failed (review):", error);
+}
+
+const reviewReplacementQueues = new Map<string, Promise<void>>();
+
+function reviewReplacementKey(userId: string, problemId: string, timestamp?: string): string {
+  const reviewDate = utcToLocalDateStr(timestamp) ?? todayStr();
+  return `${userId}:${problemId}:${reviewDate}`;
+}
+
+export async function replaceReviewInCloud(
+  userId: string,
+  problemId: string,
+  oldConfidence: Confidence,
+  newConfidence: Confidence,
+  patterns: string[],
+  timestamp?: string
+): Promise<void> {
+  const queueKey = reviewReplacementKey(userId, problemId, timestamp);
+  const previous = reviewReplacementQueues.get(queueKey) ?? Promise.resolve();
+  const current = previous
+    .catch(() => undefined)
+    .then(async () => {
+      const { error } = await replaceReviewLog(userId, problemId, oldConfidence, newConfidence, patterns, timestamp);
+      if (error) console.error("Cloud push failed (review replacement):", error);
+    });
+
+  reviewReplacementQueues.set(queueKey, current);
+  try {
+    await current;
+  } finally {
+    if (reviewReplacementQueues.get(queueKey) === current) {
+      reviewReplacementQueues.delete(queueKey);
+    }
+  }
 }
 
 export async function pushReviewEventsToCloud(userId: string, events: ReviewEvent[]): Promise<void> {

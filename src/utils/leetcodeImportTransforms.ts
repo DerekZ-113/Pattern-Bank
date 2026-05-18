@@ -8,6 +8,7 @@ import type {
   LeetCodeSubmission,
   PendingLeetCodeImport,
   Problem,
+  ReviewEvent,
   TodayLeetCodeItem,
 } from "../types";
 
@@ -15,6 +16,7 @@ interface BuildPendingLeetCodeImportsArgs {
   submissions: LeetCodeSubmission[];
   problems: Problem[];
   ignoredImports: LeetCodeIgnoredImport[];
+  reviewEvents?: ReviewEvent[];
   today?: string;
 }
 
@@ -66,6 +68,30 @@ function isExpired(firstSeenAt: string | undefined, today: string): boolean {
   return !!firstSeenDate && firstSeenDate < today;
 }
 
+function toConfidence(value: number | null | undefined): Confidence | null {
+  return value === 1 || value === 2 || value === 3 || value === 4 || value === 5 ? value : null;
+}
+
+function buildLatestReviewConfidenceByProblem(reviewEvents: ReviewEvent[] | undefined, today: string): Map<string, Confidence> {
+  const latest = new Map<string, ReviewEvent>();
+  for (const event of reviewEvents ?? []) {
+    if (event.date !== today) continue;
+    const current = latest.get(event.problemId);
+    if (!current || event.timestamp > current.timestamp) {
+      latest.set(event.problemId, event);
+    }
+  }
+
+  const confidenceByProblem = new Map<string, Confidence>();
+  for (const [problemId, event] of latest.entries()) {
+    const confidence = toConfidence(event.confidence);
+    if (confidence !== null) {
+      confidenceByProblem.set(problemId, confidence);
+    }
+  }
+  return confidenceByProblem;
+}
+
 export function buildPendingLeetCodeImports({
   submissions,
   problems,
@@ -112,10 +138,12 @@ export function buildTodayLeetCodeItems({
   submissions,
   problems,
   ignoredImports,
+  reviewEvents,
   today = todayStr(),
 }: BuildPendingLeetCodeImportsArgs): TodayLeetCodeItem[] {
   const ignoredSlugs = new Set(ignoredImports.map((item) => item.titleSlug));
   const bySlug = new Map<string, TodayLeetCodeItem>();
+  const reviewedConfidenceByProblem = buildLatestReviewConfidenceByProblem(reviewEvents, today);
 
   for (const submission of submissions) {
     if (utcToLocalDateStr(submission.submittedAt) !== today) continue;
@@ -147,6 +175,8 @@ export function buildTodayLeetCodeItems({
         matchedProblemId: matchedProblem?.id ?? submission.problemId ?? null,
         status: knownKind,
         statusLabel: getLinkedStatusLabel(knownKind, matchedProblem, today),
+        confidence: matchedProblem?.confidence ?? null,
+        reviewedTodayConfidence: matchedProblem ? reviewedConfidenceByProblem.get(matchedProblem.id) ?? null : null,
       };
     } else if (isPendingSubmission(submission)) {
       const pendingExisting = existing?.kind === "pending_import" ? existing : undefined;

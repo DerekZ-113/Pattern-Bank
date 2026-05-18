@@ -9,6 +9,7 @@ import {
   saveReviewLog,
   logReviewToday,
   logReviewEvent,
+  logOrReplaceReviewEvent,
   loadReviewEvents,
   saveReviewEvents,
   loadProblemTombstones,
@@ -34,6 +35,7 @@ import {
   pushProblemsToCloud,
   deleteProblemFromCloud,
   pushReviewToCloud,
+  replaceReviewInCloud,
   pushReviewEventsToCloud,
   pushPreferencesToCloud,
   deduplicateProblems,
@@ -62,7 +64,7 @@ interface UseProblemsReturn {
   handleSaveProblem: (problem: Problem, confidenceChanged?: boolean) => void;
   handleCreateProblemFromLeetCodeImport: (problem: Problem) => { status: "created" | "duplicate"; problem: Problem };
   handleDeleteConfirm: (deleteTarget: Problem | null) => void;
-  handleReview: (problemId: string, newConfidence: Confidence) => void;
+  handleReview: (problemId: string, newConfidence: Confidence, options?: { replaceSameDayReviewEvent?: boolean }) => void;
   handleUpdateNotes: (problemId: string, newNotes: string) => void;
   handleDismiss: (problemId: string) => void;
   handleImport: (file: File) => Promise<void>;
@@ -220,29 +222,40 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   }, [showToast, user]);
 
   const handleReview = useCallback(
-    (problemId: string, newConfidence: Confidence) => {
+    (problemId: string, newConfidence: Confidence, options?: { replaceSameDayReviewEvent?: boolean }) => {
       const current = problemsRef.current;
       const { currentReviewed, effectiveGoal } = computeReviewProgress(current, preferences.dailyReviewGoal);
       const original = current.find((p) => p.id === problemId);
       const updatedProblem = original ? buildReviewedProblem(original, newConfidence) : null;
 
       const reviewTimestamp = new Date().toISOString();
+      const replaceSameDayReviewEvent = options?.replaceSameDayReviewEvent === true;
 
       setProblems((prev) =>
         prev.map((p) => (p.id === problemId ? (updatedProblem ?? buildReviewedProblem(p, newConfidence)) : p))
       );
       logReviewToday();
-      logReviewEvent(problemId, newConfidence, original?.patterns ?? [], reviewTimestamp);
+      if (replaceSameDayReviewEvent) {
+        logOrReplaceReviewEvent(problemId, newConfidence, original?.patterns ?? [], reviewTimestamp);
+      } else {
+        logReviewEvent(problemId, newConfidence, original?.patterns ?? [], reviewTimestamp);
+      }
       setReviewCount((c) => c + 1);
       posthog.capture("problem_reviewed", { old_confidence: original?.confidence, new_confidence: newConfidence, platform: "web" });
 
       if (user && updatedProblem && original) {
         pushProblemToCloud(user.id, updatedProblem);
-        pushReviewToCloud(user.id, problemId, original.confidence, newConfidence, original.patterns, reviewTimestamp);
+        if (replaceSameDayReviewEvent) {
+          replaceReviewInCloud(user.id, problemId, original.confidence, newConfidence, original.patterns, reviewTimestamp);
+        } else {
+          pushReviewToCloud(user.id, problemId, original.confidence, newConfidence, original.patterns, reviewTimestamp);
+        }
       }
 
       const intervalDays = original ? getReviewIntervalDays(original, newConfidence) : getIntervalDays(newConfidence);
-      const newReviewedCount = currentReviewed + 1;
+      const countsAsNewTodayReview =
+        !(replaceSameDayReviewEvent && original?.lastReviewed === todayStr());
+      const newReviewedCount = currentReviewed + (countsAsNewTodayReview ? 1 : 0);
       const progress = `${newReviewedCount} of ${effectiveGoal} done`;
       const interval = `Next review in ${intervalDays} day${intervalDays !== 1 ? "s" : ""}`;
       showToast(`${progress} · ${interval}`);
