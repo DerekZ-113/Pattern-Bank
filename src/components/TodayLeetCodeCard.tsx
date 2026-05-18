@@ -29,12 +29,12 @@ export default function TodayLeetCodeCard({ item, onConfirm, onIgnore }: Props) 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-2">
+            <h3 className="text-[15px] font-semibold leading-tight text-pb-text">{item.title}</h3>
             {item.leetcodeNumber && (
               <span className="font-mono text-[13px] font-semibold leading-tight text-pb-text-dim">
                 #{item.leetcodeNumber}
               </span>
             )}
-            <h3 className="text-[15px] font-semibold leading-tight text-pb-text">{item.title}</h3>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <DifficultyBadge difficulty={item.difficulty ?? "Medium"} />

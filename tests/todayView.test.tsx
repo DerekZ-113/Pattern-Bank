@@ -145,14 +145,14 @@ describe("TodayView", () => {
     expect(screen.getByText("Binary Search")).toBeTruthy();
   });
 
-  it("renders review card number before the problem title", () => {
+  it("renders review card title before the problem number", () => {
     renderTodayView({ problems: [makeProblem({ title: "Two Sum", leetcodeNumber: 1 })] });
 
     const reviewsSection = screen.getByRole("region", { name: "Reviews due" });
     const titleRow = within(reviewsSection).getByText("#1").parentElement;
     const rowText = titleRow?.textContent ?? "";
 
-    expect(rowText.indexOf("#1")).toBeLessThan(rowText.indexOf("Two Sum"));
+    expect(rowText.indexOf("Two Sum")).toBeLessThan(rowText.indexOf("#1"));
   });
 
   it("calls onReview from the review flow", () => {
@@ -247,7 +247,9 @@ describe("TodayView", () => {
     const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
     const title = within(leetcodeSection).getByRole("heading", { name: "Two Sum" });
     const problemNumber = within(leetcodeSection).getByText("#1");
+    const titleRowText = problemNumber.parentElement?.textContent ?? "";
     expect(title).toBeTruthy();
+    expect(titleRowText.indexOf("Two Sum")).toBeLessThan(titleRowText.indexOf("#1"));
     expect(title.className).toContain("text-[15px]");
     expect(problemNumber.className).toContain("text-[13px]");
     expect(within(leetcodeSection).getByText("Hash Table").className).toContain("rounded-full");
@@ -339,9 +341,12 @@ describe("TodayView", () => {
     });
 
     const doneSection = screen.getByText("Done today").closest("section")!;
+    const importedTitleRow = within(doneSection).getByText("#200").parentElement;
+    const importedTitleText = importedTitleRow?.textContent ?? "";
     expect(within(doneSection).getByText("rated")).toBeTruthy();
     expect(within(doneSection).getByText("solved on LC · imported")).toBeTruthy();
     expect(within(doneSection).getByText("solved on LC · rated")).toBeTruthy();
+    expect(importedTitleText.indexOf("Number of Islands")).toBeLessThan(importedTitleText.indexOf("#200"));
   });
 
   it("opens Rate star controls and disables them after selecting a confidence", () => {
