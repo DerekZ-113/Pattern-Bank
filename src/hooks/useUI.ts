@@ -1,6 +1,12 @@
 import { useState, useCallback } from "react";
 import type { ActiveTab, Problem, ToastState } from "../types";
-import { DEFAULT_ALL_PROBLEMS_SORT, loadAllProblemsSort, saveAllProblemsSort } from "../utils/uiState";
+import {
+  DEFAULT_ALL_PROBLEMS_SORT,
+  loadAllProblemsSort,
+  loadV2LeetCodeIntroDismissed,
+  saveAllProblemsSort,
+  saveV2LeetCodeIntroDismissed,
+} from "../utils/uiState";
 import type { AllProblemsSort } from "../utils/uiState";
 
 interface UseUIReturn {
@@ -14,6 +20,7 @@ interface UseUIReturn {
   problemsInitialSort: AllProblemsSort;
   problemsInitialPatternFilter: string;
   clearDataConfirm: boolean;
+  v2LeetCodeIntroDismissed: boolean;
   setSettingsOpen: (open: boolean) => void;
   setHelpOpen: (open: boolean) => void;
   setDeleteTarget: (problem: Problem | null) => void;
@@ -29,6 +36,7 @@ interface UseUIReturn {
   openAddModal: () => void;
   closeModal: () => void;
   requestClearData: () => void;
+  dismissV2LeetCodeIntro: () => void;
 }
 
 export default function useUI(): UseUIReturn {
@@ -42,6 +50,7 @@ export default function useUI(): UseUIReturn {
   const [problemsInitialSort, setProblemsInitialSort] = useState<AllProblemsSort>(() => loadAllProblemsSort());
   const [problemsInitialPatternFilter, setProblemsInitialPatternFilter] = useState("all");
   const [clearDataConfirm, setClearDataConfirm] = useState(false);
+  const [v2LeetCodeIntroDismissed, setV2LeetCodeIntroDismissed] = useState(() => loadV2LeetCodeIntroDismissed());
 
   const showToast = useCallback(
     (msg: string, action?: ToastState["action"], variant: ToastState["variant"] = "success") =>
@@ -104,6 +113,11 @@ export default function useUI(): UseUIReturn {
     setClearDataConfirm(true);
   }, []);
 
+  const dismissV2LeetCodeIntro = useCallback(() => {
+    setV2LeetCodeIntroDismissed(true);
+    saveV2LeetCodeIntroDismissed(true);
+  }, []);
+
   return {
     activeTab,
     modalOpen,
@@ -115,6 +129,7 @@ export default function useUI(): UseUIReturn {
     problemsInitialSort,
     problemsInitialPatternFilter,
     clearDataConfirm,
+    v2LeetCodeIntroDismissed,
     setSettingsOpen,
     setHelpOpen,
     setDeleteTarget,
@@ -130,5 +145,6 @@ export default function useUI(): UseUIReturn {
     openAddModal,
     closeModal,
     requestClearData,
+    dismissV2LeetCodeIntro,
   };
 }

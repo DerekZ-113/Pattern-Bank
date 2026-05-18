@@ -6,6 +6,7 @@ export type AllProblemsSort =
 
 export const ALL_PROBLEMS_SORT_KEY = "patternbank-all-problems-sort";
 export const DEFAULT_ALL_PROBLEMS_SORT: AllProblemsSort = "leetcodeNumber";
+export const V2_LEETCODE_INTRO_DISMISSED_KEY = "patternbank-v2-leetcode-intro-dismissed";
 
 const ALL_PROBLEMS_SORT_VALUES: readonly AllProblemsSort[] = [
   "dateAdded",
@@ -25,4 +26,12 @@ export function loadAllProblemsSort(defaultSort: AllProblemsSort = DEFAULT_ALL_P
 
 export function saveAllProblemsSort(sort: AllProblemsSort): void {
   localStorage.setItem(ALL_PROBLEMS_SORT_KEY, sort);
+}
+
+export function loadV2LeetCodeIntroDismissed(): boolean {
+  return localStorage.getItem(V2_LEETCODE_INTRO_DISMISSED_KEY) === "true";
+}
+
+export function saveV2LeetCodeIntroDismissed(dismissed: boolean): void {
+  localStorage.setItem(V2_LEETCODE_INTRO_DISMISSED_KEY, String(dismissed));
 }
