@@ -9,6 +9,7 @@ import type {
   LeetCodeIgnoredImport,
   LeetCodeSubmission,
   Problem,
+  ReviewEvent,
 } from "../src/types";
 
 vi.mock("../src/utils/dateHelpers", async () => {
@@ -65,6 +66,17 @@ function makeIgnored(overrides: Partial<LeetCodeIgnoredImport> = {}): LeetCodeIg
     leetcodeNumber: 1,
     ignoredAt: "2026-05-15T19:00:00.000Z",
     createdAt: "2026-05-15T19:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function makeReviewEvent(overrides: Partial<ReviewEvent> = {}): ReviewEvent {
+  return {
+    date: "2026-05-15",
+    problemId: "p1",
+    confidence: 4,
+    patterns: ["Hash Table"],
+    timestamp: "2026-05-15T20:00:00.000Z",
     ...overrides,
   };
 }
@@ -182,7 +194,10 @@ describe("buildTodayLeetCodeItems", () => {
       matchedProblemId: "p1",
       statusLabel: "Review due",
       suggestedPatterns: ["Hash Table"],
+      confidence: 3,
     });
+    expect(items[1]).toMatchObject({ confidence: 3 });
+    expect(items[2]).toMatchObject({ confidence: 3 });
   });
 
   it("excludes older and ignored LeetCode submissions from today's section", () => {
@@ -213,6 +228,24 @@ describe("buildTodayLeetCodeItems", () => {
       kind: "linked_existing",
       matchedProblemId: "p1",
       statusLabel: "Review due",
+      confidence: 3,
+    });
+  });
+
+  it("marks known LeetCode items with same-day reviewed confidence", () => {
+    const items = buildTodayLeetCodeItems({
+      submissions: [makeSubmission({ status: "linked_existing", problemId: "p1" })],
+      problems: [makeProblem({ id: "p1", confidence: 4, lastReviewed: "2026-05-15" })],
+      ignoredImports: [],
+      today: "2026-05-15",
+      reviewEvents: [makeReviewEvent({ confidence: 4 })],
+    } as Parameters<typeof buildTodayLeetCodeItems>[0] & { reviewEvents: ReviewEvent[] });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      kind: "linked_existing",
+      confidence: 4,
+      reviewedTodayConfidence: 4,
     });
   });
 });

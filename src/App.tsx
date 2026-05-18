@@ -42,9 +42,14 @@ export default function App() {
     handleClearAllData,
   } = useProblems({ user, showToast: ui.showToast });
   const leetcodeActivity = useLeetCodeActivity({ user, showToast: ui.showToast });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const reviewLog = useMemo(() => loadReviewLog(), [reviewCount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const reviewEvents = useMemo(() => loadReviewEvents(), [reviewCount]);
   const leetcodePendingImports = useLeetCodePendingImports({
     user,
     problems,
+    reviewEvents,
     submissions: leetcodeActivity.submissions,
     ignoredImports: leetcodeActivity.ignoredImports,
     loading: leetcodeActivity.loading,
@@ -93,12 +98,6 @@ export default function App() {
     if (user) signOut();
     ui.setClearDataConfirm(false);
   }, [handleClearAllData, hasLeetCodeActivityState, leetcodeActivity, signOut, ui, user]);
-
-  // Re-read from localStorage when review data changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const reviewLog = useMemo(() => loadReviewLog(), [reviewCount]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const reviewEvents = useMemo(() => loadReviewEvents(), [reviewCount]);
 
   return (
     <div className="min-h-screen bg-pb-bg pb-[70px]">

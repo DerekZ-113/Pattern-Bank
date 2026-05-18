@@ -19,7 +19,7 @@ describe("rateLeetCodeReviewLocallyFirst", () => {
     });
 
     expect(calls).toEqual(["review", "mark-rated"]);
-    expect(onReview).toHaveBeenCalledWith("problem-1", 4);
+    expect(onReview).toHaveBeenCalledWith("problem-1", 4, { replaceSameDayReviewEvent: true });
     expect(markRated).toHaveBeenCalledWith("sub-db-1", "problem-1");
   });
 
@@ -37,7 +37,7 @@ describe("rateLeetCodeReviewLocallyFirst", () => {
       onError,
     });
 
-    expect(onReview).toHaveBeenCalledWith("problem-1", 5);
+    expect(onReview).toHaveBeenCalledWith("problem-1", 5, { replaceSameDayReviewEvent: true });
     expect(onError).toHaveBeenCalledWith("LeetCode activity sync failed. Try again later.");
   });
 });

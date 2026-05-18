@@ -6,6 +6,7 @@ import type {
   LeetCodeSubmission,
   PendingLeetCodeImport,
   Problem,
+  ReviewEvent,
   TodayLeetCodeItem,
   ToastState,
 } from "../types";
@@ -25,6 +26,7 @@ import { todayStr } from "../utils/dateHelpers";
 interface UseLeetCodePendingImportsParams {
   user: Pick<User, "id"> | null;
   problems: Problem[];
+  reviewEvents?: ReviewEvent[];
   submissions: LeetCodeSubmission[];
   ignoredImports: LeetCodeIgnoredImport[];
   loading: boolean;
@@ -43,6 +45,7 @@ export interface UseLeetCodePendingImportsState {
 export default function useLeetCodePendingImports({
   user,
   problems,
+  reviewEvents = [],
   submissions,
   ignoredImports,
   loading,
@@ -57,9 +60,10 @@ export default function useLeetCodePendingImports({
       submissions,
       problems,
       ignoredImports,
+      reviewEvents,
       today: todayStr(),
     }),
-    [ignoredImports, problems, submissions],
+    [ignoredImports, problems, reviewEvents, submissions],
   );
   const pendingImports = useMemo(
     () => buildPendingLeetCodeImports({

@@ -5,6 +5,8 @@ import {
   loadProblems,
   saveProblems,
   logReviewToday,
+  logReviewEvent,
+  logOrReplaceReviewEvent,
   saveReviewLog,
   recordProblemTombstone,
   saveProblemTombstones,
@@ -15,6 +17,8 @@ import {
   pushProblemToCloud,
   deleteProblemFromCloud,
   pushProblemsToCloud,
+  pushReviewToCloud,
+  replaceReviewInCloud,
   pushPreferencesToCloud,
   deduplicateProblems,
 } from "../src/utils/sync";
@@ -33,6 +37,7 @@ vi.mock("../src/utils/storage", () => ({
   saveReviewLog: vi.fn(),
   logReviewToday: vi.fn(),
   logReviewEvent: vi.fn(),
+  logOrReplaceReviewEvent: vi.fn(),
   loadReviewEvents: vi.fn(() => []),
   saveReviewEvents: vi.fn(),
   loadProblemTombstones: vi.fn(() => []),
@@ -61,6 +66,7 @@ vi.mock("../src/utils/sync", () => ({
   pushProblemsToCloud: vi.fn(),
   deleteProblemFromCloud: vi.fn(),
   pushReviewToCloud: vi.fn(),
+  replaceReviewInCloud: vi.fn(),
   pushPreferencesToCloud: vi.fn(),
   clearAllCloudData: vi.fn(),
   deduplicateProblems: vi.fn((problems: Problem[]) => ({ problems, removedIds: [] })),
@@ -102,6 +108,8 @@ const mockUser = { id: "user-123" } as User;
 const defaultPrefs: Preferences = { dailyReviewGoal: 5, hidePatternsDuringReview: false, enabledExtraPatterns: [] };
 const mockSyncOnSignIn = syncOnSignIn as ReturnType<typeof vi.fn>;
 const mockPushPreferencesToCloud = pushPreferencesToCloud as ReturnType<typeof vi.fn>;
+const mockPushReviewToCloud = pushReviewToCloud as ReturnType<typeof vi.fn>;
+const mockReplaceReviewInCloud = replaceReviewInCloud as ReturnType<typeof vi.fn>;
 
 function makeSyncResult(preferences: Preferences, syncStatus?: SyncStatus) {
   return {
@@ -491,6 +499,35 @@ describe("useProblems", () => {
       });
 
       expect(logReviewToday).toHaveBeenCalled();
+      expect(logReviewEvent).toHaveBeenCalledWith(
+        "review-log-1",
+        3,
+        ["Hash Table"],
+        expect.any(String),
+      );
+      expect(logOrReplaceReviewEvent).not.toHaveBeenCalled();
+    });
+
+    it("replaces same-day review event when requested by LeetCode rating surfaces", () => {
+      const p = makeProblem({ id: "review-replace-1" });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-replace-1", 4 as Confidence, { replaceSameDayReviewEvent: true });
+      });
+
+      expect(logReviewToday).toHaveBeenCalled();
+      expect(logOrReplaceReviewEvent).toHaveBeenCalledWith(
+        "review-replace-1",
+        4,
+        ["Hash Table"],
+        expect.any(String),
+      );
+      expect(logReviewEvent).not.toHaveBeenCalled();
     });
 
     it("pushes to cloud when authenticated", () => {
@@ -506,6 +543,32 @@ describe("useProblems", () => {
       });
 
       expect(pushProblemToCloud).toHaveBeenCalled();
+      expect(mockPushReviewToCloud).toHaveBeenCalled();
+      expect(mockReplaceReviewInCloud).not.toHaveBeenCalled();
+    });
+
+    it("replaces cloud review log when requested by LeetCode rating surfaces", () => {
+      const p = makeProblem({ id: "review-cloud-replace-1" });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-cloud-replace-1", 4 as Confidence, { replaceSameDayReviewEvent: true });
+      });
+
+      expect(pushProblemToCloud).toHaveBeenCalled();
+      expect(mockReplaceReviewInCloud).toHaveBeenCalledWith(
+        mockUser.id,
+        "review-cloud-replace-1",
+        3,
+        4,
+        ["Hash Table"],
+        expect.any(String),
+      );
+      expect(mockPushReviewToCloud).not.toHaveBeenCalled();
     });
 
     it("shows progress toast with interval", () => {

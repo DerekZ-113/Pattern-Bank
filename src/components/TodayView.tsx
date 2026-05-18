@@ -114,6 +114,7 @@ export default function TodayView({
                     item={item}
                     onConfirm={(pendingItem, confidence) => onConfirmLeetCodeImport?.(pendingItem, confidence)}
                     onIgnore={(pendingItem) => onIgnoreLeetCodeImport?.(pendingItem)}
+                    onRateKnown={(submissionDbId, problemId, confidence) => onRateLeetCodeReview?.(submissionDbId, problemId, confidence)}
                   />
                 ))}
               </div>

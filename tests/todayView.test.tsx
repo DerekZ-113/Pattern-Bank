@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import TodayView from "../src/components/TodayView";
 import type {
@@ -69,6 +69,7 @@ function makeTodayLeetCodeItem(overrides: Partial<TodayLeetCodeItem> = {}): Toda
     suggestedPatterns: ["Hash Table"],
     matchedProblemId: "p1",
     statusLabel: "Review due",
+    confidence: 3,
     ...overrides,
   } as TodayLeetCodeItem;
 }
@@ -238,10 +239,12 @@ describe("TodayView", () => {
     expect(onIgnore).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }));
   });
 
-  it("renders From LeetCode for already-linked solves without import actions", () => {
+  it("renders From LeetCode for already-linked solves with a seeded rating selector", () => {
+    const onRate = vi.fn();
     renderTodayView({
       todayLeetCodeItems: [makeTodayLeetCodeItem()],
       leetcodeSubmissions: [makeSubmission()],
+      onRateLeetCodeReview: onRate,
     });
 
     const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
@@ -259,9 +262,109 @@ describe("TodayView", () => {
     expect(within(leetcodeSection).queryByText("Review due")).toBeNull();
     expect(within(leetcodeSection).queryByRole("button", { name: "Import Two Sum with 4-star confidence" })).toBeNull();
     expect(within(leetcodeSection).queryByRole("button", { name: "Ignore Two Sum" })).toBeNull();
+    expect(within(leetcodeSection).queryByText(/^Solved \d{1,2}:/)).toBeNull();
+    expect(within(leetcodeSection).getByText("Rate confidence")).toBeTruthy();
+    expect(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 1-star confidence" }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 2-star confidence" }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 3-star confidence" }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" }).getAttribute("aria-pressed")).toBe("false");
+
+    const rateButton = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
+    fireEvent.click(rateButton);
+    expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 4);
+    expect((rateButton as HTMLButtonElement).disabled).toBe(true);
 
     const doneSection = screen.getByText("Done today").closest("section")!;
     expect(within(doneSection).getByText("solved on LC · review due")).toBeTruthy();
+  });
+
+  it("fills intermediate known LeetCode stars while previewing a higher confidence", () => {
+    renderTodayView({
+      todayLeetCodeItems: [makeTodayLeetCodeItem({ confidence: 2 })],
+      leetcodeSubmissions: [makeSubmission()],
+    });
+
+    const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
+    const thirdStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 3-star confidence" });
+    const fourthStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
+
+    fireEvent.mouseEnter(fourthStar);
+
+    expect(thirdStar.className.split(/\s+/)).toContain("text-pb-star");
+    expect(fourthStar.className.split(/\s+/)).toContain("text-pb-star");
+    expect(fourthStar.className.split(/\s+/)).toContain("h-7");
+    expect(fourthStar.className.split(/\s+/)).toContain("w-7");
+    expect(fourthStar.className).toContain("text-[19px]");
+    expect(fourthStar.className).toContain("border-pb-star");
+  });
+
+  it("updates known LeetCode rating copy after first log and later confidence changes", async () => {
+    const onRate = vi.fn();
+    renderTodayView({
+      todayLeetCodeItems: [makeTodayLeetCodeItem({ confidence: 3 })],
+      leetcodeSubmissions: [makeSubmission()],
+      onRateLeetCodeReview: onRate,
+    });
+
+    const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
+    const thirdStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 3-star confidence" });
+    const fourthStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
+
+    fireEvent.click(thirdStar);
+    expect(within(leetcodeSection).getByText("New confidence logged")).toBeTruthy();
+    expect(onRate).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect((thirdStar as HTMLButtonElement).disabled).toBe(false));
+
+    fireEvent.click(thirdStar);
+    expect(within(leetcodeSection).getByText("New confidence logged")).toBeTruthy();
+    expect(within(leetcodeSection).queryByText("Confidence updated")).toBeNull();
+    expect(onRate).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(fourthStar);
+    expect(within(leetcodeSection).getByText("Confidence updated")).toBeTruthy();
+    expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 4);
+    expect(onRate).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps logged known LeetCode rating state after refresh and ignores same-confidence reselects", () => {
+    const onRate = vi.fn();
+    renderTodayView({
+      todayLeetCodeItems: [
+        makeTodayLeetCodeItem({
+          confidence: 4,
+          reviewedTodayConfidence: 4,
+        } as Partial<TodayLeetCodeItem>),
+      ],
+      leetcodeSubmissions: [makeSubmission({ status: "rated" })],
+      reviewEvents: [makeReviewEvent({ confidence: 4 })],
+      onRateLeetCodeReview: onRate,
+    });
+
+    const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
+    const fourthStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
+    const fifthStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 5-star confidence" });
+
+    expect(within(leetcodeSection).getByText("New confidence logged")).toBeTruthy();
+
+    fireEvent.click(fourthStar);
+    expect(onRate).not.toHaveBeenCalled();
+    expect(within(leetcodeSection).getByText("New confidence logged")).toBeTruthy();
+
+    fireEvent.click(fifthStar);
+    expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 5);
+    expect(within(leetcodeSection).getByText("Confidence updated")).toBeTruthy();
+  });
+
+  it("shows missing confidence copy on known LeetCode cards without a matched confidence", () => {
+    renderTodayView({
+      todayLeetCodeItems: [makeTodayLeetCodeItem({ confidence: null })],
+      leetcodeSubmissions: [makeSubmission()],
+    });
+
+    const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
+    expect(within(leetcodeSection).getByText("No confidence recorded")).toBeTruthy();
+    expect(within(leetcodeSection).getByLabelText("No confidence recorded for Two Sum")).toBeTruthy();
+    expect(within(leetcodeSection).queryByRole("button", { name: "Rate Two Sum with 3-star confidence" })).toBeNull();
   });
 
   it("hides Quick Start when today's LeetCode section has linked activity", () => {

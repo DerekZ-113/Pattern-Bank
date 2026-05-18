@@ -7,7 +7,7 @@ import {
   DATA_RESET_KEY,
   DEFAULT_PREFERENCES,
 } from "./constants";
-import { todayStr, addDays } from "./dateHelpers";
+import { todayStr, addDays, utcToLocalDateStr } from "./dateHelpers";
 import type { Problem, ReviewLogEntry, ReviewEvent, Preferences, BackupData, ProblemTombstone, DataReset } from "../types";
 
 export function loadProblems(): Problem[] {
@@ -152,6 +152,23 @@ export function logReviewEvent(problemId: string, confidence: number, patterns: 
     timestamp: timestamp ?? new Date().toISOString(),
   });
   saveReviewEvents(events);
+}
+
+export function logOrReplaceReviewEvent(problemId: string, confidence: number, patterns: string[], timestamp?: string): void {
+  const reviewTimestamp = timestamp ?? new Date().toISOString();
+  const reviewDate = utcToLocalDateStr(reviewTimestamp) ?? todayStr();
+  const events = loadReviewEvents();
+  const withoutSameDayProblem = events.filter(
+    (event) => !(event.problemId === problemId && event.date === reviewDate),
+  );
+  withoutSameDayProblem.push({
+    date: reviewDate,
+    problemId,
+    confidence,
+    patterns,
+    timestamp: reviewTimestamp,
+  });
+  saveReviewEvents(withoutSameDayProblem);
 }
 
 export function countReviewedToday(problems: Problem[]): number {

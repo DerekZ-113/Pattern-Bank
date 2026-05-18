@@ -14,6 +14,7 @@ vi.mock("../src/utils/supabaseData", () => ({
   deleteAllUserProblems: vi.fn(),
   deleteAllUserReviewLog: vi.fn(),
   logReview: vi.fn(),
+  replaceReviewLog: vi.fn(),
   upsertPreferences: vi.fn(),
   fetchProblemReviewHistory: vi.fn(),
   submitFeedback: vi.fn(),
@@ -28,6 +29,7 @@ import {
   deleteAllUserProblems,
   deleteAllUserReviewLog,
   logReview,
+  replaceReviewLog,
   upsertPreferences,
 } from "../src/utils/supabaseData";
 import {
@@ -35,6 +37,7 @@ import {
   pushProblemsToCloud,
   deleteProblemFromCloud,
   pushReviewToCloud,
+  replaceReviewInCloud,
   pushPreferencesToCloud,
   clearAllCloudData,
 } from "../src/utils/sync";
@@ -47,6 +50,7 @@ const upsertDataResetMock = upsertDataReset as ReturnType<typeof vi.fn>;
 const deleteAllUserProblemsMock = deleteAllUserProblems as ReturnType<typeof vi.fn>;
 const deleteAllUserReviewLogMock = deleteAllUserReviewLog as ReturnType<typeof vi.fn>;
 const logReviewMock = logReview as ReturnType<typeof vi.fn>;
+const replaceReviewLogMock = replaceReviewLog as ReturnType<typeof vi.fn>;
 const upsertPreferencesMock = upsertPreferences as ReturnType<typeof vi.fn>;
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
@@ -218,6 +222,71 @@ describe("pushReviewToCloud", () => {
     try {
       await expect(
         pushReviewToCloud(USER_ID, "problem-1", 2, 4, ["DP"])
+      ).resolves.toBeUndefined();
+      expect(spy).toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+describe("replaceReviewInCloud", () => {
+  it("calls replaceReviewLog with correct arguments", async () => {
+    replaceReviewLogMock.mockResolvedValue({ data: null, error: null });
+    const timestamp = "2026-03-10T12:00:00.000Z";
+
+    await replaceReviewInCloud(USER_ID, "problem-1", 2, 5, ["DP"], timestamp);
+
+    expect(replaceReviewLogMock).toHaveBeenCalledOnce();
+    expect(replaceReviewLogMock).toHaveBeenCalledWith(USER_ID, "problem-1", 2, 5, ["DP"], timestamp);
+  });
+
+  it("serializes same-day replacements for the same problem", async () => {
+    let resolveFirst: ((value: { data: null; error: null }) => void) | undefined;
+    const startedNewConfidences: Confidence[] = [];
+    replaceReviewLogMock.mockImplementation((...args: unknown[]) => {
+      startedNewConfidences.push(args[3] as Confidence);
+      if (startedNewConfidences.length === 1) {
+        return new Promise((resolve) => {
+          resolveFirst = resolve as typeof resolveFirst;
+        });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
+
+    const first = replaceReviewInCloud(
+      USER_ID,
+      "problem-1",
+      3,
+      4,
+      ["DP"],
+      "2026-03-10T12:00:00.000Z",
+    );
+    const second = replaceReviewInCloud(
+      USER_ID,
+      "problem-1",
+      4,
+      5,
+      ["DP"],
+      "2026-03-10T12:01:00.000Z",
+    );
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(startedNewConfidences).toEqual([4]);
+
+    resolveFirst?.({ data: null, error: null });
+    await Promise.all([first, second]);
+
+    expect(startedNewConfidences).toEqual([4, 5]);
+  });
+
+  it("logs error on replacement failure but does not throw", async () => {
+    replaceReviewLogMock.mockResolvedValue({ data: null, error: new Error("fail") });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await expect(
+        replaceReviewInCloud(USER_ID, "problem-1", 2, 5, ["DP"])
       ).resolves.toBeUndefined();
       expect(spy).toHaveBeenCalled();
     } finally {
