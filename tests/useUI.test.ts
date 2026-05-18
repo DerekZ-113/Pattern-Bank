@@ -20,6 +20,10 @@ const mockProblem: Problem = {
 };
 
 describe("useUI", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   describe("initial state", () => {
     it("starts on dashboard tab", () => {
       const { result } = renderHook(() => useUI());
@@ -42,10 +46,26 @@ describe("useUI", () => {
       expect(result.current.toast.message).toBe("");
     });
 
-    it("starts with default sort and filter", () => {
+    it("starts with problem index sort and default filter", () => {
       const { result } = renderHook(() => useUI());
-      expect(result.current.problemsInitialSort).toBe("dateAdded");
+      expect(result.current.problemsInitialSort).toBe("leetcodeNumber");
       expect(result.current.problemsInitialPatternFilter).toBe("all");
+    });
+
+    it("loads a persisted problem sort", () => {
+      localStorage.setItem("patternbank-all-problems-sort", "confidence");
+
+      const { result } = renderHook(() => useUI());
+
+      expect(result.current.problemsInitialSort).toBe("confidence");
+    });
+
+    it("falls back to problem index for an invalid persisted problem sort", () => {
+      localStorage.setItem("patternbank-all-problems-sort", "unknown-sort");
+
+      const { result } = renderHook(() => useUI());
+
+      expect(result.current.problemsInitialSort).toBe("leetcodeNumber");
     });
   });
 
@@ -120,6 +140,17 @@ describe("useUI", () => {
   });
 
   describe("navigation", () => {
+    it("persists user-selected problem sort changes", () => {
+      const { result } = renderHook(() => useUI());
+
+      act(() => {
+        result.current.handleProblemsSortChange("confidence");
+      });
+
+      expect(result.current.problemsInitialSort).toBe("confidence");
+      expect(localStorage.getItem("patternbank-all-problems-sort")).toBe("confidence");
+    });
+
     it("handleViewAllDue switches to problems tab with nextReview sort", () => {
       const { result } = renderHook(() => useUI());
       act(() => {
@@ -128,6 +159,7 @@ describe("useUI", () => {
       expect(result.current.activeTab).toBe("problems");
       expect(result.current.problemsInitialSort).toBe("nextReview");
       expect(result.current.problemsInitialPatternFilter).toBe("all");
+      expect(localStorage.getItem("patternbank-all-problems-sort")).toBe("nextReview");
     });
 
     it("handlePatternClick switches to problems tab with pattern filter", () => {
@@ -137,23 +169,25 @@ describe("useUI", () => {
       });
       expect(result.current.activeTab).toBe("problems");
       expect(result.current.problemsInitialPatternFilter).toBe("Binary Search");
-      expect(result.current.problemsInitialSort).toBe("dateAdded");
+      expect(result.current.problemsInitialSort).toBe("leetcodeNumber");
+      expect(localStorage.getItem("patternbank-all-problems-sort")).toBe("leetcodeNumber");
     });
 
-    it("handleTabChange resets sort/filter to defaults", () => {
+    it("handleTabChange preserves the selected sort while resetting filters", () => {
       const { result } = renderHook(() => useUI());
       // Set non-default values first
       act(() => {
-        result.current.handleViewAllDue();
+        result.current.handleProblemsSortChange("confidence");
       });
-      expect(result.current.problemsInitialSort).toBe("nextReview");
+      expect(result.current.problemsInitialSort).toBe("confidence");
       // Now change tab
       act(() => {
         result.current.handleTabChange("dashboard");
       });
       expect(result.current.activeTab).toBe("dashboard");
-      expect(result.current.problemsInitialSort).toBe("dateAdded");
+      expect(result.current.problemsInitialSort).toBe("confidence");
       expect(result.current.problemsInitialPatternFilter).toBe("all");
+      expect(localStorage.getItem("patternbank-all-problems-sort")).toBe("confidence");
     });
   });
 

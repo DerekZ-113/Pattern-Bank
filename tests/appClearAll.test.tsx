@@ -90,6 +90,7 @@ function mockBaseHooks({
     handleDeleteRequest: vi.fn(),
     handleViewAllDue: vi.fn(),
     handlePatternClick: vi.fn(),
+    handleProblemsSortChange: vi.fn(),
     handleTabChange: vi.fn(),
     openAddModal: vi.fn(),
     closeModal: vi.fn(),

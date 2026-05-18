@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import type { ActiveTab, Problem, ToastState } from "../types";
+import { DEFAULT_ALL_PROBLEMS_SORT, loadAllProblemsSort, saveAllProblemsSort } from "../utils/uiState";
+import type { AllProblemsSort } from "../utils/uiState";
 
 interface UseUIReturn {
   activeTab: ActiveTab;
@@ -9,7 +11,7 @@ interface UseUIReturn {
   deleteTarget: Problem | null;
   settingsOpen: boolean;
   helpOpen: boolean;
-  problemsInitialSort: string;
+  problemsInitialSort: AllProblemsSort;
   problemsInitialPatternFilter: string;
   clearDataConfirm: boolean;
   setSettingsOpen: (open: boolean) => void;
@@ -22,6 +24,7 @@ interface UseUIReturn {
   handleDeleteRequest: (problem: Problem) => void;
   handleViewAllDue: () => void;
   handlePatternClick: (pattern: string) => void;
+  handleProblemsSortChange: (sort: AllProblemsSort) => void;
   handleTabChange: (tab: ActiveTab) => void;
   openAddModal: () => void;
   closeModal: () => void;
@@ -36,7 +39,7 @@ export default function useUI(): UseUIReturn {
   const [deleteTarget, setDeleteTarget] = useState<Problem | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [problemsInitialSort, setProblemsInitialSort] = useState("dateAdded");
+  const [problemsInitialSort, setProblemsInitialSort] = useState<AllProblemsSort>(() => loadAllProblemsSort());
   const [problemsInitialPatternFilter, setProblemsInitialPatternFilter] = useState("all");
   const [clearDataConfirm, setClearDataConfirm] = useState(false);
 
@@ -61,20 +64,28 @@ export default function useUI(): UseUIReturn {
     []
   );
 
+  const setPersistedProblemsSort = useCallback((sort: AllProblemsSort) => {
+    setProblemsInitialSort(sort);
+    saveAllProblemsSort(sort);
+  }, []);
+
+  const handleProblemsSortChange = useCallback((sort: AllProblemsSort) => {
+    setPersistedProblemsSort(sort);
+  }, [setPersistedProblemsSort]);
+
   const handleViewAllDue = useCallback(() => {
-    setProblemsInitialSort("nextReview");
+    setPersistedProblemsSort("nextReview");
     setProblemsInitialPatternFilter("all");
     setActiveTab("problems");
-  }, []);
+  }, [setPersistedProblemsSort]);
 
   const handlePatternClick = useCallback((pattern: string) => {
     setProblemsInitialPatternFilter(pattern);
-    setProblemsInitialSort("dateAdded");
+    setPersistedProblemsSort(DEFAULT_ALL_PROBLEMS_SORT);
     setActiveTab("problems");
-  }, []);
+  }, [setPersistedProblemsSort]);
 
   const handleTabChange = useCallback((tab: ActiveTab) => {
-    setProblemsInitialSort("dateAdded");
     setProblemsInitialPatternFilter("all");
     setActiveTab(tab);
   }, []);
@@ -114,6 +125,7 @@ export default function useUI(): UseUIReturn {
     handleDeleteRequest,
     handleViewAllDue,
     handlePatternClick,
+    handleProblemsSortChange,
     handleTabChange,
     openAddModal,
     closeModal,
