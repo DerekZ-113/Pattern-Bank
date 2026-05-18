@@ -10,6 +10,7 @@ test.describe("Data Management", () => {
     await page.goto("/");
 
     await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByRole("button", { name: /Data/i }).click();
 
     // Listen for download
     const downloadPromise = page.waitForEvent("download");
@@ -43,6 +44,7 @@ test.describe("Data Management", () => {
     fs.writeFileSync(tmpFile, JSON.stringify(importData));
 
     await page.getByRole("button", { name: "Settings" }).click();
+    await page.getByRole("button", { name: /Data/i }).click();
 
     // Upload the file
     const fileInput = page.locator("input[type='file']");

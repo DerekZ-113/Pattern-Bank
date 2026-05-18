@@ -12,8 +12,8 @@ interface Props {
 }
 
 export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude }: Props) {
-  const isDue = problem.nextReviewDate <= todayStr();
   const isExcluded = problem.excludeFromReview;
+  const isDue = !isExcluded && problem.nextReviewDate <= todayStr();
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -26,59 +26,77 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
   };
 
   const getReviewStatusText = () => {
-    if (isDue) return problem.lastReviewed ? "Due for review" : "New";
+    if (isExcluded) return "Excluded from reviews";
+    if (isDue) return "Due for review";
     return `Next review: ${formatRelativeDate(problem.nextReviewDate)}`;
   };
 
   return (
-    <div
+    <article
       onClick={() => onEdit(problem)}
-      className={`cursor-pointer rounded-[10px] border border-pb-border bg-pb-surface px-5 py-4 transition-[border-color,box-shadow,opacity] duration-150 hover:border-pb-text-dim hover:shadow-[0_0_0_1px_rgba(124,107,245,0.1),0_4px_12px_var(--color-pb-shadow)] ${isExcluded ? "opacity-60" : ""}`}
+      className={`cursor-pointer rounded-[10px] border bg-pb-surface px-4 py-3.5 transition-[border-color,background,opacity] duration-150 hover:border-pb-border-strong hover:bg-pb-surface-2 ${
+        isDue ? "border-pb-accent/35" : "border-pb-border"
+      } ${isExcluded ? "opacity-60" : ""}`}
     >
       {/* Title row */}
-      <div className="mb-2.5 flex items-start justify-between">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <span className="text-[15px] font-semibold text-pb-text">
-            {problem.title}
-          </span>
-          {problem.leetcodeNumber && (
-            <span className="text-xs text-pb-text-muted">
-              #{problem.leetcodeNumber}
-            </span>
-          )}
-          {isExcluded && (
-            <span className="text-[11px] font-medium text-pb-text-dim">
-              Excluded
-            </span>
-          )}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex min-w-0 flex-1 basis-full flex-wrap items-baseline gap-2 sm:basis-auto">
+          <span className="text-[15px] font-semibold tracking-normal text-pb-text">{problem.title}</span>
+          {problem.leetcodeNumber && <span className="font-mono text-[13px] font-medium text-pb-text-dim">#{problem.leetcodeNumber}</span>}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <DifficultyBadge difficulty={problem.difficulty} />
+        <DifficultyBadge difficulty={problem.difficulty} />
+        <div className="flex shrink-0 items-center gap-1">
           {onToggleExclude && (
             <button
+              type="button"
               onClick={handleToggleExclude}
               title={isExcluded ? "Include in reviews" : "Exclude from reviews"}
-              className={`cursor-pointer rounded border-none bg-transparent px-1.5 py-0.5 text-[17px] leading-none transition-colors duration-150 ${
+              aria-label={isExcluded ? "Include in reviews" : "Exclude from review"}
+              className={`inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border transition-colors duration-150 ${
                 isExcluded
-                  ? "text-pb-accent hover:text-pb-accent-hover"
-                  : "text-pb-text-dim hover:text-pb-text-muted"
+                  ? "border-pb-medium/30 bg-pb-medium/10 text-pb-medium hover:bg-pb-medium/15"
+                  : "border-transparent text-pb-text-dim hover:border-pb-border hover:bg-pb-surface-2 hover:text-pb-text"
               }`}
             >
-              {isExcluded ? "◉" : "◎"}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3.5 w-3.5"
+              >
+                <circle cx="12" cy="12" r="9" />
+                {isExcluded && <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />}
+              </svg>
             </button>
           )}
           <button
+            type="button"
             onClick={handleDelete}
             title="Delete problem"
-            className="cursor-pointer rounded border-none bg-transparent px-1.5 py-0.5 text-[17px] leading-none text-pb-text-dim transition-colors duration-150 hover:text-pb-hard"
+            aria-label="Delete problem"
+            className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-transparent text-pb-text-dim transition-colors duration-150 hover:border-pb-border hover:bg-pb-surface-2 hover:text-pb-hard"
           >
-            ✕
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              className="h-3.5 w-3.5"
+            >
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
           </button>
         </div>
       </div>
 
       {/* Pattern tags */}
-      <div className="mb-2.5 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {problem.patterns.map((p) => (
           <PatternTag key={p} name={p} />
         ))}
@@ -86,43 +104,27 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
 
       {/* Confidence and review date */}
       <div
-        className={`flex items-center justify-between ${problem.notes ? "mb-2.5" : ""}`}
+        className="mt-2.5 flex items-center justify-between gap-3"
       >
         <StarRating value={problem.confidence} size={16} />
         <span
-          className={`text-xs ${
+          className={`inline-flex items-center gap-1.5 text-xs ${
             isExcluded
-              ? "text-pb-text-dim"
+              ? "text-pb-medium"
               : isDue
-                ? "text-pb-star"
-                : "text-pb-text-dim"
+                ? "font-semibold text-pb-accent"
+                : "text-pb-text-muted"
           }`}
         >
+          {isDue && (
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 rounded-full bg-pb-accent shadow-[0_0_0_3px_rgba(124,107,245,0.18)]"
+            />
+          )}
           {getReviewStatusText()}
         </span>
       </div>
-
-      {/* URL link */}
-      {problem.url && (
-        <div className={problem.notes ? "mb-2.5" : ""}>
-          <a
-            href={problem.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-xs text-pb-accent hover:text-pb-accent-hover transition-colors duration-150"
-          >
-            Open on LeetCode →
-          </a>
-        </div>
-      )}
-
-      {/* Notes preview */}
-      {problem.notes && (
-        <div className="max-h-[60px] overflow-hidden whitespace-pre-wrap rounded-md bg-pb-bg px-3 py-2 text-[13px] leading-relaxed text-pb-text-muted">
-          {problem.notes}
-        </div>
-      )}
-    </div>
+    </article>
   );
 }

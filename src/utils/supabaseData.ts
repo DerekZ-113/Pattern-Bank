@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { todayStr, utcToLocalDateStr } from "./dateHelpers";
+import { getDefaultFiveStarStreak } from "./spacedRepetition";
 import type {
   Problem,
   Confidence,
@@ -28,6 +29,7 @@ interface SnakeCaseProblem {
   date_added: string;
   last_reviewed: string | null;
   next_review_date: string;
+  five_star_streak?: number | null;
   updated_at: string;
   exclude_from_review: boolean;
 }
@@ -68,6 +70,7 @@ export function toSnakeCase(problem: Problem): SnakeCaseProblem {
     date_added: problem.dateAdded,
     last_reviewed: problem.lastReviewed ?? null,
     next_review_date: problem.nextReviewDate,
+    five_star_streak: problem.fiveStarStreak ?? getDefaultFiveStarStreak(problem.confidence),
     updated_at: problem.updatedAt || new Date().toISOString(),
     exclude_from_review: problem.excludeFromReview ?? false,
   };
@@ -86,6 +89,7 @@ export function toCamelCase(row: SnakeCaseProblem): Problem {
     dateAdded: row.date_added,
     lastReviewed: row.last_reviewed ?? null,
     nextReviewDate: row.next_review_date,
+    fiveStarStreak: row.five_star_streak ?? getDefaultFiveStarStreak(row.confidence),
     updatedAt: row.updated_at || new Date().toISOString(),
     excludeFromReview: row.exclude_from_review ?? false,
   };
@@ -314,6 +318,49 @@ export async function logReview(
     const { data, error } = await supabase
       .from("review_log")
       .insert(row)
+      .select()
+      .single();
+    return { data, error: error || null };
+  } catch (err) {
+    return { data: null, error: err };
+  }
+}
+
+export async function replaceReviewLog(
+  userId: string,
+  problemId: string,
+  oldConfidence: Confidence,
+  newConfidence: Confidence,
+  patterns: string[],
+  timestamp?: string
+): Promise<{ data: unknown; error: unknown }> {
+  if (!supabase) return { data: null, error: null };
+  try {
+    const reviewTimestamp = timestamp ?? new Date().toISOString();
+    const reviewDate = utcToLocalDateStr(reviewTimestamp) ?? todayStr();
+    const dedupeKey = `leetcode-rating:${userId}:${problemId}:${reviewDate}`;
+    const { error: deleteError } = await supabase
+      .from("review_log")
+      .delete()
+      .eq("user_id", userId)
+      .eq("problem_id", problemId)
+      .eq("review_date", reviewDate);
+
+    if (deleteError) return { data: null, error: deleteError };
+
+    const row: Record<string, unknown> = {
+      user_id: userId,
+      problem_id: problemId,
+      old_confidence: oldConfidence,
+      new_confidence: newConfidence,
+      patterns,
+      review_date: reviewDate,
+      created_at: reviewTimestamp,
+      dedupe_key: dedupeKey,
+    };
+    const { data, error } = await supabase
+      .from("review_log")
+      .upsert(row, { onConflict: "dedupe_key" })
       .select()
       .single();
     return { data, error: error || null };

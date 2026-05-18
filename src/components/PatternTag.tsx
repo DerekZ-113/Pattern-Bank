@@ -9,8 +9,8 @@ export default function PatternTag({ name }: Props) {
 
   return (
     <span
-      className="rounded px-2 py-0.5 text-[11px] font-medium"
-      style={{ color: pc.text, backgroundColor: pc.bg }}
+      className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none"
+      style={{ color: pc.text, backgroundColor: pc.bg, borderColor: pc.text }}
     >
       {name}
     </span>

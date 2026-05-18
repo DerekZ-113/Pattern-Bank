@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { getStoredProblems } from "./fixtures.js";
+import { getStoredProblems, skipLanding } from "./fixtures.js";
 
 test.describe("Settings", () => {
   test.beforeEach(async ({ page }) => {
+    await skipLanding(page);
     await page.goto("/");
   });
 
@@ -27,11 +28,19 @@ test.describe("Settings", () => {
     await expect(goalDisplay).toHaveText("6");
   });
 
+  test("shows signed-out LeetCode Activity copy", async ({ page }) => {
+    await page.getByRole("button", { name: "Settings" }).click();
+
+    await expect(page.getByText("LeetCode Activity", { exact: true })).toBeVisible();
+    await expect(page.getByText("Sign in to track LeetCode activity across devices.")).toBeVisible();
+  });
+
   test("bulk add problems by number", async ({ page }) => {
     await page.getByRole("button", { name: "Settings" }).click();
 
     // Open bulk add section
     await page.getByRole("button", { name: /Bulk Add/i }).click();
+    await page.getByRole("button", { name: /\+ Bulk Add Problems/i }).click();
 
     // Type problem numbers
     const input = page.getByPlaceholder(/1, 15, 56/i);

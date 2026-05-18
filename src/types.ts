@@ -2,6 +2,20 @@ export type Difficulty = "Easy" | "Medium" | "Hard";
 export type Confidence = 1 | 2 | 3 | 4 | 5;
 export type SyncStatus = "idle" | "syncing" | "synced" | "error";
 export type ActiveTab = "dashboard" | "progress" | "problems";
+export type LeetCodeSyncStatus =
+  | "idle"
+  | "syncing"
+  | "synced"
+  | "error"
+  | "no_visible_submissions"
+  | "rate_limited";
+export type LeetCodeSubmissionStatus =
+  | "detected"
+  | "linked_existing"
+  | "pending"
+  | "imported"
+  | "ignored"
+  | "rated";
 
 export interface Problem {
   id: string;
@@ -16,6 +30,7 @@ export interface Problem {
   dateAdded: string;
   lastReviewed: string | null;
   nextReviewDate: string;
+  fiveStarStreak?: number;
   updatedAt: string;
 }
 
@@ -24,6 +39,89 @@ export interface LeetCodeProblem {
   t: string;
   d: Difficulty;
   s: string;
+}
+
+export interface LeetCodeConnection {
+  userId: string;
+  leetcodeUsername: string;
+  leetcodeDisplayName?: string | null;
+  leetcodeAvatarUrl?: string | null;
+  leetcodeTotalSolved?: number | null;
+  lastSeenAcceptedCount?: number | null;
+  lastSyncedAt?: string | null;
+  lastSyncStartedAt?: string | null;
+  syncStatus: LeetCodeSyncStatus;
+  syncError?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LeetCodeSubmission {
+  id: string;
+  userId: string;
+  leetcodeUsername: string;
+  leetcodeSubmissionId: string;
+  titleSlug: string;
+  title: string;
+  leetcodeNumber: number | null;
+  difficulty: Difficulty | null;
+  submittedAt: string;
+  problemId?: string | null;
+  status: LeetCodeSubmissionStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LeetCodeIgnoredImport {
+  userId: string;
+  titleSlug: string;
+  leetcodeNumber: number | null;
+  ignoredAt?: string;
+  createdAt?: string;
+}
+
+export interface PendingLeetCodeImport {
+  submissionDbId: string;
+  titleSlug: string;
+  title: string;
+  leetcodeNumber: number | null;
+  difficulty: Difficulty | null;
+  submittedAt: string;
+  firstSeenAt?: string;
+  suggestedPatterns: string[];
+  expired: boolean;
+}
+
+export type TodayLeetCodeItem =
+  | (PendingLeetCodeImport & {
+    kind: "pending_import";
+    status: "detected";
+    matchedProblemId: null;
+    statusLabel: "Rate to add";
+  })
+  | {
+    kind: "linked_existing" | "imported" | "rated";
+    submissionDbId: string;
+    titleSlug: string;
+    title: string;
+    leetcodeNumber: number | null;
+    difficulty: Difficulty | null;
+    submittedAt: string;
+    suggestedPatterns: string[];
+    matchedProblemId: string | null;
+    status: "linked_existing" | "imported" | "rated";
+    statusLabel: "In library" | "Review due" | "Imported" | "Rated";
+    confidence: Confidence | null;
+    reviewedTodayConfidence: Confidence | null;
+  };
+
+export interface LeetCodeSyncSummary {
+  fetchedCount?: number;
+  insertedCount?: number;
+  existingCount?: number;
+  linkedExistingCount?: number;
+  lastSyncedAt?: string | null;
+  throttled?: boolean;
 }
 
 export interface ReviewLogEntry {
@@ -56,6 +154,11 @@ export interface Preferences {
 export interface ToastState {
   visible: boolean;
   message: string;
+  variant?: "success" | "error";
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export interface BackupData {

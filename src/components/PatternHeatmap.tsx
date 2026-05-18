@@ -1,41 +1,12 @@
 import { useState } from "react";
 import { getVisiblePatterns } from "../utils/constants";
+import { getProgressHeatmapTint } from "../utils/progressVisuals";
 import type { Problem } from "../types";
 
 interface Props {
   problems: Problem[];
   onPatternClick: (pattern: string) => void;
   enabledExtraPatterns?: string[];
-}
-
-// 9-stop color scale: confidence → flat tinted background + border
-function getCellStyle(avgConf: number, count: number): { background: string; border: string } {
-  if (count === 0)
-    return { background: "var(--color-pb-heatmap-empty)", border: "var(--color-pb-border)" };
-
-  if (avgConf < 1.5)
-    return { background: "rgba(248,81,73,0.12)", border: "rgba(248,81,73,0.25)" };
-  if (avgConf < 2.0)
-    return { background: "rgba(240,136,62,0.12)", border: "rgba(240,136,62,0.25)" };
-  if (avgConf < 2.5)
-    return { background: "rgba(240,136,62,0.14)", border: "rgba(240,136,62,0.28)" };
-  if (avgConf < 3.0)
-    return { background: "rgba(210,153,34,0.14)", border: "rgba(210,153,34,0.28)" };
-  if (avgConf < 3.5)
-    return { background: "rgba(210,153,34,0.16)", border: "rgba(210,153,34,0.30)" };
-  if (avgConf < 4.0)
-    return { background: "rgba(130,190,60,0.14)", border: "rgba(130,190,60,0.28)" };
-  if (avgConf < 4.5)
-    return { background: "rgba(63,185,80,0.16)", border: "rgba(63,185,80,0.30)" };
-
-  return { background: "rgba(63,185,80,0.20)", border: "rgba(63,185,80,0.35)" };
-}
-
-function getConfTextColor(avgConf: number, count: number): string {
-  if (count === 0) return "var(--color-pb-border)";
-  if (avgConf < 2.5) return "var(--color-pb-hard)";
-  if (avgConf < 3.5) return "var(--color-pb-medium)";
-  return "var(--color-pb-easy)";
 }
 
 export default function PatternHeatmap({ problems, onPatternClick, enabledExtraPatterns }: Props) {
@@ -58,45 +29,58 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
 
   return (
     <div>
-      {/* 6-column grid on desktop, 3-column on narrow */}
-      <div className="grid grid-cols-3 gap-1.5 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         {allPatterns.map((pattern) => {
           const data = statsMap[pattern];
           const avgConf = data.count > 0 ? data.totalConf / data.count : 0;
-          const cell = getCellStyle(avgConf, data.count);
+          const tint = getProgressHeatmapTint(avgConf, data.count);
           const isHovered = hovered === pattern;
-          const confColor = getConfTextColor(avgConf, data.count);
+          const problemLabel = data.count === 1 ? "problem" : "problems";
+          const confidenceLabel =
+            data.count > 0
+              ? `average confidence ${avgConf.toFixed(1)}`
+              : "no problems yet";
 
           return (
-            <div
+            <button
               key={pattern}
+              type="button"
+              aria-label={`${pattern}: ${data.count} ${problemLabel}, ${confidenceLabel}`}
               onClick={() => onPatternClick(pattern)}
               onMouseEnter={() => setHovered(pattern)}
               onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(pattern)}
+              onBlur={() => setHovered(null)}
               style={{
-                backgroundColor: cell.background,
-                border: `1px solid ${isHovered ? "#7c6bf5" : cell.border}`,
-                borderRadius: 10,
-                padding: "14px 12px",
+                appearance: "none",
+                backgroundColor: tint.background,
+                border: `1px solid ${isHovered ? "#2d2d3c" : tint.border}`,
+                borderRadius: 8,
+                padding: "16px 15px 14px",
                 cursor: "pointer",
-                transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-                minHeight: 72,
+                transition: "transform 0.1s ease, border-color 0.12s ease, box-shadow 0.15s ease",
+                minHeight: 86,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
+                width: "100%",
+                fontFamily: "inherit",
+                textAlign: "left",
+                transform: isHovered ? "translateY(-1px)" : "translateY(0)",
                 boxShadow: isHovered
-                  ? "0 0 0 1px rgba(124,107,245,0.3)"
+                  ? "0 0 0 1px rgba(124,107,245,0.16)"
                   : "none",
                 overflow: "hidden",
               }}
+              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
             >
               <div
                 style={{
                   fontSize: 13,
-                  fontWeight: 600,
-                  color: data.count > 0 ? "var(--color-pb-text)" : "var(--color-pb-border)",
-                  lineHeight: 1.3,
-                  marginBottom: 8,
+                  fontWeight: 700,
+                  color: data.count > 0 ? "#ededf2" : "#8a8a99",
+                  lineHeight: 1.25,
+                  marginBottom: 12,
                 }}
               >
                 {pattern}
@@ -110,25 +94,25 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
               >
                 <span
                   style={{
-                    fontSize: 11,
-                    color: data.count > 0 ? "var(--color-pb-text-muted)" : "var(--color-pb-border-light)",
+                    fontSize: 12,
+                    color: data.count > 0 ? "#8a8a99" : "#5e5e6e",
                   }}
                 >
-                  {data.count > 0 ? `${data.count} solved` : "—"}
+                  {data.count > 0 ? `${data.count} ${problemLabel}` : "—"}
                 </span>
                 <span
                   style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                    color: confColor,
-                    lineHeight: 1,
-                    letterSpacing: -0.5,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: tint.text,
+                    lineHeight: 1.1,
+                    letterSpacing: 0,
                   }}
                 >
                   {data.count > 0 ? avgConf.toFixed(1) : ""}
                 </span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

@@ -1,13 +1,14 @@
 import { test, expect } from "@playwright/test";
-import { buildProblem, seedProblems, localTodayStr } from "./fixtures.js";
+import { buildProblem, seedPreferences, seedProblems, seedReviewEvents, skipLanding, localTodayStr } from "./fixtures.js";
 
-test.describe("Dashboard", () => {
+test.describe("Today", () => {
   test("shows welcome screen when no problems", async ({ page }) => {
+    await skipLanding(page);
     await page.goto("/");
     await expect(page.getByText(/Welcome to PatternBank/i)).toBeVisible();
   });
 
-  test("shows stats and heatmap with problems", async ({ page }) => {
+  test("shows due reviews without old dashboard analytics", async ({ page }) => {
     const today = localTodayStr();
     const problems = [
       buildProblem({ title: "Alpha Problem", patterns: ["DP"], confidence: 4, nextReviewDate: today }),
@@ -17,36 +18,56 @@ test.describe("Dashboard", () => {
     await seedProblems(page, problems);
     await page.goto("/");
 
-    // Stats bar should show total and due counts
-    const statsBar = page.locator("div").filter({ hasText: /Total|Due/ }).first();
-    await expect(statsBar).toBeVisible();
-
-    // Verify the due problems appear in Today's Reviews
-    await expect(page.getByText(/Today's Reviews/)).toBeVisible();
-
-    // Pattern heatmap should show DP and Tree
-    await expect(page.getByText("DP").first()).toBeVisible();
-    await expect(page.getByText("Tree").first()).toBeVisible();
-
-    // Today's reviews should show the 2 due problems
+    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+    await expect(page.getByText("Reviews due")).toBeVisible();
     await expect(page.getByText("Alpha Problem")).toBeVisible();
     await expect(page.getByText("Beta Problem")).toBeVisible();
+    await expect(page.getByText("Pattern Confidence")).not.toBeVisible();
   });
 
-  test("clicking pattern in heatmap navigates to filtered All Problems", async ({ page }) => {
+  test("see all due navigates to All Problems", async ({ page }) => {
+    const today = localTodayStr();
     const problems = [
-      buildProblem({ title: "DP Problem", patterns: ["DP"], nextReviewDate: "2099-01-01" }),
-      buildProblem({ title: "Tree Problem", patterns: ["Tree"], nextReviewDate: "2099-01-01" }),
+      buildProblem({ title: "First Due Problem", confidence: 1, nextReviewDate: today }),
+      buildProblem({ title: "Second Due Problem", confidence: 2, nextReviewDate: today }),
     ];
+    await seedPreferences(page, {
+      dailyReviewGoal: 1,
+      hidePatternsDuringReview: false,
+      enabledExtraPatterns: [],
+    });
     await seedProblems(page, problems);
     await page.goto("/");
 
-    // Click DP in heatmap section (scope to avoid hitting pattern tags on review cards)
-    const heatmapSection = page.getByText("Pattern Confidence").locator("..").locator("..");
-    await heatmapSection.getByText("DP").click();
+    await page.getByRole("button", { name: /See all 2 due/i }).click();
 
-    // Should switch to All Problems tab with DP filter applied
-    await expect(page.getByText("DP Problem")).toBeVisible();
-    await expect(page.getByText("Tree Problem")).not.toBeVisible();
+    await expect(page.getByPlaceholder(/search by title/i)).toBeVisible();
+    await expect(page.getByText("First Due Problem")).toBeVisible();
+    await expect(page.getByText("Second Due Problem")).toBeVisible();
+  });
+
+  test("shows Done today from PatternBank review events", async ({ page }) => {
+    const today = localTodayStr();
+    const problem = buildProblem({
+      id: "reviewed-problem",
+      title: "Reviewed Today Problem",
+      confidence: 4,
+      nextReviewDate: "2099-01-01",
+    });
+    await seedProblems(page, [problem]);
+    await seedReviewEvents(page, [
+      {
+        date: today,
+        problemId: "reviewed-problem",
+        confidence: 4,
+        patterns: ["Two Pointers"],
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+    await page.goto("/");
+
+    await expect(page.getByText("Done today")).toBeVisible();
+    await expect(page.getByText("Reviewed Today Problem")).toBeVisible();
+    await expect(page.getByText("4★")).toBeVisible();
   });
 });

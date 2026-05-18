@@ -6,7 +6,7 @@
 
 **Spaced repetition for LeetCode interview prep**
 
-PatternBank is a cross-platform app that solves the retention problem in technical interview preparation. You log problems, tag them by algorithmic pattern, rate your confidence, and the app tells you when to review. No more forgetting solutions two weeks after solving them.
+PatternBank is a cross-platform app that solves the retention problem in technical interview preparation. You log problems, tag them by algorithmic pattern, rate your confidence, and the app tells you when to review. The schedule starts at 1, 2, 5, 10, and 30 days, then repeated 5-star reviews graduate to longer intervals.
 
 **Web:** [pattern-bank.vercel.app](https://pattern-bank.vercel.app)
 **iOS:** [App Store](https://apps.apple.com/app/patternbank/id6759760762)
@@ -23,7 +23,7 @@ The gap isn't tracking. It's retention. PatternBank fills that gap with spaced r
 
 ## Features
 
-- **Spaced Repetition** — SM-2 algorithm calculates review intervals based on your confidence rating (1-5 stars). Low confidence = review tomorrow. High confidence = review in two weeks.
+- **Spaced Repetition** — Confidence ratings schedule reviews at 1, 2, 5, 10, or 30 days. Repeated 5-star reviews graduate to 60, 120, 240, then 365 days.
 - **Pattern Organization** — 24 algorithmic categories — 18 core (Two Pointers through DP) plus 6 opt-in advanced patterns (Intervals, Mono Stack, Prefix Sum, Bit, System Design, OOD). Tag problems by pattern and see where your gaps are.
 - **Confidence Heatmap** — Visual grid showing average confidence per pattern. Red = weak, green = strong. Click any cell to filter problems by that pattern.
 - **Curated Problem Lists** — 6 built-in lists: NeetCode 75, NeetCode 150, NeetCode 250, Grind 75, Grind 169, and LeetCode Hot 100.
@@ -39,10 +39,11 @@ The gap isn't tracking. It's retention. PatternBank fills that gap with spaced r
 - **Hide Patterns During Review** — Toggle in Settings to hide pattern tags on review cards. Test your pattern recognition before revealing the answer.
 - **Danger Zone** — Set all problems due today or clear all data from Settings.
 - **Landing Page** — New visitors see an animated marketing page with pattern heatmap demo. Returning users go straight to the app.
-- **Progress Dashboard** — Review activity heatmap (LeetCode-style month shapes), confidence trend chart with per-pattern filtering, streak tracking, confidence spread, and top patterns breakdown.
+- **Today Workflow** — Action-focused review queue with LeetCode activity, pending imports, Done today, and explicit Rate actions for solves that still need a PatternBank rating.
+- **Progress Analytics** — Review activity, pattern confidence, confidence trend, 30-day projection, confidence spread, and top patterns breakdown live in the Progress tab.
 - **Quick Start Onboarding** — New users see an interactive guide with action paths, interval reference table, tips, and a mock review timeline.
 - **Collapsible Settings** — Infrequently-used settings sections collapse by default to reduce visual clutter.
-- **Pull-to-Refresh** — Manual refresh on Dashboard and Progress screens (mobile).
+- **Pull-to-Refresh** — Manual refresh on Today and Progress screens (mobile).
 - **Push Notifications** — Daily review reminders on mobile with configurable time.
 
 ---
@@ -105,15 +106,17 @@ PatternBank follows a **localStorage-first** design. Every action writes locally
 
 ## Spaced Repetition Algorithm
 
-Simplified SM-2 with confidence-based intervals:
+V2 confidence-based intervals with 5-star graduation:
 
 | Confidence | Interval | Meaning |
 |-----------|----------|---------|
 | 1 star | 1 day | No recall |
-| 2 stars | 1 day | Struggled |
-| 3 stars | 3 days | With effort |
-| 4 stars | 7 days | Comfortable |
-| 5 stars | 14 days | Automatic |
+| 2 stars | 2 days | Struggled |
+| 3 stars | 5 days | With effort |
+| 4 stars | 10 days | Comfortable |
+| 5 stars | 30 days | Automatic |
+
+Repeated 5-star reviews graduate to longer intervals: 30, 60, 120, 240, then 365 days.
 
 When more problems are due than the daily goal allows, a three-tier priority sort determines which surface first:
 
@@ -131,16 +134,17 @@ src/
 │   ├── PatternHeatmap   Radial gradient confidence grid
 │   ├── BulkAddSection   Chip input with LC database validation
 │   ├── ReviewCard       Active recall flow (notes hidden by default)
-│   ├── DashboardView    Stats, review queue, heatmap
-│   ├── ProgressView     Streak heatmap, confidence trend, pattern analytics
+│   ├── TodayView        Reviews due, LeetCode imports, Done today
+│   ├── ProgressView     Pattern confidence, review activity, trend analytics
+│   ├── AllProblemsView  Search, filters, sorting, compact library cards
 │   ├── SettingsModal    → AccountSection, DailyGoalSection, DataSection,
 │   │                      FeedbackSection, MobileAppSection
 │   ├── ProblemModal     → ModeToggle, ProblemInfo, PatternSelector,
 │   │                      NotesEditor, ConfidenceInfo
 │   └── ...
 ├── LandingPage          Animated hero, heatmap demo, iOS QR popover
-├── utils/               11 modules
-│   ├── spacedRepetition SM-2 intervals + priority algorithm
+├── utils/               Business logic and data mapping modules
+│   ├── spacedRepetition V2 intervals, 5-star graduation + priority algorithm
 │   ├── problemTransforms Pure business logic (bulk add, import merge, review progress)
 │   ├── progressUtils    Streak, heatmap, confidence trend, pattern stats
 │   ├── leetcodeProblems 3,800+ problems with instant search
@@ -150,10 +154,22 @@ src/
 ├── contexts/            AuthContext (Google, GitHub, Apple OAuth)
 └── hooks/               useProblems (coordinator), useUI (UI state),
                          usePreferences (prefs + persistence),
-                         useCloudSync (sign-in sync + status), useAuth
+                         useCloudSync (sign-in sync + status), useAuth,
+                         useLeetCodeActivity
 ```
 
 App.tsx composes the hooks; pure business logic lives in `problemTransforms.ts`.
+
+### V2 LeetCode Activity Setup
+
+LeetCode Activity uses public profile data, not OAuth, cookies, or private account access. Before testing or deploying V2 LeetCode flows against Supabase:
+
+1. Apply `docs/supabase/leetcode-activity.sql`.
+2. Deploy the Edge Function:
+   ```bash
+   supabase functions deploy sync-leetcode-activity
+   ```
+3. Confirm the service role key is configured only in the Edge Function environment and is never exposed through a `VITE_` client variable.
 
 ---
 

@@ -76,6 +76,7 @@ import {
   upsertDataReset,
   fetchReviewLog,
   logReview,
+  replaceReviewLog,
   fetchProblemReviewHistory,
   fetchReviewEvents,
   fetchPreferences,
@@ -109,6 +110,7 @@ describe("fetchProblems", () => {
     expect(p.dateAdded).toBe(row.date_added);
     expect(p.nextReviewDate).toBe(row.next_review_date);
     expect(p.excludeFromReview).toBe(row.exclude_from_review);
+    expect(p.fiveStarStreak).toBe(0);
   });
 
   it("returns { data: null, error } on Supabase error", async () => {
@@ -158,9 +160,30 @@ describe("upsertProblem", () => {
       title: "Two Sum",
       leetcode_number: 1,
       difficulty: "Easy",
+      five_star_streak: 0,
       user_id: USER_ID,
     });
     expect(upsertCall).toHaveProperty("updated_at");
+  });
+
+  it("converts old local 5-star problems to snake_case with default streak 1", async () => {
+    const row = makeSnakeRow({ confidence: 5, five_star_streak: 1 });
+    mockSupabase = createSupabaseMock({ data: row, error: null });
+
+    await upsertProblem(USER_ID, makeProblem({ confidence: 5 }));
+
+    const upsertCall = mockSupabase.upsert.mock.calls[0][0];
+    expect(upsertCall.five_star_streak).toBe(1);
+  });
+
+  it("preserves explicit fiveStarStreak 0 when upserting", async () => {
+    const row = makeSnakeRow({ confidence: 5, five_star_streak: 0 });
+    mockSupabase = createSupabaseMock({ data: row, error: null });
+
+    await upsertProblem(USER_ID, makeProblem({ confidence: 5, fiveStarStreak: 0 }));
+
+    const upsertCall = mockSupabase.upsert.mock.calls[0][0];
+    expect(upsertCall.five_star_streak).toBe(0);
   });
 
   it("returns camelCase problem on success", async () => {
@@ -174,6 +197,7 @@ describe("upsertProblem", () => {
     expect(result.data!.id).toBe(row.id);
     expect(result.data!.leetcodeNumber).toBe(row.leetcode_number);
     expect(result.data!.dateAdded).toBe(row.date_added);
+    expect(result.data!.fiveStarStreak).toBe(0);
   });
 
   it("returns error on failure", async () => {
@@ -511,6 +535,96 @@ describe("logReview", () => {
     mockSupabase = createSupabaseMock({ data: null, error: supabaseError });
 
     const result = await logReview(USER_ID, "prob-1", 2, 3, ["Two Pointers"]);
+    expect(result.data).toBeNull();
+    expect(result.error).toBe(supabaseError);
+  });
+
+  it("replaces existing same-day cloud review before upserting the latest row by dedupe key", async () => {
+    const insertedRow = {
+      user_id: USER_ID,
+      problem_id: "prob-1",
+      old_confidence: 2,
+      new_confidence: 5,
+      dedupe_key: `leetcode-rating:${USER_ID}:prob-1:2026-03-10`,
+    };
+    mockSupabase = createSupabaseMock({ data: insertedRow, error: null });
+    mockSupabase.eq
+      .mockReturnValueOnce(mockSupabase)
+      .mockReturnValueOnce(mockSupabase)
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    const timestamp = "2026-03-10T12:00:00.000Z";
+    const result = await replaceReviewLog(USER_ID, "prob-1", 2, 5, ["Graph"], timestamp);
+
+    expect(result.error).toBeNull();
+    expect(mockSupabase.from).toHaveBeenCalledWith("review_log");
+    expect(mockSupabase.delete.mock.invocationCallOrder[0]).toBeLessThan(
+      mockSupabase.upsert.mock.invocationCallOrder[0],
+    );
+    expect(mockSupabase.eq.mock.calls.slice(0, 3)).toEqual([
+      ["user_id", USER_ID],
+      ["problem_id", "prob-1"],
+      ["review_date", "2026-03-10"],
+    ]);
+    expect(mockSupabase.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: USER_ID,
+        problem_id: "prob-1",
+        old_confidence: 2,
+        new_confidence: 5,
+        review_date: "2026-03-10",
+        created_at: timestamp,
+        dedupe_key: `leetcode-rating:${USER_ID}:prob-1:2026-03-10`,
+      }),
+      { onConflict: "dedupe_key" },
+    );
+  });
+
+  it("writes replacement reviews with a stable LeetCode rating dedupe key", async () => {
+    mockSupabase = createSupabaseMock({ data: null, error: null });
+    mockSupabase.eq
+      .mockReturnValueOnce(mockSupabase)
+      .mockReturnValueOnce(mockSupabase)
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await replaceReviewLog(USER_ID, "prob-1", 2, 5, ["Graph"], "2026-03-10T12:00:00.000Z");
+
+    expect(mockSupabase.upsert.mock.calls[0][0]).toMatchObject({
+      user_id: USER_ID,
+      problem_id: "prob-1",
+      old_confidence: 2,
+      new_confidence: 5,
+      review_date: "2026-03-10",
+      dedupe_key: `leetcode-rating:${USER_ID}:prob-1:2026-03-10`,
+    });
+  });
+
+  it("does not upsert replacement review when same-day delete fails", async () => {
+    const supabaseError = { message: "Delete failed" };
+    mockSupabase = createSupabaseMock({ data: null, error: null });
+    mockSupabase.eq
+      .mockReturnValueOnce(mockSupabase)
+      .mockReturnValueOnce(mockSupabase)
+      .mockResolvedValueOnce({ data: null, error: supabaseError });
+
+    const result = await replaceReviewLog(USER_ID, "prob-1", 2, 5, ["Graph"], "2026-03-10T12:00:00.000Z");
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBe(supabaseError);
+    expect(mockSupabase.upsert).not.toHaveBeenCalled();
+  });
+
+  it("returns replacement review upsert errors", async () => {
+    const supabaseError = { message: "Upsert failed" };
+    mockSupabase = createSupabaseMock({ data: null, error: null });
+    mockSupabase.eq
+      .mockReturnValueOnce(mockSupabase)
+      .mockReturnValueOnce(mockSupabase)
+      .mockResolvedValueOnce({ data: null, error: null });
+    mockSupabase.single.mockResolvedValueOnce({ data: null, error: supabaseError });
+
+    const result = await replaceReviewLog(USER_ID, "prob-1", 2, 5, ["Graph"], "2026-03-10T12:00:00.000Z");
+
     expect(result.data).toBeNull();
     expect(result.error).toBe(supabaseError);
   });

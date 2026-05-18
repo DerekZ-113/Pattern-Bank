@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { getStoredProblems } from "./fixtures.js";
+import { getStoredProblems, skipLanding } from "./fixtures.js";
 
 test.describe("Add Problem", () => {
   test.beforeEach(async ({ page }) => {
+    await skipLanding(page);
     await page.goto("/");
   });
 
@@ -45,7 +46,7 @@ test.describe("Add Problem", () => {
     expect(stored[0].confidence).toBe(3);
   });
 
-  test("shows duplicate warning for existing problem", async ({ page }) => {
+  test("prevents saving a duplicate existing problem", async ({ page }) => {
     // First, add a problem
     await page.getByRole("button", { name: "Add Problem" }).click();
     const searchInput = page.getByPlaceholder(/type number or title/i);
@@ -56,12 +57,13 @@ test.describe("Add Problem", () => {
     await expect(page.getByText("Problem added")).toBeVisible();
 
     // Try to add same problem again
+    await page.getByRole("button", { name: /All Problems/i }).click();
     await page.getByRole("button", { name: "Add Problem" }).click();
     await page.getByPlaceholder(/type number or title/i).fill("1");
     await page.getByRole("button", { name: /Two Sum/i }).first().click();
+    await page.getByRole("button", { name: "Hash Table" }).click();
 
-    // Should show duplicate warning
-    await expect(page.getByText(/already in your library/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save Problem" })).toBeDisabled();
   });
 
   test("validates required fields", async ({ page }) => {

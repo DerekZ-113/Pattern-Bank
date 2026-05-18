@@ -3,44 +3,37 @@ import type { ActiveTab } from "../types";
 interface Props {
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
-  onAddClick: () => void;
 }
 
-export default function NavBar({ activeTab, onTabChange, onAddClick }: Props) {
+export default function NavBar({ activeTab, onTabChange }: Props) {
   const tabs: { id: ActiveTab; label: string; icon: string }[] = [
-    { id: "dashboard", label: "Dashboard", icon: "◫" },
+    { id: "dashboard", label: "Today", icon: "◷" },
     { id: "progress", label: "Progress", icon: "▣" },
     { id: "problems", label: "All Problems", icon: "☰" },
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[900] flex justify-center border-t border-pb-border bg-pb-surface">
+    <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-[900] border-t border-pb-border bg-pb-bg/85 backdrop-blur">
+      <div className="mx-auto grid h-16 max-w-[1200px] grid-cols-3">
       {tabs.map((tab) => {
         const active = activeTab === tab.id;
         return (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`flex max-w-[160px] flex-1 flex-col items-center gap-0.5 border-none bg-transparent pb-3 pt-2.5 text-[11px] transition-colors duration-150 ${
+            aria-current={active ? "page" : undefined}
+            className={`flex flex-col items-center justify-center gap-1 border-none bg-transparent text-[11px] transition-colors duration-150 ${
               active
-                ? "border-t-2 border-t-pb-accent font-semibold text-pb-accent"
-                : "border-t-2 border-t-transparent font-medium text-pb-text-dim"
-            } cursor-pointer`}
+                ? "font-semibold text-pb-accent"
+                : "font-medium text-pb-text-dim hover:text-pb-text-muted"
+            } cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-pb-accent`}
           >
-            <span className="flex h-7 items-center justify-center text-lg leading-none">{tab.icon}</span>
+            <span aria-hidden="true" className="flex h-5 items-center justify-center text-lg leading-none">{tab.icon}</span>
             {tab.label}
           </button>
         );
       })}
-      <button
-        onClick={onAddClick}
-        className="flex max-w-[160px] flex-1 cursor-pointer flex-col items-center gap-0.5 border-none border-t-2 border-t-transparent bg-transparent pb-3 pt-2.5 text-[11px] font-semibold text-pb-accent"
-      >
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-pb-accent-subtle text-sm leading-none">
-          +
-        </span>
-        Add Problem
-      </button>
-    </div>
+      </div>
+    </nav>
   );
 }

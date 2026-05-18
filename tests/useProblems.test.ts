@@ -5,6 +5,8 @@ import {
   loadProblems,
   saveProblems,
   logReviewToday,
+  logReviewEvent,
+  logOrReplaceReviewEvent,
   saveReviewLog,
   recordProblemTombstone,
   saveProblemTombstones,
@@ -15,6 +17,8 @@ import {
   pushProblemToCloud,
   deleteProblemFromCloud,
   pushProblemsToCloud,
+  pushReviewToCloud,
+  replaceReviewInCloud,
   pushPreferencesToCloud,
   deduplicateProblems,
 } from "../src/utils/sync";
@@ -33,6 +37,7 @@ vi.mock("../src/utils/storage", () => ({
   saveReviewLog: vi.fn(),
   logReviewToday: vi.fn(),
   logReviewEvent: vi.fn(),
+  logOrReplaceReviewEvent: vi.fn(),
   loadReviewEvents: vi.fn(() => []),
   saveReviewEvents: vi.fn(),
   loadProblemTombstones: vi.fn(() => []),
@@ -61,6 +66,7 @@ vi.mock("../src/utils/sync", () => ({
   pushProblemsToCloud: vi.fn(),
   deleteProblemFromCloud: vi.fn(),
   pushReviewToCloud: vi.fn(),
+  replaceReviewInCloud: vi.fn(),
   pushPreferencesToCloud: vi.fn(),
   clearAllCloudData: vi.fn(),
   deduplicateProblems: vi.fn((problems: Problem[]) => ({ problems, removedIds: [] })),
@@ -102,6 +108,8 @@ const mockUser = { id: "user-123" } as User;
 const defaultPrefs: Preferences = { dailyReviewGoal: 5, hidePatternsDuringReview: false, enabledExtraPatterns: [] };
 const mockSyncOnSignIn = syncOnSignIn as ReturnType<typeof vi.fn>;
 const mockPushPreferencesToCloud = pushPreferencesToCloud as ReturnType<typeof vi.fn>;
+const mockPushReviewToCloud = pushReviewToCloud as ReturnType<typeof vi.fn>;
+const mockReplaceReviewInCloud = replaceReviewInCloud as ReturnType<typeof vi.fn>;
 
 function makeSyncResult(preferences: Preferences, syncStatus?: SyncStatus) {
   return {
@@ -301,6 +309,49 @@ describe("useProblems", () => {
 
       expect(pushProblemToCloud).toHaveBeenCalledWith("user-123", newProblem);
     });
+
+    it("creates a local-first problem from a LeetCode import without logging a review", () => {
+      const imported = makeProblem({
+        id: "lc-import",
+        title: "Imported From LC",
+        leetcodeNumber: 200,
+        confidence: 5,
+        lastReviewed: null,
+        fiveStarStreak: 0,
+      });
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      let response!: ReturnType<typeof result.current.handleCreateProblemFromLeetCodeImport>;
+      act(() => {
+        response = result.current.handleCreateProblemFromLeetCodeImport(imported);
+      });
+
+      expect(response.status).toBe("created");
+      expect(result.current.problems).toContainEqual(imported);
+      expect(pushProblemToCloud).toHaveBeenCalledWith("user-123", imported);
+      expect(logReviewToday).not.toHaveBeenCalled();
+    });
+
+    it("rejects a LeetCode import duplicate and returns the existing problem", () => {
+      const existing = makeProblem({ id: "existing", leetcodeNumber: 200 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([existing]);
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      let response!: ReturnType<typeof result.current.handleCreateProblemFromLeetCodeImport>;
+      act(() => {
+        response = result.current.handleCreateProblemFromLeetCodeImport(
+          makeProblem({ id: "new-import", leetcodeNumber: 200 }),
+        );
+      });
+
+      expect(response.status).toBe("duplicate");
+      expect(response.problem.id).toBe("existing");
+      expect(result.current.problems).toHaveLength(1);
+    });
   });
 
   // ── handleSaveProblem — edit ───────────────────────────────────────────────
@@ -448,6 +499,35 @@ describe("useProblems", () => {
       });
 
       expect(logReviewToday).toHaveBeenCalled();
+      expect(logReviewEvent).toHaveBeenCalledWith(
+        "review-log-1",
+        3,
+        ["Hash Table"],
+        expect.any(String),
+      );
+      expect(logOrReplaceReviewEvent).not.toHaveBeenCalled();
+    });
+
+    it("replaces same-day review event when requested by LeetCode rating surfaces", () => {
+      const p = makeProblem({ id: "review-replace-1" });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-replace-1", 4 as Confidence, { replaceSameDayReviewEvent: true });
+      });
+
+      expect(logReviewToday).toHaveBeenCalled();
+      expect(logOrReplaceReviewEvent).toHaveBeenCalledWith(
+        "review-replace-1",
+        4,
+        ["Hash Table"],
+        expect.any(String),
+      );
+      expect(logReviewEvent).not.toHaveBeenCalled();
     });
 
     it("pushes to cloud when authenticated", () => {
@@ -463,6 +543,32 @@ describe("useProblems", () => {
       });
 
       expect(pushProblemToCloud).toHaveBeenCalled();
+      expect(mockPushReviewToCloud).toHaveBeenCalled();
+      expect(mockReplaceReviewInCloud).not.toHaveBeenCalled();
+    });
+
+    it("replaces cloud review log when requested by LeetCode rating surfaces", () => {
+      const p = makeProblem({ id: "review-cloud-replace-1" });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-cloud-replace-1", 4 as Confidence, { replaceSameDayReviewEvent: true });
+      });
+
+      expect(pushProblemToCloud).toHaveBeenCalled();
+      expect(mockReplaceReviewInCloud).toHaveBeenCalledWith(
+        mockUser.id,
+        "review-cloud-replace-1",
+        3,
+        4,
+        ["Hash Table"],
+        expect.any(String),
+      );
+      expect(mockPushReviewToCloud).not.toHaveBeenCalled();
     });
 
     it("shows progress toast with interval", () => {
@@ -477,10 +583,42 @@ describe("useProblems", () => {
         result.current.handleReview("review-toast-1", 3 as Confidence);
       });
 
-      // confidence 3 → 3 day interval
+      // confidence 3 → 5 day interval
       expect(mockShowToast).toHaveBeenCalledWith(
-        expect.stringMatching(/Next review in 3 days/)
+        expect.stringMatching(/Next review in 5 days/)
       );
+    });
+
+    it("shows graduated interval in review toast for second consecutive 5-star review", () => {
+      const p = makeProblem({ id: "review-toast-5", confidence: 5 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-toast-5", 5 as Confidence);
+      });
+
+      expect(mockShowToast).toHaveBeenCalledWith(
+        expect.stringMatching(/Next review in 60 days/)
+      );
+    });
+
+    it("resets fiveStarStreak when reviewing below 5 stars", () => {
+      const p = makeProblem({ id: "review-reset-streak", confidence: 5, fiveStarStreak: 3 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-reset-streak", 4 as Confidence);
+      });
+
+      expect(result.current.problems[0].fiveStarStreak).toBe(0);
     });
   });
 

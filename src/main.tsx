@@ -24,6 +24,12 @@ if (window.location.hostname !== "localhost") {
   });
 }
 
+if (import.meta.env.DEV) {
+  import("./utils/devSeed").then(({ installDevSeedHelpers }) => {
+    installDevSeedHelpers();
+  });
+}
+
 function Root() {
   const [showApp, setShowApp] = useState(
     () => sessionStorage.getItem("patternbank-skip-landing") === "true",

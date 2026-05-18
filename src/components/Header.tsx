@@ -4,6 +4,7 @@ interface DotInfo {
   color: string;
   title: string;
   animation: string;
+  label: string;
 }
 
 interface Props {
@@ -14,9 +15,9 @@ interface Props {
 
 export default function Header({ onSettingsClick, onHelpClick, syncStatus }: Props) {
   const dot: Partial<Record<SyncStatus, DotInfo>> = {
-    syncing: { color: "#d29922", title: "Syncing...", animation: "sync-pulse 1.5s ease-in-out infinite" },
-    synced: { color: "#3fb950", title: "Synced", animation: "none" },
-    error: { color: "#f85149", title: "Sync error", animation: "none" },
+    syncing: { color: "#d29922", title: "Syncing...", label: "Syncing", animation: "sync-pulse 1.5s ease-in-out infinite" },
+    synced: { color: "#3fb950", title: "Cloud synced", label: "Cloud synced", animation: "none" },
+    error: { color: "#f85149", title: "Sync issue", label: "Sync issue", animation: "none" },
   };
 
   const statusInfo = dot[syncStatus] || null;
@@ -32,16 +33,24 @@ export default function Header({ onSettingsClick, onHelpClick, syncStatus }: Pro
       <div className="flex items-center gap-3">
         {statusInfo && (
           <span
+            className="inline-flex items-center gap-2 rounded-full border border-pb-border bg-pb-bg px-3 py-1.5 text-xs font-medium text-pb-text-muted max-sm:px-2 max-sm:[&>span:last-child]:hidden"
             title={statusInfo.title}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              backgroundColor: statusInfo.color,
-              animation: statusInfo.animation,
-              display: "inline-block",
-            }}
-          />
+            aria-label={statusInfo.title}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                backgroundColor: statusInfo.color,
+                animation: statusInfo.animation,
+                boxShadow: `0 0 0 3px ${statusInfo.color}22`,
+                display: "inline-block",
+              }}
+            />
+            <span>{statusInfo.label}</span>
+          </span>
         )}
         <button
           onClick={onHelpClick}

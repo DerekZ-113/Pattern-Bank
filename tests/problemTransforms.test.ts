@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   filterExistingProblems,
   interleaveByDifficulty,
@@ -280,6 +280,31 @@ describe("computeReviewProgress", () => {
 });
 
 describe("buildReviewedProblem", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 3, 27, 12));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const baseReviewedProblem = {
+    id: "review-base",
+    title: "Two Sum",
+    leetcodeNumber: 1,
+    url: "https://leetcode.com/problems/two-sum",
+    difficulty: "Easy",
+    patterns: ["Hash Table"],
+    confidence: 3 as Confidence,
+    notes: "",
+    excludeFromReview: false,
+    dateAdded: "2026-01-01",
+    lastReviewed: "2026-04-20",
+    nextReviewDate: "2026-04-27",
+    updatedAt: "2026-04-20T00:00:00.000Z",
+  } satisfies Problem;
+
   it("updates confidence and dates correctly", () => {
     const original = {
       id: "a",
@@ -294,8 +319,8 @@ describe("buildReviewedProblem", () => {
     expect(result.lastReviewed).toBeTruthy();
     expect(result.nextReviewDate).toBeTruthy();
     expect(result.updatedAt).toBeTruthy();
-    // SM-2: confidence 4 → 7 days
-    expect(result.nextReviewDate).not.toBe(original.nextReviewDate);
+    expect(result.nextReviewDate).toBe("2026-05-07");
+    expect(result.fiveStarStreak).toBe(0);
   });
 
   it("preserves all other problem fields", () => {
@@ -326,15 +351,55 @@ describe("buildReviewedProblem", () => {
     expect(result.dateAdded).toBe("2026-01-01");
   });
 
-  it("applies correct SM-2 intervals", () => {
-    const base = { id: "a", confidence: 1, lastReviewed: null, nextReviewDate: "2026-03-13" } as Problem;
-    // Confidence 1 → 1 day, 3 → 3 days, 5 → 14 days
+  it("applies correct V2 base intervals", () => {
+    const base = { ...baseReviewedProblem, confidence: 1 as Confidence };
     const r1 = buildReviewedProblem(base, 1);
+    const r2 = buildReviewedProblem(base, 2);
     const r3 = buildReviewedProblem(base, 3);
+    const r4 = buildReviewedProblem(base, 4);
     const r5 = buildReviewedProblem(base, 5);
 
-    expect(r1.nextReviewDate).not.toBe(r3.nextReviewDate);
-    expect(r3.nextReviewDate).not.toBe(r5.nextReviewDate);
+    expect(r1.nextReviewDate).toBe("2026-04-28");
+    expect(r2.nextReviewDate).toBe("2026-04-29");
+    expect(r3.nextReviewDate).toBe("2026-05-02");
+    expect(r4.nextReviewDate).toBe("2026-05-07");
+    expect(r5.nextReviewDate).toBe("2026-05-27");
+  });
+
+  it("treats old missing 5-star streak as previous streak 1", () => {
+    const result = buildReviewedProblem({ ...baseReviewedProblem, confidence: 5 as Confidence }, 5);
+    expect(result.fiveStarStreak).toBe(2);
+    expect(result.nextReviewDate).toBe("2026-06-26");
+  });
+
+  it("preserves explicit streak 0 as first 5-star graduation", () => {
+    const result = buildReviewedProblem({
+      ...baseReviewedProblem,
+      confidence: 5 as Confidence,
+      fiveStarStreak: 0,
+    }, 5);
+    expect(result.fiveStarStreak).toBe(1);
+    expect(result.nextReviewDate).toBe("2026-05-27");
+  });
+
+  it("caps repeated 5-star reviews at 365 days", () => {
+    const result = buildReviewedProblem({
+      ...baseReviewedProblem,
+      confidence: 5 as Confidence,
+      fiveStarStreak: 5,
+    }, 5);
+    expect(result.fiveStarStreak).toBe(6);
+    expect(result.nextReviewDate).toBe("2027-04-27");
+  });
+
+  it("resets fiveStarStreak to 0 on ratings below 5", () => {
+    const result = buildReviewedProblem({
+      ...baseReviewedProblem,
+      confidence: 5 as Confidence,
+      fiveStarStreak: 4,
+    }, 4);
+    expect(result.fiveStarStreak).toBe(0);
+    expect(result.nextReviewDate).toBe("2026-05-07");
   });
 });
 
@@ -346,19 +411,19 @@ describe("computeNextReviewDate", () => {
   });
 
   it("uses SRS interval for new problem at confidence 2", () => {
-    expect(computeNextReviewDate(null, 2 as Confidence, today)).toBe("2026-04-28");
+    expect(computeNextReviewDate(null, 2 as Confidence, today)).toBe("2026-04-29");
   });
 
   it("uses SRS interval for new problem at confidence 3", () => {
-    expect(computeNextReviewDate(null, 3 as Confidence, today)).toBe("2026-04-30");
+    expect(computeNextReviewDate(null, 3 as Confidence, today)).toBe("2026-05-02");
   });
 
   it("uses SRS interval for new problem at confidence 4", () => {
-    expect(computeNextReviewDate(null, 4 as Confidence, today)).toBe("2026-05-04");
+    expect(computeNextReviewDate(null, 4 as Confidence, today)).toBe("2026-05-07");
   });
 
   it("uses SRS interval for new problem at confidence 5", () => {
-    expect(computeNextReviewDate(null, 5 as Confidence, today)).toBe("2026-05-11");
+    expect(computeNextReviewDate(null, 5 as Confidence, today)).toBe("2026-05-27");
   });
 
   it("reschedules from today when confidence changes on edit", () => {
@@ -367,7 +432,7 @@ describe("computeNextReviewDate", () => {
       confidence: 3 as Confidence,
       nextReviewDate: "2030-01-01",
     } as Problem;
-    expect(computeNextReviewDate(initial, 5 as Confidence, today)).toBe("2026-05-11");
+    expect(computeNextReviewDate(initial, 5 as Confidence, today)).toBe("2026-05-27");
   });
 
   it("preserves nextReviewDate on edit when confidence is unchanged", () => {

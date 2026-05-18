@@ -61,6 +61,27 @@ describe("toSnakeCase", () => {
     expect(result.next_review_date).toBe(problem.nextReviewDate);
     expect(result.updated_at).toBe(problem.updatedAt);
     expect(result.exclude_from_review).toBe(problem.excludeFromReview);
+    expect(result.five_star_streak).toBe(0);
+  });
+
+  it("writes explicit fiveStarStreak when present", () => {
+    const result = toSnakeCase(makeProblem({ confidence: 5, fiveStarStreak: 3 }));
+    expect(result.five_star_streak).toBe(3);
+  });
+
+  it("writes 1 for old local 5-star problems with missing fiveStarStreak", () => {
+    const result = toSnakeCase(makeProblem({ confidence: 5 }));
+    expect(result.five_star_streak).toBe(1);
+  });
+
+  it("writes 0 for old local non-5-star problems with missing fiveStarStreak", () => {
+    const result = toSnakeCase(makeProblem({ confidence: 4 }));
+    expect(result.five_star_streak).toBe(0);
+  });
+
+  it("preserves explicit fiveStarStreak 0 on a 5-star problem", () => {
+    const result = toSnakeCase(makeProblem({ confidence: 5, fiveStarStreak: 0 }));
+    expect(result.five_star_streak).toBe(0);
   });
 
   it("handles null leetcodeNumber → null", () => {
@@ -126,6 +147,27 @@ describe("toCamelCase", () => {
     expect(result.nextReviewDate).toBe(row.next_review_date);
     expect(result.updatedAt).toBe(row.updated_at);
     expect(result.excludeFromReview).toBe(row.exclude_from_review);
+    expect(result.fiveStarStreak).toBe(0);
+  });
+
+  it("reads explicit five_star_streak", () => {
+    const result = toCamelCase(makeSnakeCaseRow({ confidence: 5, five_star_streak: 3 }));
+    expect(result.fiveStarStreak).toBe(3);
+  });
+
+  it("defaults old missing 5-star rows to streak 1", () => {
+    const result = toCamelCase(makeSnakeCaseRow({ confidence: 5, five_star_streak: null }));
+    expect(result.fiveStarStreak).toBe(1);
+  });
+
+  it("defaults old missing non-5-star rows to streak 0", () => {
+    const result = toCamelCase(makeSnakeCaseRow({ confidence: 4, five_star_streak: null }));
+    expect(result.fiveStarStreak).toBe(0);
+  });
+
+  it("preserves explicit zero from Supabase", () => {
+    const result = toCamelCase(makeSnakeCaseRow({ confidence: 5, five_star_streak: 0 }));
+    expect(result.fiveStarStreak).toBe(0);
   });
 
   it("casts difficulty string to Difficulty type", () => {
@@ -181,6 +223,7 @@ describe("round-trip fidelity", () => {
       notes: "Tricky DP transition",
       lastReviewed: "2025-06-01",
       excludeFromReview: false,
+      fiveStarStreak: 0,
       updatedAt: "2025-06-01T12:00:00.000Z",
     });
 
@@ -218,6 +261,7 @@ describe("round-trip fidelity", () => {
       notes: "Classic graph traversal",
       lastReviewed: "2025-12-31",
       excludeFromReview: true,
+      fiveStarStreak: 1,
       updatedAt: "2025-12-31T23:59:59.000Z",
     });
 
