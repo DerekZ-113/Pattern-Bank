@@ -106,6 +106,10 @@ function renderTodayView(overrides: {
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   leetcodeSubmissions?: LeetCodeSubmission[];
   onRateLeetCodeReview?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
+  showLeetCodeIntro?: boolean;
+  leetcodeIntroSignedIn?: boolean;
+  onOpenLeetCodeSettings?: () => void;
+  onDismissLeetCodeIntro?: () => void;
 } = {}) {
   return render(
     <TodayView
@@ -126,6 +130,10 @@ function renderTodayView(overrides: {
       onIgnoreLeetCodeImport={overrides.onIgnoreLeetCodeImport ?? vi.fn()}
       leetcodeSubmissions={overrides.leetcodeSubmissions ?? []}
       onRateLeetCodeReview={overrides.onRateLeetCodeReview ?? vi.fn()}
+      showLeetCodeIntro={overrides.showLeetCodeIntro}
+      leetcodeIntroSignedIn={overrides.leetcodeIntroSignedIn}
+      onOpenLeetCodeSettings={overrides.onOpenLeetCodeSettings}
+      onDismissLeetCodeIntro={overrides.onDismissLeetCodeIntro}
       today="2026-05-14"
     />,
   );
@@ -137,6 +145,41 @@ describe("TodayView", () => {
 
     expect(screen.getByRole("heading", { name: "Today" })).toBeTruthy();
     expect(screen.getByText("Thursday, May 14")).toBeTruthy();
+  });
+
+  it("renders the V2 LeetCode intro card when requested", () => {
+    const onOpen = vi.fn();
+    const onDismiss = vi.fn();
+    renderTodayView({
+      showLeetCodeIntro: true,
+      leetcodeIntroSignedIn: false,
+      onOpenLeetCodeSettings: onOpen,
+      onDismissLeetCodeIntro: onDismiss,
+    });
+
+    expect(screen.getByText("New in V2: LeetCode Activity")).toBeTruthy();
+    expect(screen.getByText("Add your public LeetCode username to automatically track accepted solves and rate them in PatternBank.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign in to set up LeetCode" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close V2 LeetCode Activity intro" }));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses signed-in CTA copy for the V2 LeetCode intro", () => {
+    renderTodayView({
+      showLeetCodeIntro: true,
+      leetcodeIntroSignedIn: true,
+    });
+
+    expect(screen.getByRole("button", { name: "Set up LeetCode Activity" })).toBeTruthy();
+  });
+
+  it("hides the V2 LeetCode intro card when not requested", () => {
+    renderTodayView({ showLeetCodeIntro: false });
+
+    expect(screen.queryByText("New in V2: LeetCode Activity")).toBeNull();
   });
 
   it("renders real due problems in Reviews due", () => {

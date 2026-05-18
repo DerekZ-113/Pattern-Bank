@@ -52,6 +52,11 @@ describe("useUI", () => {
       expect(result.current.problemsInitialPatternFilter).toBe("all");
     });
 
+    it("starts with the V2 LeetCode intro visible when not dismissed", () => {
+      const { result } = renderHook(() => useUI());
+      expect(result.current.v2LeetCodeIntroDismissed).toBe(false);
+    });
+
     it("loads a persisted problem sort", () => {
       localStorage.setItem("patternbank-all-problems-sort", "confidence");
 
@@ -66,6 +71,22 @@ describe("useUI", () => {
       const { result } = renderHook(() => useUI());
 
       expect(result.current.problemsInitialSort).toBe("leetcodeNumber");
+    });
+
+    it("loads a dismissed V2 LeetCode intro flag", () => {
+      localStorage.setItem("patternbank-v2-leetcode-intro-dismissed", "true");
+
+      const { result } = renderHook(() => useUI());
+
+      expect(result.current.v2LeetCodeIntroDismissed).toBe(true);
+    });
+
+    it("treats invalid V2 LeetCode intro dismissal values as not dismissed", () => {
+      localStorage.setItem("patternbank-v2-leetcode-intro-dismissed", "yes");
+
+      const { result } = renderHook(() => useUI());
+
+      expect(result.current.v2LeetCodeIntroDismissed).toBe(false);
     });
   });
 
@@ -206,6 +227,19 @@ describe("useUI", () => {
       });
       expect(result.current.settingsOpen).toBe(false);
       expect(result.current.clearDataConfirm).toBe(true);
+    });
+  });
+
+  describe("V2 LeetCode intro", () => {
+    it("dismissV2LeetCodeIntro persists dismissal", () => {
+      const { result } = renderHook(() => useUI());
+
+      act(() => {
+        result.current.dismissV2LeetCodeIntro();
+      });
+
+      expect(result.current.v2LeetCodeIntroDismissed).toBe(true);
+      expect(localStorage.getItem("patternbank-v2-leetcode-intro-dismissed")).toBe("true");
     });
   });
 });
