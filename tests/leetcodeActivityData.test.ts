@@ -169,6 +169,19 @@ describe("leetcodeActivityData", () => {
     expect(result.data?.[0].status).toBe("linked_existing");
   });
 
+  it("defaults recent submissions reads to the shared Today activity limit", async () => {
+    const { fetchRecentLeetCodeSubmissions, LEETCODE_RECENT_ACTIVITY_LIMIT } = await import(
+      "../src/utils/leetcodeActivityData"
+    );
+    mockSupabase!.limit.mockResolvedValue({ data: [submissionRow], error: null });
+
+    const result = await fetchRecentLeetCodeSubmissions("user-1");
+
+    expect(LEETCODE_RECENT_ACTIVITY_LIMIT).toBe(100);
+    expect(mockSupabase!.limit).toHaveBeenCalledWith(100);
+    expect(result.error).toBeNull();
+  });
+
   it("fetches ignored imports for the signed-in user", async () => {
     const { fetchLeetCodeIgnoredImports } = await import("../src/utils/leetcodeActivityData");
     mockSupabase!.order.mockResolvedValue({ data: [ignoredImportRow], error: null });

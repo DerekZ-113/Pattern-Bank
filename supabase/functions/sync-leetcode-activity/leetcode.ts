@@ -2,6 +2,8 @@ export type Difficulty = "Easy" | "Medium" | "Hard";
 export type SyncStatus = "idle" | "syncing" | "synced" | "error" | "no_visible_submissions" | "rate_limited";
 export type SubmissionStatus = "detected" | "linked_existing" | "pending" | "imported" | "ignored" | "rated";
 
+export const RECENT_ACCEPTED_LIMIT = 100;
+
 export interface LeetCodeProfile {
   username: string;
   displayName: string | null;

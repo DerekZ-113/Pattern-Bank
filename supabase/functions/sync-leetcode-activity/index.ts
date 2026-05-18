@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   MATCHED_USER_QUERY,
   QUESTION_DATA_QUERY,
+  RECENT_ACCEPTED_LIMIT,
   RECENT_ACCEPTED_QUERY,
   buildGraphQLRequestBody,
   dedupeSubmissionCandidates,
@@ -142,7 +143,7 @@ async function fetchProfile(username: string): Promise<LeetCodeProfile | null> {
 }
 
 async function fetchRecentAccepted(username: string): Promise<SubmissionCandidate[]> {
-  const payload = await fetchLeetCode(RECENT_ACCEPTED_QUERY, { username, limit: 20 });
+  const payload = await fetchLeetCode(RECENT_ACCEPTED_QUERY, { username, limit: RECENT_ACCEPTED_LIMIT });
   return dedupeSubmissionCandidates(parseRecentAcSubmissions(payload));
 }
 
@@ -187,7 +188,7 @@ async function fetchActivityState(serviceClient: ReturnType<typeof createClient>
       .select("*")
       .eq("user_id", userId)
       .order("submitted_at", { ascending: false })
-      .limit(20),
+      .limit(RECENT_ACCEPTED_LIMIT),
     serviceClient
       .from("leetcode_ignored_imports")
       .select("*")

@@ -7,6 +7,7 @@ import {
   fetchLeetCodeConnection,
   fetchLeetCodeIgnoredImports,
   fetchRecentLeetCodeSubmissions,
+  LEETCODE_RECENT_ACTIVITY_LIMIT,
   markLeetCodeSubmissionRated,
   sanitizeLeetCodeActivityError,
   syncLeetCodeActivity,
@@ -86,7 +87,7 @@ export default function useLeetCodeActivity({
     const nextConnection = connectionResult.data;
     setConnection(nextConnection);
 
-    const submissionsResult = await fetchRecentLeetCodeSubmissions(userId, 20);
+    const submissionsResult = await fetchRecentLeetCodeSubmissions(userId, LEETCODE_RECENT_ACTIVITY_LIMIT);
     if (loadRunRef.current !== runId) return;
 
     const ignoredResult = await fetchLeetCodeIgnoredImports(userId);

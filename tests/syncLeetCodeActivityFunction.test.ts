@@ -9,6 +9,7 @@ import {
   parseMatchedUser,
   parseQuestionData,
   parseRecentAcSubmissions,
+  RECENT_ACCEPTED_LIMIT,
   unwrapSupabaseResult,
 } from "../supabase/functions/sync-leetcode-activity/leetcode";
 
@@ -22,6 +23,10 @@ describe("sync-leetcode-activity helpers", () => {
       query: "query Test($username: String!) { matchedUser(username: $username) { username } }",
       variables: { username: "derek113" },
     }));
+  });
+
+  it("uses a wider recent accepted submission fetch window for Today coverage", () => {
+    expect(RECENT_ACCEPTED_LIMIT).toBe(100);
   });
 
   it("returns CORS headers and handles OPTIONS", async () => {
