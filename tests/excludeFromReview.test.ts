@@ -21,7 +21,7 @@ function makeProblem(overrides: Partial<Problem> = {}): Problem {
   };
 }
 
-// Simulates the DashboardView filtering logic
+// Simulates the Today review filtering logic
 function filterDueProblems(problems: Problem[], today: string): Problem[] {
   return problems.filter((p) => p.nextReviewDate <= today && !p.excludeFromReview);
 }

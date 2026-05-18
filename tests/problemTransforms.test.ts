@@ -351,7 +351,7 @@ describe("buildReviewedProblem", () => {
     expect(result.dateAdded).toBe("2026-01-01");
   });
 
-  it("applies correct SM-2 intervals", () => {
+  it("applies correct V2 base intervals", () => {
     const base = { ...baseReviewedProblem, confidence: 1 as Confidence };
     const r1 = buildReviewedProblem(base, 1);
     const r2 = buildReviewedProblem(base, 2);

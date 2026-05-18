@@ -106,7 +106,7 @@ PatternBank follows a **localStorage-first** design. Every action writes locally
 
 ## Spaced Repetition Algorithm
 
-Simplified SM-2 with confidence-based intervals:
+V2 confidence-based intervals with 5-star graduation:
 
 | Confidence | Interval | Meaning |
 |-----------|----------|---------|
@@ -144,7 +144,7 @@ src/
 │   └── ...
 ├── LandingPage          Animated hero, heatmap demo, iOS QR popover
 ├── utils/               Business logic and data mapping modules
-│   ├── spacedRepetition SM-2 intervals + priority algorithm
+│   ├── spacedRepetition V2 intervals, 5-star graduation + priority algorithm
 │   ├── problemTransforms Pure business logic (bulk add, import merge, review progress)
 │   ├── progressUtils    Streak, heatmap, confidence trend, pattern stats
 │   ├── leetcodeProblems 3,800+ problems with instant search
