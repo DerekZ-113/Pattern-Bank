@@ -15,7 +15,7 @@ test.describe("Progress View", () => {
     await expect(page.getByRole("heading", { name: "Progress" })).toBeVisible();
     await expect(page.getByText("Patterns, streaks, and review history")).toBeVisible();
     await expect(page.getByText("Total Problems")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Pattern Confidence" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Patterns", exact: true })).toBeVisible();
     await expect(page.getByText("Review Activity")).toBeVisible();
     await expect(page.getByText("Confidence Trend")).toBeVisible();
     await expect(page.getByText("30-Day Projection")).toBeVisible();
@@ -33,7 +33,7 @@ test.describe("Progress View", () => {
 
     await page.getByRole("button", { name: /Progress/i }).click();
 
-    const heatmap = page.locator("section[aria-labelledby='progress-pattern-confidence']");
+    const heatmap = page.locator("section[aria-labelledby='progress-patterns']");
     await heatmap.getByRole("button", { name: /DP.*1 problem.*average confidence 4\.0/i }).click();
 
     await expect(page.getByText("DP Problem")).toBeVisible();
