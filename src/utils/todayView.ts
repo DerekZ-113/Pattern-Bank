@@ -59,8 +59,8 @@ function coerceConfidence(confidence: number): Confidence {
 
 function isDoneTodayLeetCodeStatus(
   status: LeetCodeSubmission["status"],
-): status is "linked_existing" | "imported" | "rated" {
-  return status === "linked_existing" || status === "imported" || status === "rated";
+): status is "detected" | "linked_existing" | "imported" | "rated" {
+  return status === "detected" || status === "linked_existing" || status === "imported" || status === "rated";
 }
 
 function leetcodeStatusRank(status: "linked_existing" | "imported" | "rated"): number {
@@ -182,6 +182,7 @@ export function buildTodayActivityFeedItems({
 
     const reviewDue = problem.nextReviewDate <= today && !problem.excludeFromReview;
     const alreadyReviewedToday = problem.lastReviewed === today || reviewedProblemIds.has(problem.id);
+    const status = submission.status === "detected" ? "linked_existing" : submission.status;
     const item: Extract<TodayActivityFeedItem, { type: "leetcode_solve" }> = {
       type: "leetcode_solve",
       id: `lc-${submission.id}`,
@@ -191,9 +192,9 @@ export function buildTodayActivityFeedItems({
       leetcodeNumber: problem.leetcodeNumber ?? submission.leetcodeNumber,
       difficulty: problem.difficulty,
       submittedAt: submission.submittedAt,
-      status: submission.status,
+      status,
       reviewDue,
-      canRate: reviewDue && !alreadyReviewedToday && submission.status !== "rated",
+      canRate: reviewDue && !alreadyReviewedToday && status !== "rated",
     };
 
     const current = leetcodeByProblemId.get(problem.id);

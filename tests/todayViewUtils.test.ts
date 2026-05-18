@@ -197,7 +197,7 @@ describe("buildTodayActivityFeedItems", () => {
       reviewEvents: [],
       leetcodeSubmissions: [
         makeSubmission({ id: "ignored", status: "ignored" }),
-        makeSubmission({ id: "detected", status: "detected", problemId: null }),
+        makeSubmission({ id: "detected", status: "detected", problemId: null, leetcodeNumber: 200 }),
       ],
       today: "2026-05-14",
     });
@@ -219,6 +219,54 @@ describe("buildTodayActivityFeedItems", () => {
       problemId: "local-two-sum",
       status: "imported",
     });
+  });
+
+  it("treats a detected LeetCode submission as Done Today when it matches a local problem by leetcodeNumber", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [makeProblem({ id: "local-two-sum", leetcodeNumber: 1, nextReviewDate: "2026-05-14" })],
+      reviewEvents: [],
+      leetcodeSubmissions: [makeSubmission({ problemId: null, status: "detected" })],
+      today: "2026-05-14",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      type: "leetcode_solve",
+      submissionDbId: "sub-1",
+      problemId: "local-two-sum",
+      status: "linked_existing",
+      reviewDue: true,
+      canRate: true,
+    });
+  });
+
+  it("treats a detected LeetCode submission as Done Today when it matches a local problem by problemId", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [makeProblem({ id: "local-two-sum", leetcodeNumber: 1, nextReviewDate: "2026-05-20" })],
+      reviewEvents: [],
+      leetcodeSubmissions: [makeSubmission({ problemId: "local-two-sum", status: "detected" })],
+      today: "2026-05-14",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      type: "leetcode_solve",
+      problemId: "local-two-sum",
+      status: "linked_existing",
+      reviewDue: false,
+      canRate: false,
+    });
+  });
+
+  it("keeps unmatched detected LeetCode submissions out of Done Today", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [makeProblem({ id: "different-problem", leetcodeNumber: 999 })],
+      reviewEvents: [],
+      leetcodeSubmissions: [makeSubmission({ problemId: null, status: "detected" })],
+      today: "2026-05-14",
+    });
+
+    expect(items).toEqual([]);
   });
 
   it("sets canRate only for due local problems that were not already reviewed today", () => {
