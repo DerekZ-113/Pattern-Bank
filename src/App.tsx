@@ -84,6 +84,10 @@ export default function App() {
     Boolean(leetcodeActivity.connection) ||
     leetcodeActivity.submissions.length > 0 ||
     leetcodeActivity.ignoredImports.length > 0;
+  const showLeetCodeIntro =
+    !ui.v2LeetCodeIntroDismissed &&
+    !leetcodeActivity.loading &&
+    !leetcodeActivity.connection;
 
   const handleConfirmClearAllData = useCallback(async () => {
     if (user && hasLeetCodeActivityState) {
@@ -174,6 +178,10 @@ export default function App() {
           onIgnoreLeetCodeImport={leetcodePendingImports.ignoreImport}
           leetcodeSubmissions={leetcodeActivity.submissions}
           onRateLeetCodeReview={handleRateLeetCodeReview}
+          showLeetCodeIntro={showLeetCodeIntro}
+          leetcodeIntroSignedIn={Boolean(user)}
+          onOpenLeetCodeSettings={() => ui.setSettingsOpen(true)}
+          onDismissLeetCodeIntro={ui.dismissV2LeetCodeIntro}
         />
       )}
       {ui.activeTab === "progress" && (

@@ -80,6 +80,7 @@ function mockBaseHooks({
     problemsInitialSort: "dateAdded",
     problemsInitialPatternFilter: "all",
     clearDataConfirm: true,
+    v2LeetCodeIntroDismissed: true,
     setSettingsOpen: vi.fn(),
     setHelpOpen: vi.fn(),
     setDeleteTarget: vi.fn(),
@@ -95,6 +96,7 @@ function mockBaseHooks({
     openAddModal: vi.fn(),
     closeModal: vi.fn(),
     requestClearData: vi.fn(),
+    dismissV2LeetCodeIntro: vi.fn(),
   });
 
   vi.mocked(useProblems).mockReturnValue({

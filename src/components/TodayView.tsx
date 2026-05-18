@@ -1,4 +1,5 @@
 import TodayDoneFeed from "./TodayDoneFeed";
+import TodayLeetCodeIntroCard from "./TodayLeetCodeIntroCard";
 import TodayLeetCodeCard from "./TodayLeetCodeCard";
 import TodayQuickStart from "./TodayQuickStart";
 import TodayReviewCard from "./TodayReviewCard";
@@ -37,6 +38,10 @@ interface Props {
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   leetcodeSubmissions?: LeetCodeSubmission[];
   onRateLeetCodeReview?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
+  showLeetCodeIntro?: boolean;
+  leetcodeIntroSignedIn?: boolean;
+  onOpenLeetCodeSettings?: () => void;
+  onDismissLeetCodeIntro?: () => void;
   today?: string;
 }
 
@@ -58,6 +63,10 @@ export default function TodayView({
   onIgnoreLeetCodeImport,
   leetcodeSubmissions = [],
   onRateLeetCodeReview,
+  showLeetCodeIntro = false,
+  leetcodeIntroSignedIn = false,
+  onOpenLeetCodeSettings,
+  onDismissLeetCodeIntro,
   today = todayStr(),
 }: Props) {
   const {
@@ -89,6 +98,14 @@ export default function TodayView({
         </h1>
         <p className="mt-1 text-sm text-pb-text-muted">{formatDisplayDate(today)}</p>
       </header>
+
+      {showLeetCodeIntro && (
+        <TodayLeetCodeIntroCard
+          signedIn={leetcodeIntroSignedIn}
+          onOpenSettings={onOpenLeetCodeSettings}
+          onDismiss={onDismissLeetCodeIntro}
+        />
+      )}
 
       {problems.length === 0 && leetcodeSectionItems.length === 0 ? (
         <TodayQuickStart
