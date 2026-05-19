@@ -1,10 +1,13 @@
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import CollapsingListItem from "./CollapsingListItem";
 import TodayDoneFeed from "./TodayDoneFeed";
 import TodayLeetCodeIntroCard from "./TodayLeetCodeIntroCard";
 import TodayLeetCodeCard from "./TodayLeetCodeCard";
 import TodayQuickStart from "./TodayQuickStart";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
-import { formatDisplayDate, todayStr } from "../utils/dateHelpers";
+import { formatDisplayDate, todayStr, utcToLocalDateStr } from "../utils/dateHelpers";
+import { buildLeetCodeCompletionKey } from "../utils/todayLeetCodeCompletions";
 import {
   buildSolvedOnLeetCodeTodayIndex,
   buildTodayActivityFeedItems,
@@ -37,12 +40,32 @@ interface Props {
   onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   leetcodeSubmissions?: LeetCodeSubmission[];
-  onRateLeetCodeReview?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
+  onRateLeetCodeReview?: (
+    submissionDbId: string,
+    problemId: string,
+    confidence: Confidence,
+    source?: TodayLeetCodeItem,
+  ) => void | Promise<void>;
   showLeetCodeIntro?: boolean;
   leetcodeIntroSignedIn?: boolean;
   onOpenLeetCodeSettings?: () => void;
   onDismissLeetCodeIntro?: () => void;
   today?: string;
+}
+
+interface ExitingLeetCodeItem {
+  key: string;
+  item: TodayLeetCodeItem;
+}
+
+function buildTodayLeetCodeItemKey(item: TodayLeetCodeItem): string {
+  return buildLeetCodeCompletionKey({
+    submissionDbId: item.submissionDbId,
+    leetcodeSubmissionId: item.leetcodeSubmissionId,
+    titleSlug: item.titleSlug,
+    leetcodeNumber: item.leetcodeNumber,
+    problemId: item.matchedProblemId,
+  });
 }
 
 export default function TodayView({
@@ -82,13 +105,69 @@ export default function TodayView({
     today,
   });
   const solvedOnLeetCodeToday = buildSolvedOnLeetCodeTodayIndex(leetcodeSubmissions, today);
-  const leetcodeSectionItems = todayLeetCodeItems ?? pendingLeetCodeImports.map((item) => ({
-    ...item,
-    kind: "pending_import" as const,
-    status: "detected" as const,
-    matchedProblemId: null,
-    statusLabel: "Rate to add" as const,
-  }));
+  const leetcodeSectionItems = useMemo<TodayLeetCodeItem[]>(
+    () => todayLeetCodeItems ?? pendingLeetCodeImports.map((item) => ({
+      ...item,
+      kind: "pending_import" as const,
+      status: "detected" as const,
+      matchedProblemId: null,
+      statusLabel: "Rate to add" as const,
+    })),
+    [pendingLeetCodeImports, todayLeetCodeItems],
+  );
+  const previousLeetCodeItemsRef = useRef<TodayLeetCodeItem[]>(leetcodeSectionItems);
+  const exitingLeetCodeKeysRef = useRef(new Set<string>());
+  const [exitingLeetCodeItems, setExitingLeetCodeItems] = useState<ExitingLeetCodeItem[]>([]);
+  const hasLeetCodeSolveToday = leetcodeSubmissions
+    .some((submission) => utcToLocalDateStr(submission.submittedAt) === today);
+  useLayoutEffect(() => {
+    const currentKeys = new Set(leetcodeSectionItems.map(buildTodayLeetCodeItemKey));
+
+    setExitingLeetCodeItems((currentExitingItems) => {
+      const keptExitingItems = currentExitingItems.filter((exitingItem) => {
+        const shouldKeep = !currentKeys.has(exitingItem.key);
+        if (!shouldKeep) {
+          exitingLeetCodeKeysRef.current.delete(exitingItem.key);
+        }
+        return shouldKeep;
+      });
+      const keptExitingKeys = new Set(keptExitingItems.map((exitingItem) => exitingItem.key));
+      const newlyRemovedItems = previousLeetCodeItemsRef.current
+        .map((item) => ({ key: buildTodayLeetCodeItemKey(item), item }))
+        .filter(({ key }) => !currentKeys.has(key)
+          && !keptExitingKeys.has(key)
+          && !exitingLeetCodeKeysRef.current.has(key));
+
+      if (newlyRemovedItems.length === 0 && keptExitingItems.length === currentExitingItems.length) {
+        return currentExitingItems;
+      }
+
+      for (const exitingItem of newlyRemovedItems) {
+        exitingLeetCodeKeysRef.current.add(exitingItem.key);
+      }
+      return [...keptExitingItems, ...newlyRemovedItems];
+    });
+    previousLeetCodeItemsRef.current = leetcodeSectionItems;
+  }, [leetcodeSectionItems]);
+  const handleLeetCodeExitComplete = useCallback((key: string) => {
+    exitingLeetCodeKeysRef.current.delete(key);
+    setExitingLeetCodeItems((currentItems) => currentItems.filter((item) => item.key !== key));
+  }, []);
+  const hasLeetCodeSectionRows = leetcodeSectionItems.length > 0
+    || exitingLeetCodeItems.length > 0;
+  const shouldShowLeetCodeSection = hasLeetCodeSectionRows || hasLeetCodeSolveToday;
+  const shouldShowQuickStart = problems.length === 0
+    && leetcodeSectionItems.length === 0
+    && exitingLeetCodeItems.length === 0
+    && !hasLeetCodeSolveToday
+    && doneTodayItems.length === 0;
+  const handleConfirmLeetCodeImport = useCallback((item: PendingLeetCodeImport, confidence: Confidence) => {
+    onConfirmLeetCodeImport?.(item, confidence);
+  }, [onConfirmLeetCodeImport]);
+  const handleRateKnownLeetCodeItem = useCallback((item: TodayLeetCodeItem, confidence: Confidence) => {
+    if (!item.matchedProblemId) return undefined;
+    return onRateLeetCodeReview?.(item.submissionDbId, item.matchedProblemId, confidence, item);
+  }, [onRateLeetCodeReview]);
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-6 md:px-8">
@@ -107,7 +186,7 @@ export default function TodayView({
         />
       )}
 
-      {problems.length === 0 && leetcodeSectionItems.length === 0 ? (
+      {shouldShowQuickStart ? (
         <TodayQuickStart
           onAddClick={onAddClick}
           onBulkAdd={onBulkAdd}
@@ -115,7 +194,7 @@ export default function TodayView({
         />
       ) : (
         <>
-          {leetcodeSectionItems.length > 0 && (
+          {shouldShowLeetCodeSection && (
             <section aria-labelledby="today-leetcode-title">
               <TodaySectionHeader
                 id="today-leetcode-title"
@@ -124,17 +203,32 @@ export default function TodayView({
                 subcopy="Solved on LC today"
                 accent
               />
-              <div className="flex flex-col gap-2.5">
-                {leetcodeSectionItems.map((item) => (
-                  <TodayLeetCodeCard
-                    key={item.submissionDbId}
-                    item={item}
-                    onConfirm={(pendingItem, confidence) => onConfirmLeetCodeImport?.(pendingItem, confidence)}
-                    onIgnore={(pendingItem) => onIgnoreLeetCodeImport?.(pendingItem)}
-                    onRateKnown={(submissionDbId, problemId, confidence) => onRateLeetCodeReview?.(submissionDbId, problemId, confidence)}
-                  />
-                ))}
-              </div>
+              {hasLeetCodeSectionRows && (
+                <div className="flex flex-col gap-2.5">
+                  {leetcodeSectionItems.map((item) => (
+                    <TodayLeetCodeCard
+                      key={item.submissionDbId}
+                      item={item}
+                      onConfirm={handleConfirmLeetCodeImport}
+                      onIgnore={(pendingItem) => onIgnoreLeetCodeImport?.(pendingItem)}
+                      onRateKnown={handleRateKnownLeetCodeItem}
+                    />
+                  ))}
+                  {exitingLeetCodeItems.map(({ key, item }) => (
+                    <CollapsingListItem
+                      key={`exiting-${key}`}
+                      onExited={() => handleLeetCodeExitComplete(key)}
+                    >
+                      <TodayLeetCodeCard
+                        item={item}
+                        onConfirm={() => undefined}
+                        onIgnore={() => undefined}
+                        onRateKnown={() => undefined}
+                      />
+                    </CollapsingListItem>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 

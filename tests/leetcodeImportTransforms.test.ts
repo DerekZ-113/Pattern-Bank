@@ -161,10 +161,19 @@ describe("buildTodayLeetCodeItems", () => {
     });
   });
 
-  it("includes today's linked, imported, and rated LeetCode submissions", () => {
+  it("includes actionable linked and matched detected submissions, but excludes completed imports and rated submissions", () => {
     const items = buildTodayLeetCodeItems({
       submissions: [
         makeSubmission({ id: "linked", status: "linked_existing", problemId: "p1" }),
+        makeSubmission({
+          id: "matched-detected",
+          status: "detected",
+          problemId: null,
+          leetcodeSubmissionId: "lc-sub-4",
+          titleSlug: "two-sum-rematch",
+          title: "Two Sum",
+          leetcodeNumber: 1,
+        }),
         makeSubmission({
           id: "imported",
           status: "imported",
@@ -189,7 +198,7 @@ describe("buildTodayLeetCodeItems", () => {
       today: "2026-05-15",
     });
 
-    expect(items.map((item) => item.kind)).toEqual(["linked_existing", "imported", "rated"]);
+    expect(items.map((item) => item.kind)).toEqual(["linked_existing", "linked_existing"]);
     expect(items[0]).toMatchObject({
       matchedProblemId: "p1",
       statusLabel: "Review due",
@@ -197,7 +206,6 @@ describe("buildTodayLeetCodeItems", () => {
       confidence: 3,
     });
     expect(items[1]).toMatchObject({ confidence: 3 });
-    expect(items[2]).toMatchObject({ confidence: 3 });
   });
 
   it("excludes older and ignored LeetCode submissions from today's section", () => {
@@ -232,21 +240,28 @@ describe("buildTodayLeetCodeItems", () => {
     });
   });
 
-  it("marks known LeetCode items with same-day reviewed confidence", () => {
+  it("excludes known LeetCode items with a same-day review event", () => {
     const items = buildTodayLeetCodeItems({
       submissions: [makeSubmission({ status: "linked_existing", problemId: "p1" })],
-      problems: [makeProblem({ id: "p1", confidence: 4, lastReviewed: "2026-05-15" })],
+      problems: [makeProblem({ id: "p1", confidence: 4 })],
       ignoredImports: [],
       today: "2026-05-15",
       reviewEvents: [makeReviewEvent({ confidence: 4 })],
     } as Parameters<typeof buildTodayLeetCodeItems>[0] & { reviewEvents: ReviewEvent[] });
 
-    expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({
-      kind: "linked_existing",
-      confidence: 4,
-      reviewedTodayConfidence: 4,
+    expect(items).toEqual([]);
+  });
+
+  it("excludes known LeetCode items when the matched problem was reviewed today", () => {
+    const items = buildTodayLeetCodeItems({
+      submissions: [makeSubmission({ status: "linked_existing", problemId: "p1" })],
+      problems: [makeProblem({ id: "p1", lastReviewed: "2026-05-15" })],
+      ignoredImports: [],
+      today: "2026-05-15",
+      reviewEvents: [],
     });
+
+    expect(items).toEqual([]);
   });
 });
 

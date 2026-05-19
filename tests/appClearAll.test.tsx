@@ -140,8 +140,10 @@ function mockBaseHooks({
   vi.mocked(useLeetCodePendingImports).mockReturnValue({
     pendingImports: [],
     todayLeetCodeItems: [],
+    leetcodeSubmissionsForTodayFeed: [],
     confirmImport: vi.fn(),
     ignoreImport: vi.fn(),
+    recordRatedCompletion: vi.fn(),
   });
 }
 

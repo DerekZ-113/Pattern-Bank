@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import TodayView from "../src/components/TodayView";
 import type {
@@ -105,7 +106,12 @@ function renderTodayView(overrides: {
   onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   leetcodeSubmissions?: LeetCodeSubmission[];
-  onRateLeetCodeReview?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
+  onRateLeetCodeReview?: (
+    submissionDbId: string,
+    problemId: string,
+    confidence: Confidence,
+    source?: TodayLeetCodeItem,
+  ) => void | Promise<void>;
   showLeetCodeIntro?: boolean;
   leetcodeIntroSignedIn?: boolean;
   onOpenLeetCodeSettings?: () => void;
@@ -137,6 +143,13 @@ function renderTodayView(overrides: {
       today="2026-05-14"
     />,
   );
+}
+
+function expectEmptyLeetCodeSection() {
+  const leetcodeSection = screen.getByRole("region", { name: "From LeetCode" });
+  expect(within(leetcodeSection).getByText("0")).toBeTruthy();
+  expect(within(leetcodeSection).queryByText("Two Sum")).toBeNull();
+  expect(within(leetcodeSection).queryByText("Number of Islands")).toBeNull();
 }
 
 describe("TodayView", () => {
@@ -275,18 +288,15 @@ describe("TodayView", () => {
     expect(screen.getByText("Number of Islands")).toBeTruthy();
     expect(screen.getByText("BFS")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Import Number of Islands with 4-star confidence" }));
-    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }), 4);
-
     fireEvent.click(screen.getByRole("button", { name: "Ignore Number of Islands" }));
     expect(onIgnore).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }));
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it("renders From LeetCode for already-linked solves with a seeded rating selector", () => {
-    const onRate = vi.fn();
+  it("renders an already-linked From LeetCode card and passes its full identity when rated", () => {
+    const onRate = vi.fn(() => new Promise<void>(() => {}));
     renderTodayView({
       todayLeetCodeItems: [makeTodayLeetCodeItem()],
-      leetcodeSubmissions: [makeSubmission()],
       onRateLeetCodeReview: onRate,
     });
 
@@ -314,17 +324,17 @@ describe("TodayView", () => {
 
     const rateButton = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
     fireEvent.click(rateButton);
-    expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 4);
-    expect((rateButton as HTMLButtonElement).disabled).toBe(true);
-
-    const doneSection = screen.getByText("Done today").closest("section")!;
-    expect(within(doneSection).getByText("solved on LC · review due")).toBeTruthy();
+    expect(onRate).toHaveBeenCalledWith(
+      "sub-db-1",
+      "p1",
+      4,
+      expect.objectContaining({ submissionDbId: "sub-db-1", titleSlug: "two-sum", leetcodeNumber: 1 }),
+    );
   });
 
   it("fills intermediate known LeetCode stars while previewing a higher confidence", () => {
     renderTodayView({
       todayLeetCodeItems: [makeTodayLeetCodeItem({ confidence: 2 })],
-      leetcodeSubmissions: [makeSubmission()],
     });
 
     const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
@@ -341,67 +351,386 @@ describe("TodayView", () => {
     expect(fourthStar.className).toContain("border-pb-star");
   });
 
-  it("updates known LeetCode rating copy after first log and later confidence changes", async () => {
+  it("treats selecting the displayed confidence as a known LeetCode completion action", () => {
     const onRate = vi.fn();
     renderTodayView({
       todayLeetCodeItems: [makeTodayLeetCodeItem({ confidence: 3 })],
-      leetcodeSubmissions: [makeSubmission()],
       onRateLeetCodeReview: onRate,
     });
 
     const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
     const thirdStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 3-star confidence" });
-    const fourthStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
 
     fireEvent.click(thirdStar);
-    expect(within(leetcodeSection).getByText("New confidence logged")).toBeTruthy();
-    expect(onRate).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect((thirdStar as HTMLButtonElement).disabled).toBe(false));
-
-    fireEvent.click(thirdStar);
-    expect(within(leetcodeSection).getByText("New confidence logged")).toBeTruthy();
-    expect(within(leetcodeSection).queryByText("Confidence updated")).toBeNull();
-    expect(onRate).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(fourthStar);
-    expect(within(leetcodeSection).getByText("Confidence updated")).toBeTruthy();
-    expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 4);
-    expect(onRate).toHaveBeenCalledTimes(2);
+    expect(onRate).toHaveBeenCalledWith(
+      "sub-db-1",
+      "p1",
+      3,
+      expect.objectContaining({ submissionDbId: "sub-db-1", titleSlug: "two-sum", leetcodeNumber: 1 }),
+    );
   });
 
-  it("keeps logged known LeetCode rating state after refresh and ignores same-confidence reselects", () => {
-    const onRate = vi.fn();
+  it("shows a PB review in Done today when resolver omits the known LeetCode action", () => {
     renderTodayView({
-      todayLeetCodeItems: [
-        makeTodayLeetCodeItem({
-          confidence: 4,
-          reviewedTodayConfidence: 4,
-        } as Partial<TodayLeetCodeItem>),
-      ],
-      leetcodeSubmissions: [makeSubmission({ status: "rated" })],
-      reviewEvents: [makeReviewEvent({ confidence: 4 })],
-      onRateLeetCodeReview: onRate,
+      todayLeetCodeItems: [],
+      leetcodeSubmissions: [makeSubmission()],
+      reviewEvents: [makeReviewEvent({ problemId: "p1", confidence: 4 })],
     });
 
-    const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
-    const fourthStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
-    const fifthStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 5-star confidence" });
+    expectEmptyLeetCodeSection();
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).getByText("Two Sum")).toBeTruthy();
+    expect(within(doneSection).getByText("rated")).toBeTruthy();
+  });
 
-    expect(within(leetcodeSection).getByText("New confidence logged")).toBeTruthy();
+  it("shows an imported LeetCode solve in Done today when resolver omits the pending action", () => {
+    renderTodayView({
+      problems: [makeProblem({
+        id: "p2",
+        title: "Number of Islands",
+        leetcodeNumber: 200,
+        difficulty: "Medium",
+        nextReviewDate: "2026-05-20",
+      })],
+      todayLeetCodeItems: [],
+      leetcodeSubmissions: [
+        makeSubmission({
+          id: "sub-db-1",
+          problemId: "p2",
+          titleSlug: "number-of-islands",
+          title: "Number of Islands",
+          leetcodeNumber: 200,
+          difficulty: "Medium",
+          status: "imported",
+          submittedAt: "2026-05-14T21:00:00.000Z",
+        }),
+      ],
+    });
 
-    fireEvent.click(fourthStar);
-    expect(onRate).not.toHaveBeenCalled();
-    expect(within(leetcodeSection).getByText("New confidence logged")).toBeTruthy();
+    expectEmptyLeetCodeSection();
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).getByText("Number of Islands")).toBeTruthy();
+    expect(within(doneSection).getByText("solved on LC · imported")).toBeTruthy();
+  });
 
-    fireEvent.click(fifthStar);
-    expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 5);
-    expect(within(leetcodeSection).getByText("Confidence updated")).toBeTruthy();
+  it("shows a rated LeetCode solve in Done today when resolver omits duplicate action rows", () => {
+    renderTodayView({
+      todayLeetCodeItems: [],
+      leetcodeSubmissions: [makeSubmission({ id: "completed-submission", status: "rated" })],
+    });
+
+    expectEmptyLeetCodeSection();
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).getByText("Two Sum")).toBeTruthy();
+    expect(within(doneSection).getByText("solved on LC · rated")).toBeTruthy();
+  });
+
+  it("keeps Done today visible when resolver omits stale sync rows with changed slugs", () => {
+    renderTodayView({
+      todayLeetCodeItems: [],
+      leetcodeSubmissions: [makeSubmission({ id: "completed-submission", status: "rated" })],
+    });
+
+    expectEmptyLeetCodeSection();
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).getByText("Two Sum")).toBeTruthy();
+    expect(within(doneSection).getByText("solved on LC · rated")).toBeTruthy();
+  });
+
+  it("calls the pending import callback and leaves disappearance to the resolver", () => {
+    const onConfirm = vi.fn(() => new Promise<void>(() => {}));
+    renderTodayView({
+      problems: [],
+      pendingLeetCodeImports: [makePendingImport()],
+      onConfirmLeetCodeImport: onConfirm,
+    });
+
+    expect(screen.getByText("From LeetCode")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Import Number of Islands with 4-star confidence" }));
+
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }), 4);
+    expect(screen.getByText("From LeetCode")).toBeTruthy();
+    expect(screen.queryByText("Welcome to PatternBank")).toBeNull();
+  });
+
+  it("removes a known From LeetCode card after rating when parent state records the completion", () => {
+    vi.useFakeTimers();
+
+    try {
+      function StatefulToday() {
+        const [items, setItems] = useState<TodayLeetCodeItem[]>([makeTodayLeetCodeItem()]);
+        const [reviewEvents, setReviewEvents] = useState<ReviewEvent[]>([]);
+        return (
+          <TodayView
+            problems={[makeProblem({ lastReviewed: reviewEvents.length ? "2026-05-14" : null })]}
+            reviewEvents={reviewEvents}
+            dailyGoal={5}
+            hidePatterns={false}
+            onReview={vi.fn()}
+            onDismiss={vi.fn()}
+            onUpdateNotes={vi.fn()}
+            onViewAllDue={vi.fn()}
+            onAddClick={vi.fn()}
+            onBulkAdd={vi.fn()}
+            existingProblemNumbers={new Set([1])}
+            todayLeetCodeItems={items}
+            onConfirmLeetCodeImport={vi.fn()}
+            onIgnoreLeetCodeImport={vi.fn()}
+            leetcodeSubmissions={[
+              makeSubmission({
+                status: "rated",
+                problemId: "p1",
+              }),
+            ]}
+            onRateLeetCodeReview={(_submissionDbId, problemId, confidence) => {
+              setItems([]);
+              setReviewEvents([makeReviewEvent({ problemId, confidence })]);
+            }}
+            today="2026-05-14"
+          />
+        );
+      }
+
+      render(<StatefulToday />);
+
+      const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
+      fireEvent.click(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+
+      expect(screen.getByText("From LeetCode")).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(241);
+      });
+
+      const emptyLeetCodeSection = screen.getByRole("region", { name: "From LeetCode" });
+      expect(within(emptyLeetCodeSection).getByText("0")).toBeTruthy();
+      expect(within(emptyLeetCodeSection).queryByText("Two Sum")).toBeNull();
+      const doneSection = screen.getByText("Done today").closest("section")!;
+      expect(within(doneSection).getByText("Two Sum")).toBeTruthy();
+      expect(within(doneSection).getByText("rated")).toBeTruthy();
+      expect(within(doneSection).getByText("4★")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps a removed known From LeetCode card mounted during its collapse animation", () => {
+    vi.useFakeTimers();
+
+    try {
+      function StatefulToday() {
+        const [items, setItems] = useState<TodayLeetCodeItem[]>([makeTodayLeetCodeItem()]);
+        const [reviewEvents, setReviewEvents] = useState<ReviewEvent[]>([]);
+        return (
+          <TodayView
+            problems={[makeProblem({ lastReviewed: reviewEvents.length ? "2026-05-14" : null })]}
+            reviewEvents={reviewEvents}
+            dailyGoal={5}
+            hidePatterns={false}
+            onReview={vi.fn()}
+            onDismiss={vi.fn()}
+            onUpdateNotes={vi.fn()}
+            onViewAllDue={vi.fn()}
+            onAddClick={vi.fn()}
+            onBulkAdd={vi.fn()}
+            existingProblemNumbers={new Set([1])}
+            todayLeetCodeItems={items}
+            onConfirmLeetCodeImport={vi.fn()}
+            onIgnoreLeetCodeImport={vi.fn()}
+            leetcodeSubmissions={[makeSubmission({ status: "rated", problemId: "p1" })]}
+            onRateLeetCodeReview={(_submissionDbId, problemId, confidence) => {
+              setItems([]);
+              setReviewEvents([makeReviewEvent({ problemId, confidence })]);
+            }}
+            today="2026-05-14"
+          />
+        );
+      }
+
+      render(<StatefulToday />);
+
+      const leetcodeSection = screen.getByRole("region", { name: "From LeetCode" });
+      fireEvent.click(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+
+      expect(screen.getByRole("region", { name: "From LeetCode" })).toBeTruthy();
+      expect(within(screen.getByRole("region", { name: "From LeetCode" })).getByText("Two Sum")).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(241);
+      });
+
+      const emptyLeetCodeSection = screen.getByRole("region", { name: "From LeetCode" });
+      expect(within(emptyLeetCodeSection).getByText("0")).toBeTruthy();
+      expect(within(emptyLeetCodeSection).queryByText("Two Sum")).toBeNull();
+      const doneSection = screen.getByText("Done today").closest("section")!;
+      expect(within(doneSection).getByText("Two Sum")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("updates the From LeetCode count while a removed card is still exiting", () => {
+    vi.useFakeTimers();
+
+    try {
+      function StatefulToday() {
+        const [items, setItems] = useState<TodayLeetCodeItem[]>([
+          makeTodayLeetCodeItem(),
+          makeTodayLeetCodeItem({
+            submissionDbId: "sub-db-2",
+            titleSlug: "roman-to-integer",
+            title: "Roman to Integer",
+            leetcodeNumber: 13,
+            matchedProblemId: "p13",
+            confidence: 2,
+          }),
+        ]);
+        return (
+          <TodayView
+            problems={[
+              makeProblem(),
+              makeProblem({
+                id: "p13",
+                title: "Roman to Integer",
+                leetcodeNumber: 13,
+                confidence: 2,
+              }),
+            ]}
+            reviewEvents={[]}
+            dailyGoal={5}
+            hidePatterns={false}
+            onReview={vi.fn()}
+            onDismiss={vi.fn()}
+            onUpdateNotes={vi.fn()}
+            onViewAllDue={vi.fn()}
+            onAddClick={vi.fn()}
+            onBulkAdd={vi.fn()}
+            existingProblemNumbers={new Set([1, 13])}
+            todayLeetCodeItems={items}
+            onConfirmLeetCodeImport={vi.fn()}
+            onIgnoreLeetCodeImport={vi.fn()}
+            onRateLeetCodeReview={(submissionDbId) => {
+              setItems((current) => current.filter((item) => item.submissionDbId !== submissionDbId));
+            }}
+            today="2026-05-14"
+          />
+        );
+      }
+
+      render(<StatefulToday />);
+
+      const leetcodeSection = screen.getByRole("region", { name: "From LeetCode" });
+      fireEvent.click(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+
+      expect(within(screen.getByRole("region", { name: "From LeetCode" })).getByText("1")).toBeTruthy();
+      expect(within(screen.getByRole("region", { name: "From LeetCode" })).getByText("Two Sum")).toBeTruthy();
+      expect(within(screen.getByRole("region", { name: "From LeetCode" })).getByText("Roman to Integer")).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(241);
+      });
+
+      expect(within(screen.getByRole("region", { name: "From LeetCode" })).queryByText("Two Sum")).toBeNull();
+      expect(within(screen.getByRole("region", { name: "From LeetCode" })).getByText("Roman to Integer")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("removes a pending From LeetCode card after import when parent state records imported activity", () => {
+    vi.useFakeTimers();
+
+    try {
+      function StatefulToday() {
+        const [pending, setPending] = useState<PendingLeetCodeImport[]>([
+          makePendingImport(),
+        ]);
+        const [problems, setProblems] = useState<Problem[]>([]);
+        const [submissions, setSubmissions] = useState<LeetCodeSubmission[]>([]);
+        return (
+          <TodayView
+            problems={problems}
+            reviewEvents={[]}
+            dailyGoal={5}
+            hidePatterns={false}
+            onReview={vi.fn()}
+            onDismiss={vi.fn()}
+            onUpdateNotes={vi.fn()}
+            onViewAllDue={vi.fn()}
+            onAddClick={vi.fn()}
+            onBulkAdd={vi.fn()}
+            existingProblemNumbers={new Set()}
+            pendingLeetCodeImports={pending}
+            onConfirmLeetCodeImport={(item, confidence) => {
+              setPending([]);
+              setProblems([
+                makeProblem({
+                  id: "p2",
+                  title: item.title,
+                  leetcodeNumber: item.leetcodeNumber,
+                  difficulty: item.difficulty ?? "Medium",
+                  confidence,
+                  nextReviewDate: "2026-05-19",
+                }),
+              ]);
+              setSubmissions([
+                makeSubmission({
+                  id: item.submissionDbId,
+                  title: item.title,
+                  titleSlug: item.titleSlug,
+                  leetcodeNumber: item.leetcodeNumber,
+                  difficulty: item.difficulty,
+                  submittedAt: item.submittedAt,
+                  status: "imported",
+                  problemId: "p2",
+                }),
+              ]);
+            }}
+            onIgnoreLeetCodeImport={vi.fn()}
+            leetcodeSubmissions={submissions}
+            today="2026-05-14"
+          />
+        );
+      }
+
+      render(<StatefulToday />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Import Number of Islands with 4-star confidence" }));
+
+      expect(screen.getByText("From LeetCode")).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(241);
+      });
+
+      const emptyLeetCodeSection = screen.getByRole("region", { name: "From LeetCode" });
+      expect(within(emptyLeetCodeSection).getByText("0")).toBeTruthy();
+      expect(within(emptyLeetCodeSection).queryByText("Number of Islands")).toBeNull();
+      const doneSection = screen.getByText("Done today").closest("section")!;
+      expect(within(doneSection).getByText("Number of Islands")).toBeTruthy();
+      expect(within(doneSection).getByText("solved on LC · imported")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps completed LeetCode ratings out of From LeetCode and shows the PB review in Done today", () => {
+    renderTodayView({
+      leetcodeSubmissions: [makeSubmission({ status: "rated" })],
+      reviewEvents: [makeReviewEvent({ confidence: 4 })],
+      todayLeetCodeItems: [],
+    });
+
+    expectEmptyLeetCodeSection();
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).getByText("rated")).toBeTruthy();
+    expect(within(doneSection).getByText("4★")).toBeTruthy();
   });
 
   it("shows missing confidence copy on known LeetCode cards without a matched confidence", () => {
     renderTodayView({
       todayLeetCodeItems: [makeTodayLeetCodeItem({ confidence: null })],
-      leetcodeSubmissions: [makeSubmission()],
     });
 
     const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
@@ -442,7 +771,7 @@ describe("TodayView", () => {
     expect(within(reviewsSection).getByText("Hash Table").className).toContain("rounded-full");
     expect(within(reviewsSection).getByText("Hash Table").className).toContain("border");
     expect(within(reviewsSection).getByText("Easy").className).toContain("border");
-    expect(screen.getByText("Solved on LC today")).toBeTruthy();
+    expect(within(reviewsSection).getByText("Solved on LC today")).toBeTruthy();
   });
 
   it("renders PatternBank and LeetCode Done today rows together", () => {

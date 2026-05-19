@@ -82,6 +82,7 @@ export interface LeetCodeIgnoredImport {
 
 export interface PendingLeetCodeImport {
   submissionDbId: string;
+  leetcodeSubmissionId?: string | null;
   titleSlug: string;
   title: string;
   leetcodeNumber: number | null;
@@ -111,6 +112,7 @@ export type TodayLeetCodeItem =
     matchedProblemId: string | null;
     status: "linked_existing" | "imported" | "rated";
     statusLabel: "In library" | "Review due" | "Imported" | "Rated";
+    leetcodeSubmissionId?: string | null;
     confidence: Confidence | null;
     reviewedTodayConfidence: Confidence | null;
   };

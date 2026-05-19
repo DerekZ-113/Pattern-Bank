@@ -7,7 +7,7 @@ interface Props {
   item: TodayLeetCodeItem;
   onConfirm: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnore: (item: PendingLeetCodeImport) => void;
-  onRateKnown?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
+  onRateKnown?: (item: TodayLeetCodeItem, confidence: Confidence) => void | Promise<void>;
 }
 
 const STAR_VALUES: Confidence[] = [1, 2, 3, 4, 5];
@@ -49,14 +49,13 @@ export default function TodayLeetCodeCard({ item, onConfirm, onIgnore, onRateKno
     if (isPending || !item.matchedProblemId || !onRateKnown || pendingKnownRating) return;
     const latestRecordedConfidence = selectedKnownConfidence ?? persistedKnownConfidence;
     const hasLoggedConfidence = knownRatingState !== "idle" || persistedKnownConfidence !== null;
-    if (hasLoggedConfidence && latestRecordedConfidence === confidence) return;
 
-    const nextState = hasLoggedConfidence ? "updated" : "logged";
+    const nextState = hasLoggedConfidence && latestRecordedConfidence !== confidence ? "updated" : "logged";
     setSelectedKnownConfidence(confidence);
     setKnownRatingState(nextState);
     setPendingKnownRating(true);
     try {
-      await onRateKnown(item.submissionDbId, item.matchedProblemId, confidence);
+      await onRateKnown(item, confidence);
     } finally {
       setPendingKnownRating(false);
     }
