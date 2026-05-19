@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import type {
   Confidence,
@@ -17,11 +17,21 @@ import {
   restoreIgnoredLeetCodeImport,
 } from "../utils/leetcodeActivityData";
 import {
-  buildPendingLeetCodeImports,
   buildProblemFromLeetCodeImport,
-  buildTodayLeetCodeItems,
 } from "../utils/leetcodeImportTransforms";
 import { todayStr } from "../utils/dateHelpers";
+import {
+  loadTodayLeetCodeCompletions,
+  mergeTodayLeetCodeCompletion,
+  saveTodayLeetCodeCompletions,
+  type LeetCodeCompletionIdentity,
+  type TodayLeetCodeCompletionAction,
+} from "../utils/todayLeetCodeCompletions";
+import {
+  buildReviewedTodayLeetCodeCompletions,
+  logTodayLeetCodeDebugSnapshot,
+  resolveTodayLeetCodeState,
+} from "../utils/todayLeetCodeResolver";
 
 interface UseLeetCodePendingImportsParams {
   user: Pick<User, "id"> | null;
@@ -38,8 +48,10 @@ interface UseLeetCodePendingImportsParams {
 export interface UseLeetCodePendingImportsState {
   pendingImports: PendingLeetCodeImport[];
   todayLeetCodeItems: TodayLeetCodeItem[];
+  leetcodeSubmissionsForTodayFeed: LeetCodeSubmission[];
   confirmImport: (item: PendingLeetCodeImport, confidence: Confidence) => Promise<void>;
   ignoreImport: (item: PendingLeetCodeImport) => Promise<void>;
+  recordRatedCompletion: (source: LeetCodeCompletionIdentity & { submissionDbId: string }, problemId: string) => void;
 }
 
 export default function useLeetCodePendingImports({
@@ -54,26 +66,88 @@ export default function useLeetCodePendingImports({
   refreshLeetCodeActivity,
 }: UseLeetCodePendingImportsParams): UseLeetCodePendingImportsState {
   const processedAutoImportsRef = useRef(new Set<string>());
+  const today = todayStr();
+  const [todayCompletions, setTodayCompletions] = useState(() => loadTodayLeetCodeCompletions(today));
 
-  const todayLeetCodeItems = useMemo(
-    () => buildTodayLeetCodeItems({
+  useEffect(() => {
+    setTodayCompletions(loadTodayLeetCodeCompletions(today));
+  }, [today]);
+
+  const recordCompletion = useCallback((
+    source: LeetCodeCompletionIdentity & { submissionDbId: string },
+    action: TodayLeetCodeCompletionAction,
+    problemId: string,
+  ) => {
+    setTodayCompletions((current) => {
+      const next = mergeTodayLeetCodeCompletion(current, {
+        submissionDbId: source.submissionDbId,
+        leetcodeSubmissionId: source.leetcodeSubmissionId,
+        titleSlug: source.titleSlug,
+        leetcodeNumber: source.leetcodeNumber,
+        problemId,
+        action,
+      }, today);
+      saveTodayLeetCodeCompletions(next, today);
+      return next;
+    });
+  }, [today]);
+  const reviewedTodayCompletions = useMemo(
+    () => buildReviewedTodayLeetCodeCompletions({
       submissions,
       problems,
-      ignoredImports,
       reviewEvents,
-      today: todayStr(),
+      today,
     }),
-    [ignoredImports, problems, reviewEvents, submissions],
+    [problems, reviewEvents, submissions, today],
   );
-  const pendingImports = useMemo(
-    () => buildPendingLeetCodeImports({
-      submissions,
+
+  useEffect(() => {
+    if (reviewedTodayCompletions.length === 0) return;
+    setTodayCompletions((current) => {
+      let next = current;
+      for (const completion of reviewedTodayCompletions) {
+        next = mergeTodayLeetCodeCompletion(next, completion, today);
+      }
+      if (next === current) return current;
+      saveTodayLeetCodeCompletions(next, today);
+      return next;
+    });
+  }, [reviewedTodayCompletions, today]);
+
+  const resolvedTodayLeetCodeState = useMemo(
+    () => resolveTodayLeetCodeState({
       problems,
+      reviewEvents,
+      leetcodeSubmissions: submissions,
       ignoredImports,
-      today: todayStr(),
+      todayCompletions,
+      today,
     }),
-    [ignoredImports, problems, submissions],
+    [ignoredImports, problems, reviewEvents, submissions, today, todayCompletions],
   );
+
+  useEffect(() => {
+    logTodayLeetCodeDebugSnapshot("resolved-state", {
+      submissions,
+      completions: resolvedTodayLeetCodeState.effectiveCompletions,
+      fromLeetCodeItems: resolvedTodayLeetCodeState.fromLeetCodeItems,
+      doneTodayLeetCodeSubmissions: resolvedTodayLeetCodeState.doneTodayLeetCodeSubmissions,
+      reviewEvents,
+      problems,
+    });
+  }, [problems, reviewEvents, resolvedTodayLeetCodeState, submissions]);
+
+  const todayLeetCodeItems = resolvedTodayLeetCodeState.fromLeetCodeItems;
+  const pendingImports = useMemo(
+    () => todayLeetCodeItems.filter((item): item is PendingLeetCodeImport & {
+      kind: "pending_import";
+      status: "detected";
+      matchedProblemId: null;
+      statusLabel: "Rate to add";
+    } => item.kind === "pending_import"),
+    [todayLeetCodeItems],
+  );
+  const leetcodeSubmissionsForTodayFeed = resolvedTodayLeetCodeState.doneTodayLeetCodeSubmissions;
 
   const confirmImport = useCallback(async (
     item: PendingLeetCodeImport,
@@ -85,6 +159,7 @@ export default function useLeetCodePendingImports({
       : problems.find((problem) => problem.leetcodeNumber === item.leetcodeNumber) ?? null;
 
     if (duplicate) {
+      recordCompletion(item, "linked_existing", duplicate.id);
       const result = await markLeetCodeImportLinkedExisting(item.submissionDbId, duplicate.id);
       if (!result.error) {
         await refreshLeetCodeActivity();
@@ -105,6 +180,7 @@ export default function useLeetCodePendingImports({
     const createResult = onCreateProblem(problem);
 
     if (createResult.status === "duplicate") {
+      recordCompletion(item, "linked_existing", createResult.problem.id);
       const result = await markLeetCodeImportLinkedExisting(item.submissionDbId, createResult.problem.id);
       if (!result.error) {
         await refreshLeetCodeActivity();
@@ -117,6 +193,7 @@ export default function useLeetCodePendingImports({
       return;
     }
 
+    recordCompletion(item, "imported", createResult.problem.id);
     const result = await markLeetCodeImportImported(item.submissionDbId, createResult.problem.id);
     if (!result.error) {
       await refreshLeetCodeActivity();
@@ -126,7 +203,14 @@ export default function useLeetCodePendingImports({
     } else if (!options.silent) {
       showToast(result.error);
     }
-  }, [onCreateProblem, problems, refreshLeetCodeActivity, showToast]);
+  }, [onCreateProblem, problems, recordCompletion, refreshLeetCodeActivity, showToast]);
+
+  const recordRatedCompletion = useCallback((
+    source: LeetCodeCompletionIdentity & { submissionDbId: string },
+    problemId: string,
+  ) => {
+    recordCompletion(source, "rated", problemId);
+  }, [recordCompletion]);
 
   const ignoreImport = useCallback(async (item: PendingLeetCodeImport) => {
     const result = await ignoreLeetCodeImport(item.submissionDbId);
@@ -163,7 +247,9 @@ export default function useLeetCodePendingImports({
   return {
     pendingImports,
     todayLeetCodeItems,
+    leetcodeSubmissionsForTodayFeed,
     confirmImport,
     ignoreImport,
+    recordRatedCompletion,
   };
 }

@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import TodayDoneFeed from "./TodayDoneFeed";
 import TodayLeetCodeIntroCard from "./TodayLeetCodeIntroCard";
 import TodayLeetCodeCard from "./TodayLeetCodeCard";
@@ -37,7 +38,12 @@ interface Props {
   onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   leetcodeSubmissions?: LeetCodeSubmission[];
-  onRateLeetCodeReview?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
+  onRateLeetCodeReview?: (
+    submissionDbId: string,
+    problemId: string,
+    confidence: Confidence,
+    source?: TodayLeetCodeItem,
+  ) => void | Promise<void>;
   showLeetCodeIntro?: boolean;
   leetcodeIntroSignedIn?: boolean;
   onOpenLeetCodeSettings?: () => void;
@@ -82,13 +88,26 @@ export default function TodayView({
     today,
   });
   const solvedOnLeetCodeToday = buildSolvedOnLeetCodeTodayIndex(leetcodeSubmissions, today);
-  const leetcodeSectionItems = todayLeetCodeItems ?? pendingLeetCodeImports.map((item) => ({
-    ...item,
-    kind: "pending_import" as const,
-    status: "detected" as const,
-    matchedProblemId: null,
-    statusLabel: "Rate to add" as const,
-  }));
+  const leetcodeSectionItems = useMemo<TodayLeetCodeItem[]>(
+    () => todayLeetCodeItems ?? pendingLeetCodeImports.map((item) => ({
+      ...item,
+      kind: "pending_import" as const,
+      status: "detected" as const,
+      matchedProblemId: null,
+      statusLabel: "Rate to add" as const,
+    })),
+    [pendingLeetCodeImports, todayLeetCodeItems],
+  );
+  const shouldShowQuickStart = problems.length === 0
+    && leetcodeSectionItems.length === 0
+    && doneTodayItems.length === 0;
+  const handleConfirmLeetCodeImport = useCallback((item: PendingLeetCodeImport, confidence: Confidence) => {
+    onConfirmLeetCodeImport?.(item, confidence);
+  }, [onConfirmLeetCodeImport]);
+  const handleRateKnownLeetCodeItem = useCallback((item: TodayLeetCodeItem, confidence: Confidence) => {
+    if (!item.matchedProblemId) return undefined;
+    return onRateLeetCodeReview?.(item.submissionDbId, item.matchedProblemId, confidence, item);
+  }, [onRateLeetCodeReview]);
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-6 md:px-8">
@@ -107,7 +126,7 @@ export default function TodayView({
         />
       )}
 
-      {problems.length === 0 && leetcodeSectionItems.length === 0 ? (
+      {shouldShowQuickStart ? (
         <TodayQuickStart
           onAddClick={onAddClick}
           onBulkAdd={onBulkAdd}
@@ -129,9 +148,9 @@ export default function TodayView({
                   <TodayLeetCodeCard
                     key={item.submissionDbId}
                     item={item}
-                    onConfirm={(pendingItem, confidence) => onConfirmLeetCodeImport?.(pendingItem, confidence)}
+                    onConfirm={handleConfirmLeetCodeImport}
                     onIgnore={(pendingItem) => onIgnoreLeetCodeImport?.(pendingItem)}
-                    onRateKnown={(submissionDbId, problemId, confidence) => onRateLeetCodeReview?.(submissionDbId, problemId, confidence)}
+                    onRateKnown={handleRateKnownLeetCodeItem}
                   />
                 ))}
               </div>

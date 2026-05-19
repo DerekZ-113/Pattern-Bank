@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
 import { rateLeetCodeReviewLocallyFirst } from "./utils/leetcodeReviewActions";
+import type { LeetCodeCompletionIdentity } from "./utils/todayLeetCodeCompletions";
 
 import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";
@@ -67,18 +68,21 @@ export default function App() {
     submissionDbId: string,
     problemId: string,
     confidence: Parameters<typeof handleReview>[1],
+    completionSource?: LeetCodeCompletionIdentity,
   ) => {
     await rateLeetCodeReviewLocallyFirst({
       submissionDbId,
       problemId,
       confidence,
+      completionSource,
       onReview: handleReview,
       markRated: leetcodeActivity.markRated,
+      onLocalReviewRecorded: leetcodePendingImports.recordRatedCompletion,
       onError: (error) => {
         console.warn("LeetCode submission marked locally reviewed, but remote rated status failed:", error);
       },
     });
-  }, [handleReview, leetcodeActivity]);
+  }, [handleReview, leetcodeActivity, leetcodePendingImports.recordRatedCompletion]);
 
   const hasLeetCodeActivityState =
     Boolean(leetcodeActivity.connection) ||
@@ -176,7 +180,7 @@ export default function App() {
           todayLeetCodeItems={leetcodePendingImports.todayLeetCodeItems}
           onConfirmLeetCodeImport={leetcodePendingImports.confirmImport}
           onIgnoreLeetCodeImport={leetcodePendingImports.ignoreImport}
-          leetcodeSubmissions={leetcodeActivity.submissions}
+          leetcodeSubmissions={leetcodePendingImports.leetcodeSubmissionsForTodayFeed}
           onRateLeetCodeReview={handleRateLeetCodeReview}
           showLeetCodeIntro={showLeetCodeIntro}
           leetcodeIntroSignedIn={Boolean(user)}

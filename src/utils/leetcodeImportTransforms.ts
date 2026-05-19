@@ -45,10 +45,6 @@ function findExistingProblem(submission: LeetCodeSubmission, problems: Problem[]
   return problems.find((problem) => problem.leetcodeNumber === submission.leetcodeNumber) ?? null;
 }
 
-function isKnownLeetCodeStatus(status: LeetCodeSubmission["status"]): status is "linked_existing" | "imported" | "rated" {
-  return status === "linked_existing" || status === "imported" || status === "rated";
-}
-
 function getLinkedStatusLabel(kind: "linked_existing" | "imported" | "rated", problem: Problem | null, today: string) {
   if (kind === "imported") return "Imported";
   if (kind === "rated") return "Rated";
@@ -92,6 +88,16 @@ function buildLatestReviewConfidenceByProblem(reviewEvents: ReviewEvent[] | unde
   return confidenceByProblem;
 }
 
+function wasProblemReviewedToday(
+  problem: Pick<Problem, "id" | "lastReviewed"> | null,
+  reviewEvents: ReviewEvent[] | undefined,
+  today: string,
+): boolean {
+  if (!problem) return false;
+  if (problem.lastReviewed === today) return true;
+  return (reviewEvents ?? []).some((event) => event.problemId === problem.id && event.date === today);
+}
+
 export function buildPendingLeetCodeImports({
   submissions,
   problems,
@@ -110,6 +116,7 @@ export function buildPendingLeetCodeImports({
     const firstSeenAt = minTimestamp(existing?.firstSeenAt, submission.createdAt);
     const candidate: PendingLeetCodeImport = {
       submissionDbId: submission.id,
+      leetcodeSubmissionId: submission.leetcodeSubmissionId,
       titleSlug: submission.titleSlug,
       title: submission.title,
       leetcodeNumber: submission.leetcodeNumber,
@@ -148,16 +155,18 @@ export function buildTodayLeetCodeItems({
   for (const submission of submissions) {
     if (utcToLocalDateStr(submission.submittedAt) !== today) continue;
     if (submission.status === "ignored") continue;
+    if (submission.status === "imported" || submission.status === "rated") continue;
     if (ignoredSlugs.has(submission.titleSlug)) continue;
 
     const existing = bySlug.get(submission.titleSlug);
     const matchedProblem = findExistingProblem(submission, problems);
+    if (wasProblemReviewedToday(matchedProblem, reviewEvents, today)) continue;
     const suggestedPatterns = matchedProblem?.patterns.length
       ? matchedProblem.patterns
       : getPatternsForProblemNumber(submission.leetcodeNumber);
-    const knownKind = isKnownLeetCodeStatus(submission.status)
+    const knownKind = submission.status === "linked_existing" && matchedProblem
       ? submission.status
-      : matchedProblem
+      : submission.status === "detected" && matchedProblem
         ? "linked_existing"
         : null;
 
@@ -166,6 +175,7 @@ export function buildTodayLeetCodeItems({
       candidate = {
         kind: knownKind,
         submissionDbId: submission.id,
+        leetcodeSubmissionId: submission.leetcodeSubmissionId,
         titleSlug: submission.titleSlug,
         title: submission.title,
         leetcodeNumber: submission.leetcodeNumber,
@@ -187,6 +197,7 @@ export function buildTodayLeetCodeItems({
         matchedProblemId: null,
         statusLabel: "Rate to add",
         submissionDbId: submission.id,
+        leetcodeSubmissionId: submission.leetcodeSubmissionId,
         titleSlug: submission.titleSlug,
         title: submission.title,
         leetcodeNumber: submission.leetcodeNumber,
