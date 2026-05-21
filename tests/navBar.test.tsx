@@ -4,12 +4,13 @@ import { describe, expect, it, vi } from "vitest";
 import NavBar from "../src/components/NavBar";
 
 describe("NavBar", () => {
-  it("renders Today, Progress, and All Problems", () => {
+  it("renders Today, Progress, and Problems", () => {
     render(<NavBar activeTab="dashboard" onTabChange={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: /Today/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Progress/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /All Problems/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Problems$/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /All Problems/i })).toBeNull();
   });
 
   it("marks the active tab with aria-current", () => {

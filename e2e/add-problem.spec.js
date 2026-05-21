@@ -21,9 +21,10 @@ test.describe("Add Problem", () => {
     await expect(result).toBeVisible();
     await result.click();
 
-    // Verify problem info populated
-    await expect(page.getByText("#1")).toBeVisible();
-    await expect(page.getByText("Easy")).toBeVisible();
+    // Verify problem info populated in the modal, not the static first-run preview.
+    const addProblemModal = page.locator(".fixed.inset-0").first();
+    await expect(addProblemModal.getByText("#1")).toBeVisible();
+    await expect(addProblemModal.getByText("Easy")).toBeVisible();
 
     // Select a pattern
     await page.getByRole("button", { name: "Hash Table" }).click();
@@ -57,7 +58,7 @@ test.describe("Add Problem", () => {
     await expect(page.getByText("Problem added")).toBeVisible();
 
     // Try to add same problem again
-    await page.getByRole("button", { name: /All Problems/i }).click();
+    await page.getByRole("button", { name: /Problems/i }).click();
     await page.getByRole("button", { name: "Add Problem" }).click();
     await page.getByPlaceholder(/type number or title/i).fill("1");
     await page.getByRole("button", { name: /Two Sum/i }).first().click();
