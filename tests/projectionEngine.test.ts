@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { simulateProjection } from "../src/utils/projectionEngine";
+import {
+  simulateProjection,
+  simulateProjectionSeries,
+} from "../src/utils/projectionEngine";
 import type { ProjectionSnapshot } from "../src/utils/projectionEngine";
 
 function totalCount(d: [number, number, number, number, number]): number {
@@ -48,5 +51,110 @@ describe("simulateProjection", () => {
     const snapshots = simulateProjection([5, 0, 0, 0, 0], 3, 0, 30);
     expect(snapshots).toHaveLength(4);
     expect(snapshots.map((s) => s.day)).toEqual([0, 10, 20, 30]);
+  });
+});
+
+describe("simulateProjectionSeries", () => {
+  it("returns one projection day for every day in the requested window", () => {
+    const days = simulateProjectionSeries({
+      startDistribution: [5, 0, 0, 0, 0],
+      dailyGoal: 3,
+      newPerWeek: 1,
+      days: 30,
+    });
+
+    expect(days).toHaveLength(31);
+    expect(days[0].day).toBe(0);
+    expect(days[30].day).toBe(30);
+  });
+
+  it("matches the existing optimistic snapshot behavior when advanceRate is 1", () => {
+    const snapshots = simulateProjection([5, 1, 0, 0, 0], 3, 2, 30, 7);
+    const series = simulateProjectionSeries({
+      startDistribution: [5, 1, 0, 0, 0],
+      dailyGoal: 3,
+      newPerWeek: 2,
+      days: 30,
+      seed: 7,
+      advanceRate: 1,
+    });
+
+    expect(
+      series
+        .filter((day) => [0, 10, 20, 30].includes(day.day))
+        .map((day) => day.distribution),
+    ).toEqual(snapshots.map((snapshot) => snapshot.distribution));
+  });
+
+  it("realistic advancement never produces more mastered problems than optimistic", () => {
+    const optimistic = simulateProjectionSeries({
+      startDistribution: [20, 8, 5, 0, 0],
+      dailyGoal: 6,
+      newPerWeek: 4,
+      days: 30,
+      seed: 99,
+      advanceRate: 1,
+    });
+    const realistic = simulateProjectionSeries({
+      startDistribution: [20, 8, 5, 0, 0],
+      dailyGoal: 6,
+      newPerWeek: 4,
+      days: 30,
+      seed: 99,
+      advanceRate: 0.7,
+    });
+
+    realistic.forEach((day, index) => {
+      const realisticMastered = day.distribution[3] + day.distribution[4];
+      const optimisticMastered =
+        optimistic[index].distribution[3] + optimistic[index].distribution[4];
+      expect(realisticMastered).toBeLessThanOrEqual(optimisticMastered);
+    });
+  });
+
+  it("zero daily reviews only changes totals through new problem injection", () => {
+    const series = simulateProjectionSeries({
+      startDistribution: [5, 3, 2, 0, 0],
+      dailyGoal: 0,
+      newPerWeek: 7,
+      days: 7,
+    });
+
+    expect(series[0].distribution).toEqual([5, 3, 2, 0, 0]);
+    expect(series[7].distribution[1]).toBe(3);
+    expect(series[7].distribution[2]).toBe(2);
+    expect(totalCount(series[7].distribution)).toBe(17);
+  });
+
+  it("confidence remains capped at 5 stars", () => {
+    const series = simulateProjectionSeries({
+      startDistribution: [0, 0, 0, 0, 10],
+      dailyGoal: 10,
+      newPerWeek: 0,
+      days: 30,
+    });
+
+    expect(series[30].distribution).toEqual([0, 0, 0, 0, 10]);
+  });
+
+  it("uses the seed deterministically", () => {
+    const first = simulateProjectionSeries({
+      startDistribution: [10, 5, 0, 0, 0],
+      dailyGoal: 4,
+      newPerWeek: 3,
+      days: 30,
+      seed: 123,
+      advanceRate: 0.7,
+    });
+    const second = simulateProjectionSeries({
+      startDistribution: [10, 5, 0, 0, 0],
+      dailyGoal: 4,
+      newPerWeek: 3,
+      days: 30,
+      seed: 123,
+      advanceRate: 0.7,
+    });
+
+    expect(second).toEqual(first);
   });
 });

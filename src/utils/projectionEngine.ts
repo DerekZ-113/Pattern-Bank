@@ -1,11 +1,22 @@
 import { INTERVALS } from "./spacedRepetition";
 import type { Confidence } from "../types";
 
-type Distribution = [number, number, number, number, number];
+export type Distribution = [number, number, number, number, number];
 
-export interface ProjectionSnapshot {
+export interface ProjectionDay {
   day: number;
   distribution: Distribution;
+}
+
+export type ProjectionSnapshot = ProjectionDay;
+
+export interface ProjectionSeriesOptions {
+  startDistribution: Distribution;
+  dailyGoal: number;
+  newPerWeek: number;
+  days?: number;
+  seed?: number;
+  advanceRate?: number;
 }
 
 interface SimProblem {
@@ -39,8 +50,28 @@ export function simulateProjection(
   days: number = 30,
   seed: number = 42,
 ): ProjectionSnapshot[] {
-  const rand = mulberry32(seed);
+  const series = simulateProjectionSeries({
+    startDistribution,
+    dailyGoal,
+    newPerWeek,
+    days,
+    seed,
+    advanceRate: 1,
+  });
   const snapshotDays = [0, 10, 20, days];
+  return series.filter((day) => snapshotDays.includes(day.day));
+}
+
+export function simulateProjectionSeries({
+  startDistribution,
+  dailyGoal,
+  newPerWeek,
+  days = 30,
+  seed = 42,
+  advanceRate = 1,
+}: ProjectionSeriesOptions): ProjectionDay[] {
+  const rand = mulberry32(seed);
+  const clampedAdvanceRate = Math.max(0, Math.min(1, advanceRate));
 
   // Seed individual problems from the distribution
   const problems: SimProblem[] = [];
@@ -57,12 +88,9 @@ export function simulateProjection(
     }
   }
 
-  const snapshots: ProjectionSnapshot[] = [];
+  const series: ProjectionDay[] = [];
 
-  // Capture day 0 snapshot before simulation
-  if (snapshotDays.includes(0)) {
-    snapshots.push({ day: 0, distribution: toDistribution(problems) });
-  }
+  series.push({ day: 0, distribution: toDistribution(problems) });
 
   // Simulate each day
   for (let day = 1; day <= days; day++) {
@@ -90,17 +118,17 @@ export function simulateProjection(
     // Review top N
     const toReview = due.slice(0, dailyGoal);
     for (const p of toReview) {
-      if (p.confidence < 5) {
+      const shouldAdvance =
+        clampedAdvanceRate >= 1 ||
+        (clampedAdvanceRate > 0 && rand() <= clampedAdvanceRate);
+      if (shouldAdvance && p.confidence < 5) {
         p.confidence = (p.confidence + 1) as Confidence;
       }
       p.dueDay = day + INTERVALS[p.confidence];
     }
 
-    // Capture snapshot if this is a snapshot day
-    if (snapshotDays.includes(day)) {
-      snapshots.push({ day, distribution: toDistribution(problems) });
-    }
+    series.push({ day, distribution: toDistribution(problems) });
   }
 
-  return snapshots;
+  return series;
 }

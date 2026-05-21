@@ -54,9 +54,14 @@ export default function LeetCodeActivitySection({
       </label>
 
       {!user && (
-        <p className="rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3 text-xs leading-relaxed text-pb-text-dim">
-          Sign in to track LeetCode activity across devices.
-        </p>
+        <div className="rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3">
+          <div className="text-sm font-semibold text-pb-text">
+            Sign in to connect LeetCode
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-pb-text-muted">
+            PatternBank can turn accepted LeetCode submissions into Today items after you sign in.
+          </p>
+        </div>
       )}
 
       {user && !connection && (

@@ -12,8 +12,8 @@ test.describe("All Problems View", () => {
   test.beforeEach(async ({ page }) => {
     await seedProblems(page, problems);
     await page.goto("/");
-    // Navigate to All Problems tab
-    await page.getByRole("button", { name: /All Problems/i }).click();
+    // Navigate to Problems tab
+    await page.getByRole("button", { name: /Problems/i }).click();
   });
 
   test("shows all problems with count", async ({ page }) => {

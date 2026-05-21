@@ -28,7 +28,12 @@ describe("LeetCodeActivitySection", () => {
     renderSection({ user: null });
 
     expect(screen.getByText("LeetCode Activity")).toBeTruthy();
-    expect(screen.getByText("Sign in to track LeetCode activity across devices.")).toBeTruthy();
+    expect(screen.getByText("Sign in to connect LeetCode")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "PatternBank can turn accepted LeetCode submissions into Today items after you sign in.",
+      ),
+    ).toBeTruthy();
   });
 
   it("renders not-connected username form", () => {

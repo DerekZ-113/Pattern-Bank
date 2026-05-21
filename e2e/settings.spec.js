@@ -32,7 +32,10 @@ test.describe("Settings", () => {
     await page.getByRole("button", { name: "Settings" }).click();
 
     await expect(page.getByText("LeetCode Activity", { exact: true })).toBeVisible();
-    await expect(page.getByText("Sign in to track LeetCode activity across devices.")).toBeVisible();
+    await expect(page.getByText("Sign in to connect LeetCode")).toBeVisible();
+    await expect(
+      page.getByText("PatternBank can turn accepted LeetCode submissions into Today items after you sign in."),
+    ).toBeVisible();
   });
 
   test("bulk add problems by number", async ({ page }) => {

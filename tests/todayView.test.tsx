@@ -100,6 +100,7 @@ function renderTodayView(overrides: {
   onReview?: (id: string, confidence: Confidence) => void;
   onDismiss?: (id: string) => void;
   onUpdateNotes?: (id: string, notes: string) => void;
+  onAddClick?: () => void;
   onBulkAdd?: (problems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
   pendingLeetCodeImports?: PendingLeetCodeImport[];
   todayLeetCodeItems?: TodayLeetCodeItem[];
@@ -127,7 +128,7 @@ function renderTodayView(overrides: {
       onDismiss={overrides.onDismiss ?? vi.fn()}
       onUpdateNotes={overrides.onUpdateNotes ?? vi.fn()}
       onViewAllDue={vi.fn()}
-      onAddClick={vi.fn()}
+      onAddClick={overrides.onAddClick ?? vi.fn()}
       onBulkAdd={overrides.onBulkAdd ?? vi.fn()}
       existingProblemNumbers={new Set([1])}
       pendingLeetCodeImports={overrides.pendingLeetCodeImports ?? []}
@@ -267,11 +268,42 @@ describe("TodayView", () => {
     expect(screen.queryByText("Total")).toBeNull();
   });
 
-  it("renders Quick Start when the library is empty", () => {
-    renderTodayView({ problems: [] });
+  it("renders the V2 first-run launchpad when the library is empty", () => {
+    const onOpen = vi.fn();
+    const onAddClick = vi.fn();
+    renderTodayView({
+      problems: [],
+      showLeetCodeIntro: true,
+      leetcodeIntroSignedIn: false,
+      onOpenLeetCodeSettings: onOpen,
+      onAddClick,
+    });
 
-    expect(screen.getByText("Welcome to PatternBank")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Add Problem/i })).toBeTruthy();
+    expect(screen.getByText("Start tracking your practice")).toBeTruthy();
+    expect(screen.getByText("Sign in")).toBeTruthy();
+    expect(screen.getByText("Connect LeetCode")).toBeTruthy();
+    expect(screen.getByText("Solve + rate")).toBeTruthy();
+    expect(screen.getByText("Import a curated list")).toBeTruthy();
+    expect(screen.getByText("Two Sum")).toBeTruthy();
+    expect(screen.getByText("#1")).toBeTruthy();
+    expect(screen.getByText("Rate confidence")).toBeTruthy();
+    expect(screen.getByText("Select a list...")).toBeTruthy();
+    expect(screen.queryByText("New in V2: LeetCode Activity")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign in to set up LeetCode" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Problem" }));
+    expect(onAddClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses signed-in CTA copy in the first-run launchpad", () => {
+    renderTodayView({
+      problems: [],
+      leetcodeIntroSignedIn: true,
+    });
+
+    expect(screen.getByRole("button", { name: "Set up LeetCode Activity" })).toBeTruthy();
   });
 
   it("renders From LeetCode only when pending imports exist", () => {
@@ -451,7 +483,7 @@ describe("TodayView", () => {
 
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }), 4);
     expect(screen.getByText("From LeetCode")).toBeTruthy();
-    expect(screen.queryByText("Welcome to PatternBank")).toBeNull();
+    expect(screen.queryByText("Start tracking your practice")).toBeNull();
   });
 
   it("removes a known From LeetCode card after rating when parent state records the completion", () => {
@@ -749,7 +781,7 @@ describe("TodayView", () => {
     });
 
     expect(screen.getByText("From LeetCode")).toBeTruthy();
-    expect(screen.queryByText("Welcome to PatternBank")).toBeNull();
+    expect(screen.queryByText("Start tracking your practice")).toBeNull();
   });
 
   it("shows pending LeetCode imports instead of Quick Start when the library is empty", () => {

@@ -138,6 +138,70 @@ describe("ProgressView", () => {
     expect(screen.getAllByText(/5★/).some((el) => el.textContent?.includes("30d interval"))).toBe(true);
   });
 
+  it("renders redesigned projection controls and range copy", () => {
+    renderProgress();
+
+    expect(screen.getByText("INPUTS")).toBeTruthy();
+    expect(screen.getByLabelText("Daily reviews")).toBeTruthy();
+    expect(screen.getByLabelText("New / week")).toBeTruthy();
+    expect(screen.getByText(/AT DAY 18/i)).toBeTruthy();
+    expect(screen.getByText("Mastered")).toBeTruthy();
+    expect(screen.getByText(/Range shows realistic \(70% advancement\) to optimistic \(100% advancement\) outcomes/i)).toBeTruthy();
+
+    const dailySlider = screen.getByLabelText("Daily reviews") as HTMLInputElement;
+    expect(dailySlider.max).toBe("20");
+    fireEvent.change(dailySlider, { target: { value: "7" } });
+
+    expect(dailySlider.value).toBe("7");
+  });
+
+  it("lets keyboard users explore another projection day", () => {
+    renderProgress();
+
+    const dayControl = screen.getByRole("slider", {
+      name: "Explore projection day",
+    });
+    expect(dayControl.getAttribute("aria-valuenow")).toBe("18");
+
+    fireEvent.keyDown(dayControl, { key: "ArrowLeft" });
+
+    expect(dayControl.getAttribute("aria-valuenow")).toBe("17");
+    expect(screen.getByText(/AT DAY 17/i)).toBeTruthy();
+  });
+
+  it("maps pointer exploration to the plotted projection area", () => {
+    renderProgress();
+
+    const dayControl = screen.getByRole("slider", {
+      name: "Explore projection day",
+    });
+    vi.spyOn(dayControl, "getBoundingClientRect").mockReturnValue({
+      x: 100,
+      y: 0,
+      left: 100,
+      top: 0,
+      right: 760,
+      bottom: 348,
+      width: 660,
+      height: 348,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.pointerDown(dayControl, { clientX: 138 });
+    expect(dayControl.getAttribute("aria-valuenow")).toBe("0");
+    expect(screen.getByText(/AT DAY 0/i)).toBeTruthy();
+    expect(screen.getByTestId("projection-cursor-label").getAttribute("transform")).toBe(
+      "translate(58, 6)",
+    );
+
+    fireEvent.pointerDown(dayControl, { clientX: 710 });
+    expect(dayControl.getAttribute("aria-valuenow")).toBe("30");
+    expect(screen.getByText(/AT DAY 30/i)).toBeTruthy();
+    expect(screen.getByTestId("projection-cursor-label").getAttribute("transform")).toBe(
+      "translate(602, 6)",
+    );
+  });
+
   it("renders the Progress empty state when there are no problems", () => {
     renderProgress({ problems: [] });
 

@@ -5,7 +5,7 @@ test.describe("Today", () => {
   test("shows welcome screen when no problems", async ({ page }) => {
     await skipLanding(page);
     await page.goto("/");
-    await expect(page.getByText(/Welcome to PatternBank/i)).toBeVisible();
+    await expect(page.getByText(/Start tracking your practice/i)).toBeVisible();
   });
 
   test("shows due reviews without old dashboard analytics", async ({ page }) => {

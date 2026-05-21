@@ -1,9 +1,9 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import CollapsingListItem from "./CollapsingListItem";
 import TodayDoneFeed from "./TodayDoneFeed";
+import TodayFirstRunLaunchpad from "./TodayFirstRunLaunchpad";
 import TodayLeetCodeIntroCard from "./TodayLeetCodeIntroCard";
 import TodayLeetCodeCard from "./TodayLeetCodeCard";
-import TodayQuickStart from "./TodayQuickStart";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
 import { formatDisplayDate, todayStr, utcToLocalDateStr } from "../utils/dateHelpers";
@@ -156,7 +156,7 @@ export default function TodayView({
   const hasLeetCodeSectionRows = leetcodeSectionItems.length > 0
     || exitingLeetCodeItems.length > 0;
   const shouldShowLeetCodeSection = hasLeetCodeSectionRows || hasLeetCodeSolveToday;
-  const shouldShowQuickStart = problems.length === 0
+  const shouldShowFirstRunLaunchpad = problems.length === 0
     && leetcodeSectionItems.length === 0
     && exitingLeetCodeItems.length === 0
     && !hasLeetCodeSolveToday
@@ -178,7 +178,7 @@ export default function TodayView({
         <p className="mt-1 text-sm text-pb-text-muted">{formatDisplayDate(today)}</p>
       </header>
 
-      {showLeetCodeIntro && (
+      {showLeetCodeIntro && !shouldShowFirstRunLaunchpad && (
         <TodayLeetCodeIntroCard
           signedIn={leetcodeIntroSignedIn}
           onOpenSettings={onOpenLeetCodeSettings}
@@ -186,8 +186,10 @@ export default function TodayView({
         />
       )}
 
-      {shouldShowQuickStart ? (
-        <TodayQuickStart
+      {shouldShowFirstRunLaunchpad ? (
+        <TodayFirstRunLaunchpad
+          signedIn={leetcodeIntroSignedIn}
+          onOpenLeetCodeSettings={onOpenLeetCodeSettings}
           onAddClick={onAddClick}
           onBulkAdd={onBulkAdd}
           existingProblemNumbers={existingProblemNumbers}
