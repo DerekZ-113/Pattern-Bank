@@ -38,7 +38,9 @@ describe("LandingPage", () => {
     render(<LandingPage onOpenApp={vi.fn()} />);
 
     expect(screen.getByText("Remember what")).toBeTruthy();
-    expect(screen.getByText("you practiced.")).toBeTruthy();
+    const practicedText = screen.getByText("you practiced.");
+    expect(practicedText).toBeTruthy();
+    expect(practicedText.className).not.toContain("text-[#5e5e6e]");
     expect(screen.getByText("Now with LeetCode Sync")).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Paste your username. Watch it fill." }),

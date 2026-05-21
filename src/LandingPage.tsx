@@ -518,7 +518,7 @@ export default function LandingPage({ onOpenApp }: LandingPageProps) {
             <h1 className="m-0 text-[44px] font-bold leading-[0.95] text-[#ededf2] md:text-[60px] xl:text-[76px]">
               <span>Remember what</span>
               <br />
-              <span className="text-[#5e5e6e]">you practiced.</span>
+              <span>you practiced.</span>
             </h1>
             <p className="mt-7 max-w-[600px] text-[17px] leading-8 text-[#8a8a99] md:text-xl">
               PatternBank syncs with your public LeetCode activity, schedules reviews from
