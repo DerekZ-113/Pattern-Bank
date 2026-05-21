@@ -50,12 +50,12 @@ export default function LeetCodeActivitySection({
   return (
     <div>
       <label className="mb-2 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-        LeetCode Activity
+        LeetCode Username
       </label>
 
       {!user && (
         <p className="rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3 text-xs leading-relaxed text-pb-text-dim">
-          Sign in to track LeetCode activity across devices.
+          Sign in before connecting with your LeetCode username.
         </p>
       )}
 

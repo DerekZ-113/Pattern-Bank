@@ -27,8 +27,8 @@ describe("LeetCodeActivitySection", () => {
   it("renders signed-out copy", () => {
     renderSection({ user: null });
 
-    expect(screen.getByText("LeetCode Activity")).toBeTruthy();
-    expect(screen.getByText("Sign in to track LeetCode activity across devices.")).toBeTruthy();
+    expect(screen.getByText("LeetCode Username")).toBeTruthy();
+    expect(screen.getByText("Sign in before connecting with your LeetCode username.")).toBeTruthy();
   });
 
   it("renders not-connected username form", () => {
