@@ -50,13 +50,18 @@ export default function LeetCodeActivitySection({
   return (
     <div>
       <label className="mb-2 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-        LeetCode Username
+        LeetCode Activity
       </label>
 
       {!user && (
-        <p className="rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3 text-xs leading-relaxed text-pb-text-dim">
-          Sign in before connecting with your LeetCode username.
-        </p>
+        <div className="rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3">
+          <div className="text-sm font-semibold text-pb-text">
+            Sign in to connect LeetCode
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-pb-text-muted">
+            PatternBank can turn accepted LeetCode submissions into Today items after you sign in.
+          </p>
+        </div>
       )}
 
       {user && !connection && (

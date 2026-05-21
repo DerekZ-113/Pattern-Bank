@@ -28,11 +28,14 @@ test.describe("Settings", () => {
     await expect(goalDisplay).toHaveText("6");
   });
 
-  test("shows signed-out LeetCode username copy", async ({ page }) => {
+  test("shows signed-out LeetCode Activity copy", async ({ page }) => {
     await page.getByRole("button", { name: "Settings" }).click();
 
-    await expect(page.getByText("LeetCode Username", { exact: true })).toBeVisible();
-    await expect(page.getByText("Sign in before connecting with your LeetCode username.")).toBeVisible();
+    await expect(page.getByText("LeetCode Activity", { exact: true })).toBeVisible();
+    await expect(page.getByText("Sign in to connect LeetCode")).toBeVisible();
+    await expect(
+      page.getByText("PatternBank can turn accepted LeetCode submissions into Today items after you sign in."),
+    ).toBeVisible();
   });
 
   test("bulk add problems by number", async ({ page }) => {
