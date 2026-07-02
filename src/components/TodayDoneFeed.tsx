@@ -1,7 +1,7 @@
 import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
 import type { Confidence } from "../types";
-import type { TodayActivityFeedItem } from "../utils/todayView";
+import type { TodayActivityFeedItem } from "@patternbank/core";
 
 interface Props {
   items: TodayActivityFeedItem[];

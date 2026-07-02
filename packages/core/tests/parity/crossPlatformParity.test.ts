@@ -4,19 +4,19 @@ import {
   getNextFiveStarStreak,
   getReviewIntervalDays,
 } from "../../src/spacedRepetition";
-import { buildTodayActivityFeedItems, buildTodayReviewState } from "../../../../src/utils/todayView";
-import { resolveTodayLeetCodeState } from "../../../../src/utils/todayLeetCodeResolver";
+import { buildTodayActivityFeedItems, buildTodayReviewState } from "../../src/todayView";
+import { resolveTodayLeetCodeState } from "../../src/leetcode/todayResolver";
 import {
   isLeetCodeSubmissionCompletedToday,
   type TodayLeetCodeCompletion,
-} from "../../../../src/utils/todayLeetCodeCompletions";
+} from "../../src/leetcode/todayCompletions";
 import type {
   Confidence,
   Difficulty,
   LeetCodeSubmission,
   Problem,
   ReviewEvent,
-} from "../../../../src/types";
+} from "../../src/types";
 
 // ============================================================
 // Date-shift layer (fixture-rot protection)

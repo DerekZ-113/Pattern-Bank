@@ -1,6 +1,6 @@
 import type { Confidence } from "../types";
 import type { LeetCodeActivityResult } from "./leetcodeActivityData";
-import type { LeetCodeCompletionIdentity } from "./todayLeetCodeCompletions";
+import type { LeetCodeCompletionIdentity } from "@patternbank/core";
 
 interface RateLeetCodeReviewLocallyFirstParams {
   submissionDbId: string;

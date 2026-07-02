@@ -29,7 +29,7 @@ import {
   mergeImportedProblems,
   computeReviewProgress,
   buildReviewedProblem,
-} from "../utils/problemTransforms";
+} from "@patternbank/core";
 import {
   pushProblemToCloud,
   pushProblemsToCloud,
@@ -297,18 +297,27 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     async (file: File) => {
       try {
         const data = await importData(file);
-        const { mergedProblems, addedCount, updatedCount } = mergeImportedProblems(problems, data.problems);
+        const { mergedProblems, addedCount, updatedCount, changedProblems, importedIdToCanonicalId } =
+          mergeImportedProblems(problems, data.problems);
         setProblems(mergedProblems);
         if (data.reviewLog) {
           saveReviewLog(data.reviewLog);
         }
-        if (data.reviewEvents) {
-          saveReviewEvents(data.reviewEvents);
+        // F-4: remap imported review events to the canonical local problem ids
+        // so cross-device history stays attached to the surviving entry.
+        const importedReviewEvents = data.reviewEvents?.map((event) => ({
+          ...event,
+          problemId: importedIdToCanonicalId.get(event.problemId) ?? event.problemId,
+        }));
+        if (importedReviewEvents) {
+          saveReviewEvents(importedReviewEvents);
         }
         if (user) {
-          pushProblemsToCloud(user.id, data.problems);
-          if (data.reviewEvents?.length) {
-            pushReviewEventsToCloud(user.id, data.reviewEvents);
+          // Push only added/updated problems: raw imported ids may have been
+          // remapped, and pushing them verbatim would recreate cloud duplicates.
+          pushProblemsToCloud(user.id, changedProblems);
+          if (importedReviewEvents?.length) {
+            pushReviewEventsToCloud(user.id, importedReviewEvents);
           }
         }
         setReviewCount((c) => c + 1);

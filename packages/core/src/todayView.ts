@@ -1,6 +1,7 @@
-import { todayStr, utcToLocalDateStr } from "@patternbank/core";
-import { prioritizeProblems } from "@patternbank/core";
-import type { Confidence, Difficulty, LeetCodeSubmission, Problem, ReviewEvent } from "../types";
+import { todayStr, utcToLocalDateStr } from "./dateHelpers";
+import { prioritizeProblems } from "./spacedRepetition";
+import { buildLeetCodeCompletionKey } from "./leetcode/todayCompletions";
+import type { Confidence, Difficulty, LeetCodeSubmission, Problem, ReviewEvent, TodayLeetCodeItem } from "./types";
 
 export interface TodayReviewState {
   todaysReviews: Problem[];
@@ -48,6 +49,11 @@ export type TodayActivityFeedItem =
 export interface SolvedOnLeetCodeTodayIndex {
   problemIds: Set<string>;
   leetcodeNumbers: Set<number>;
+}
+
+export interface ExitingTodayLeetCodeItem {
+  key: string;
+  item: TodayLeetCodeItem;
 }
 
 function coerceConfidence(confidence: number): Confidence {
@@ -122,6 +128,31 @@ export function buildSolvedOnLeetCodeTodayIndex(
   }
 
   return { problemIds, leetcodeNumbers };
+}
+
+export function buildTodayLeetCodeItemKey(item: TodayLeetCodeItem): string {
+  return buildLeetCodeCompletionKey({
+    submissionDbId: item.submissionDbId,
+    leetcodeSubmissionId: item.leetcodeSubmissionId,
+    titleSlug: item.titleSlug,
+    leetcodeNumber: item.leetcodeNumber,
+    problemId: item.matchedProblemId,
+  });
+}
+
+export function buildRemovedTodayLeetCodeItems({
+  previousItems,
+  currentItems,
+  exitingKeys,
+}: {
+  previousItems: TodayLeetCodeItem[];
+  currentItems: TodayLeetCodeItem[];
+  exitingKeys: Set<string>;
+}): ExitingTodayLeetCodeItem[] {
+  const currentKeys = new Set(currentItems.map(buildTodayLeetCodeItemKey));
+  return previousItems
+    .map((item) => ({ key: buildTodayLeetCodeItemKey(item), item }))
+    .filter(({ key }) => !currentKeys.has(key) && !exitingKeys.has(key));
 }
 
 export function buildTodayActivityFeedItems({

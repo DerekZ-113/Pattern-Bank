@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDoneTodayFeedItems,
+  buildRemovedTodayLeetCodeItems,
   buildSolvedOnLeetCodeTodayIndex,
   buildTodayActivityFeedItems,
+  buildTodayLeetCodeItemKey,
   buildTodayReviewState,
-} from "../src/utils/todayView";
-import type { LeetCodeSubmission, Problem, ReviewEvent } from "../src/types";
+} from "../src/todayView";
+import type { LeetCodeSubmission, Problem, ReviewEvent, TodayLeetCodeItem } from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
@@ -35,6 +37,26 @@ function makeReviewEvent(overrides: Partial<ReviewEvent> = {}): ReviewEvent {
     timestamp: "2026-05-14T21:14:00.000Z",
     ...overrides,
   };
+}
+
+function makeTodayItem(overrides: Partial<TodayLeetCodeItem> = {}): TodayLeetCodeItem {
+  return {
+    kind: "linked_existing",
+    submissionDbId: "sub-db-1",
+    leetcodeSubmissionId: "lc-sub-1",
+    titleSlug: "two-sum",
+    title: "Two Sum",
+    leetcodeNumber: 1,
+    difficulty: "Easy",
+    submittedAt: "2026-05-15T18:00:00.000Z",
+    suggestedPatterns: ["Hash Table"],
+    matchedProblemId: "p1",
+    status: "linked_existing",
+    statusLabel: "Review due",
+    confidence: 3,
+    reviewedTodayConfidence: null,
+    ...overrides,
+  } as TodayLeetCodeItem;
 }
 
 function makeSubmission(overrides: Partial<LeetCodeSubmission> = {}): LeetCodeSubmission {
@@ -336,5 +358,70 @@ describe("buildSolvedOnLeetCodeTodayIndex", () => {
 
     expect(index.problemIds.has("p1")).toBe(true);
     expect(index.leetcodeNumbers.has(1)).toBe(true);
+  });
+});
+
+describe("buildTodayActivityFeedItems — LeetCode row dedupe (mobile union)", () => {
+  it("dedupes LeetCode Done Today rows by problem and keeps stronger status", () => {
+    const items = buildTodayActivityFeedItems({
+      problems: [makeProblem({ id: "p1", leetcodeNumber: 1, nextReviewDate: "2026-05-16" })],
+      reviewEvents: [],
+      leetcodeSubmissions: [
+        makeSubmission({ id: "linked", status: "linked_existing", submittedAt: "2026-05-14T18:00:00.000Z" }),
+        makeSubmission({ id: "rated", status: "rated", submittedAt: "2026-05-14T17:00:00.000Z" }),
+      ],
+      today: "2026-05-14",
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ type: "leetcode_solve", status: "rated", submissionDbId: "rated" });
+  });
+});
+
+describe("buildSolvedOnLeetCodeTodayIndex — filtering (mobile union)", () => {
+  it("indexes LeetCode solves from today only", () => {
+    const index = buildSolvedOnLeetCodeTodayIndex([
+      makeSubmission({ problemId: "today", leetcodeNumber: 1, submittedAt: "2026-05-14T18:00:00.000Z" }),
+      makeSubmission({ problemId: "old", leetcodeNumber: 2, submittedAt: "2026-05-13T18:00:00.000Z" }),
+      makeSubmission({ problemId: "ignored", leetcodeNumber: 3, status: "ignored", submittedAt: "2026-05-14T18:00:00.000Z" }),
+    ], "2026-05-14");
+
+    expect(index.problemIds.has("today")).toBe(true);
+    expect(index.leetcodeNumbers.has(1)).toBe(true);
+    expect(index.problemIds.has("old")).toBe(false);
+    expect(index.problemIds.has("ignored")).toBe(false);
+  });
+});
+
+describe("buildTodayLeetCodeItemKey", () => {
+  it("builds stable LeetCode item keys with completion identity priority", () => {
+    expect(buildTodayLeetCodeItemKey(makeTodayItem({ titleSlug: "two-sum", leetcodeNumber: 1 }))).toBe("slug:two-sum");
+    expect(buildTodayLeetCodeItemKey(makeTodayItem({ titleSlug: "", leetcodeNumber: 1 }))).toBe("number:1");
+    expect(buildTodayLeetCodeItemKey(makeTodayItem({ titleSlug: "", leetcodeNumber: null, matchedProblemId: "p1" }))).toBe("problem:p1");
+    expect(buildTodayLeetCodeItemKey(makeTodayItem({
+      titleSlug: "",
+      leetcodeNumber: null,
+      matchedProblemId: null,
+      leetcodeSubmissionId: "lc-sub-1",
+    }))).toBe("leetcode-submission:lc-sub-1");
+  });
+});
+
+describe("buildRemovedTodayLeetCodeItems", () => {
+  it("returns only newly removed LeetCode rows that are not already exiting", () => {
+    const kept = makeTodayItem({ submissionDbId: "kept", titleSlug: "kept" });
+    const removed = makeTodayItem({ submissionDbId: "removed", titleSlug: "removed" });
+    const alreadyExiting = makeTodayItem({ submissionDbId: "already", titleSlug: "already" });
+
+    const removedItems = buildRemovedTodayLeetCodeItems({
+      previousItems: [kept, removed, alreadyExiting],
+      currentItems: [kept],
+      exitingKeys: new Set([buildTodayLeetCodeItemKey(alreadyExiting)]),
+    });
+
+    expect(removedItems).toEqual([{
+      key: buildTodayLeetCodeItemKey(removed),
+      item: removed,
+    }]);
   });
 });

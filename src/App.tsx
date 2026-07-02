@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
 import { rateLeetCodeReviewLocallyFirst } from "./utils/leetcodeReviewActions";
-import type { LeetCodeCompletionIdentity } from "./utils/todayLeetCodeCompletions";
+import type { LeetCodeCompletionIdentity } from "@patternbank/core";
 
 import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";

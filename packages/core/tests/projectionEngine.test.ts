@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   simulateProjection,
   simulateProjectionSeries,
-} from "../src/utils/projectionEngine";
-import type { ProjectionSnapshot } from "../src/utils/projectionEngine";
+} from "../src/projectionEngine";
+import type { ProjectionSnapshot } from "../src/projectionEngine";
 
 function totalCount(d: [number, number, number, number, number]): number {
   return d[0] + d[1] + d[2] + d[3] + d[4];
@@ -156,5 +156,17 @@ describe("simulateProjectionSeries", () => {
     });
 
     expect(second).toEqual(first);
+  });
+
+  it("clamps a negative daily goal to zero instead of corrupting the review slice (F-15)", () => {
+    const series = simulateProjectionSeries({
+      startDistribution: [5, 3, 2, 0, 0],
+      dailyGoal: -4,
+      newPerWeek: 0,
+      days: 10,
+    });
+
+    expect(series[10].distribution).toEqual(series[0].distribution);
+    expect(totalCount(series[10].distribution)).toBe(10);
   });
 });

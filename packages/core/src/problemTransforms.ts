@@ -1,8 +1,8 @@
-import { todayStr, addDays, generateId } from "@patternbank/core";
-import { getIntervalDays, getNextFiveStarStreak, getReviewIntervalDays } from "@patternbank/core";
-import { countReviewedToday } from "./storage";
-import { buildLeetCodeUrl } from "@patternbank/core";
-import type { Problem, LeetCodeProblem, Confidence } from "../types";
+import { todayStr, addDays, generateId } from "./dateHelpers";
+import { getIntervalDays, getNextFiveStarStreak, getReviewIntervalDays } from "./spacedRepetition";
+import { countReviewedToday } from "./storage/logic";
+import { buildLeetCodeUrl } from "./leetcode/problems";
+import type { Problem, LeetCodeProblem, Confidence } from "./types";
 
 interface BuildNewProblemsOptions {
   today: string;
@@ -16,7 +16,7 @@ interface BuildNewProblemsOptions {
  */
 export function filterExistingProblems(
   lcProblems: LeetCodeProblem[],
-  existingProblems: Problem[]
+  existingProblems: Problem[],
 ): { newProblems: LeetCodeProblem[]; skippedCount: number } {
   const existingNums = new Set(
     existingProblems.map((p) => p.leetcodeNumber).filter(Boolean)
@@ -54,7 +54,7 @@ export function interleaveByDifficulty(lcProblems: LeetCodeProblem[]): LeetCodeP
  */
 export function buildNewProblems(
   lcProblems: LeetCodeProblem[],
-  { today, now, dailyGoal, patternMap }: BuildNewProblemsOptions
+  { today, now, dailyGoal, patternMap }: BuildNewProblemsOptions,
 ): Problem[] {
   return lcProblems.map((lc, i) => ({
     id: generateId(),
@@ -75,24 +75,97 @@ export function buildNewProblems(
 }
 
 /**
- * Merge imported problems with existing ones by id.
+ * Deduplicate problems by leetcodeNumber, keeping the entry with the most recent updatedAt.
+ * Problems without a leetcodeNumber are always kept.
+ */
+export function deduplicateProblems(
+  problems: Problem[],
+): { problems: Problem[]; removedIds: string[] } {
+  const seen = new Map<number, Problem>();
+  const kept: Problem[] = [];
+  const removedIds: string[] = [];
+
+  for (const problem of problems) {
+    if (!problem.leetcodeNumber) {
+      kept.push(problem);
+      continue;
+    }
+    const existing = seen.get(problem.leetcodeNumber);
+    if (!existing) {
+      seen.set(problem.leetcodeNumber, problem);
+      kept.push(problem);
+    } else {
+      const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+      const currentTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
+      if (currentTime > existingTime) {
+        const idx = kept.indexOf(existing);
+        kept[idx] = problem;
+        seen.set(problem.leetcodeNumber, problem);
+        removedIds.push(existing.id);
+      } else {
+        removedIds.push(problem.id);
+      }
+    }
+  }
+  return { problems: kept, removedIds };
+}
+
+function timestampMs(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+/**
+ * Merge imported problems with existing ones by id, then by LeetCode number.
+ * When a cross-device LeetCode match has a different local id, keep the local
+ * canonical id so existing review history stays attached to the same problem.
  */
 export function mergeImportedProblems(
   existingProblems: Problem[],
-  importedProblems: Problem[]
-): { mergedProblems: Problem[]; addedCount: number; updatedCount: number } {
+  importedProblems: Problem[],
+): {
+  mergedProblems: Problem[];
+  addedCount: number;
+  updatedCount: number;
+  changedProblems: Problem[];
+  importedIdToCanonicalId: Map<string, string>;
+} {
   const existing = new Map(existingProblems.map((p) => [p.id, p]));
+  const idByLeetCodeNumber = new Map<number, string>();
+  existingProblems.forEach((problem) => {
+    if (problem.leetcodeNumber != null && !idByLeetCodeNumber.has(problem.leetcodeNumber)) {
+      idByLeetCodeNumber.set(problem.leetcodeNumber, problem.id);
+    }
+  });
+  const importedIdToCanonicalId = new Map<string, string>();
+  const changedProblems: Problem[] = [];
   let added = 0;
   let updated = 0;
   importedProblems.forEach((p) => {
-    if (existing.has(p.id)) {
-      const current = existing.get(p.id)!;
-      if (p.updatedAt > current.updatedAt) {
-        existing.set(p.id, p);
+    const numberMatchId = p.leetcodeNumber == null ? null : idByLeetCodeNumber.get(p.leetcodeNumber) ?? null;
+    const current = existing.get(p.id) ?? (numberMatchId ? existing.get(numberMatchId) : undefined);
+    const canonicalId = current?.id ?? p.id;
+    importedIdToCanonicalId.set(p.id, canonicalId);
+    if (current) {
+      // Only overwrite if imported version is newer (matches mergeProblems in sync.ts)
+      const currentTime = timestampMs(current.updatedAt);
+      const importedTime = timestampMs(p.updatedAt);
+      if (importedTime > currentTime) {
+        const canonicalProblem = p.id === canonicalId ? p : { ...p, id: canonicalId };
+        existing.set(canonicalId, canonicalProblem);
+        if (canonicalProblem.leetcodeNumber != null) {
+          idByLeetCodeNumber.set(canonicalProblem.leetcodeNumber, canonicalId);
+        }
+        changedProblems.push(canonicalProblem);
         updated++;
       }
     } else {
       existing.set(p.id, p);
+      if (p.leetcodeNumber != null) {
+        idByLeetCodeNumber.set(p.leetcodeNumber, p.id);
+      }
+      changedProblems.push(p);
       added++;
     }
   });
@@ -100,6 +173,8 @@ export function mergeImportedProblems(
     mergedProblems: Array.from(existing.values()),
     addedCount: added,
     updatedCount: updated,
+    changedProblems,
+    importedIdToCanonicalId,
   };
 }
 
@@ -108,7 +183,7 @@ export function mergeImportedProblems(
  */
 export function computeReviewProgress(
   problems: Problem[],
-  dailyReviewGoal: number
+  dailyReviewGoal: number,
 ): { currentReviewed: number; totalDue: number; effectiveGoal: number } {
   const today = todayStr();
   const currentReviewed = countReviewedToday(problems);
@@ -139,7 +214,7 @@ export function buildReviewedProblem(problem: Problem, newConfidence: Confidence
 export function computeNextReviewDate(
   initialData: Problem | null,
   newConfidence: Confidence,
-  today: string
+  today: string,
 ): string {
   const confidenceChanged =
     initialData != null && newConfidence !== initialData.confidence;

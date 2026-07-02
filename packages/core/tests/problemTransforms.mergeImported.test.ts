@@ -1,18 +1,12 @@
 // F-4: cross-device import merge fixtures for mergeImportedProblems.
 //
-// Web currently matches imported problems by id ONLY, so the same LeetCode
-// problem exported on device A (id "a1") and imported on device B (where it
-// lives under id "b1") gets duplicated. The canonical (mobile) implementation
-// remaps imported ids to the canonical local id by leetcodeNumber and
-// NaN-guards updatedAt comparisons via timestampMs() (invalid/missing → 0,
-// i.e. treated as oldest).
-//
-// NOTE on return shape: web returns { mergedProblems, addedCount, updatedCount }
-// while mobile additionally returns { changedProblems, importedIdToCanonicalId }.
-// To survive the Phase 3 flip with minimal edits, all assertions here are on
-// the resulting problem list (mergedProblems) only: count, ids, winning content.
-import { mergeImportedProblems } from "../../../src/utils/problemTransforms";
-import type { Problem } from "../../../src/types";
+// Core carries the canonical (mobile) implementation: imported problems are
+// matched by id, then by leetcodeNumber, remapped to the canonical local id,
+// with updatedAt comparisons NaN-guarded via timestampMs() (invalid/missing
+// → 0, i.e. treated as oldest). Assertions here are on the resulting problem
+// list (mergedProblems) only: count, ids, winning content.
+import { mergeImportedProblems } from "../src/problemTransforms";
+import type { Problem } from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
@@ -69,8 +63,7 @@ describe("mergeImportedProblems — same-id import (device re-imports its own ex
 });
 
 describe("mergeImportedProblems — cross-device import (same leetcodeNumber, different ids)", () => {
-  // FIXED-BY: Phase 3 (F-4) — web matches only by id, so a cross-device import of the same LeetCode problem duplicates it instead of updating the local canonical entry
-  it.fails("does not duplicate; updates the local canonical entry when the import is newer", () => {
+  it("does not duplicate; updates the local canonical entry when the import is newer", () => {
     const existing = [
       makeProblem({
         id: "b1",
@@ -102,8 +95,7 @@ describe("mergeImportedProblems — cross-device import (same leetcodeNumber, di
     });
   });
 
-  // FIXED-BY: Phase 3 (F-4) — web matches only by id, so even an OLDER cross-device duplicate is added as a second entry instead of being dropped
-  it.fails("does not duplicate; keeps local content when the import is older", () => {
+  it("does not duplicate; keeps local content when the import is older", () => {
     const existing = [
       makeProblem({
         id: "b1",
@@ -153,8 +145,7 @@ describe("mergeImportedProblems — newer-local-wins (same id, import older)", (
 });
 
 describe("mergeImportedProblems — NaN-guard on updatedAt", () => {
-  // FIXED-BY: Phase 3 (F-4) — web compares updatedAt as raw strings ("not-a-date" > "2026-…" is lexically true), letting an invalid imported timestamp beat a valid local one; canonical treats invalid timestamps as oldest
-  it.fails("treats an invalid imported updatedAt as oldest — valid local content wins", () => {
+  it("treats an invalid imported updatedAt as oldest — valid local content wins", () => {
     const existing = [
       makeProblem({ id: "a1", title: "Valid Local", updatedAt: "2026-02-01T00:00:00.000Z" }),
     ];
@@ -166,8 +157,7 @@ describe("mergeImportedProblems — NaN-guard on updatedAt", () => {
     expect(mergedProblems[0].title).toBe("Valid Local");
   });
 
-  // FIXED-BY: Phase 3 (F-4) — web's lexical comparison ("2026-…" > "not-a-date" is false) keeps corrupt local data; canonical treats the invalid local timestamp as oldest so the valid import wins
-  it.fails("treats an invalid local updatedAt as oldest — valid import wins", () => {
+  it("treats an invalid local updatedAt as oldest — valid import wins", () => {
     const existing = [
       makeProblem({ id: "a1", title: "Corrupt Local", updatedAt: "not-a-date" }),
     ];

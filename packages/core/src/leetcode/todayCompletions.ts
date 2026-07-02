@@ -1,5 +1,7 @@
-import { todayStr } from "@patternbank/core";
+import { todayStr } from "../dateHelpers";
 import type { LeetCodeSubmission } from "../types";
+import type { StorageAdapter } from "../storage/adapter";
+import type { CoreHooks } from "../hooks";
 
 export type TodayLeetCodeCompletionAction = "imported" | "linked_existing" | "rated";
 
@@ -63,9 +65,7 @@ function findMatchingCompletion(
     ]);
     const matches = [...identityKeys].some((key) => completionKeys.has(key));
     if (!matches) continue;
-    if (!match || completion.completedAt > match.completedAt) {
-      match = completion;
-    }
+    if (!match || completion.completedAt > match.completedAt) match = completion;
   }
 
   return match;
@@ -83,10 +83,10 @@ function isCompletionRecord(value: unknown, today: string): value is TodayLeetCo
   );
 }
 
-export function loadTodayLeetCodeCompletions(today = todayStr()): TodayLeetCodeCompletion[] {
-  if (typeof localStorage === "undefined") return [];
+/** Pure raw-storage-value → records parse; platforms feed it their own reads. */
+export function parseTodayLeetCodeCompletions(raw: string | null, today = todayStr()): TodayLeetCodeCompletion[] {
   try {
-    const parsed = JSON.parse(localStorage.getItem(buildTodayLeetCodeCompletionsStorageKey(today)) ?? "[]") as unknown;
+    const parsed = JSON.parse(raw ?? "[]") as unknown;
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((record): record is TodayLeetCodeCompletion => isCompletionRecord(record, today))
@@ -101,15 +101,42 @@ export function loadTodayLeetCodeCompletions(today = todayStr()): TodayLeetCodeC
   }
 }
 
-export function saveTodayLeetCodeCompletions(
+/** Pure records → raw storage value; keeps only the given day's records. */
+export function serializeTodayLeetCodeCompletions(
   completions: TodayLeetCodeCompletion[],
   today = todayStr(),
-): void {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(
-    buildTodayLeetCodeCompletionsStorageKey(today),
-    JSON.stringify(completions.filter((record) => record.date === today)),
-  );
+): string {
+  return JSON.stringify(completions.filter((record) => record.date === today));
+}
+
+export async function loadTodayLeetCodeCompletions(
+  storage: StorageAdapter,
+  today = todayStr(),
+): Promise<TodayLeetCodeCompletion[]> {
+  try {
+    return parseTodayLeetCodeCompletions(
+      await storage.getItem(buildTodayLeetCodeCompletionsStorageKey(today)),
+      today,
+    );
+  } catch {
+    return [];
+  }
+}
+
+export async function saveTodayLeetCodeCompletions(
+  storage: StorageAdapter,
+  completions: TodayLeetCodeCompletion[],
+  today = todayStr(),
+  hooks?: CoreHooks,
+): Promise<void> {
+  try {
+    await storage.setItem(
+      buildTodayLeetCodeCompletionsStorageKey(today),
+      serializeTodayLeetCodeCompletions(completions, today),
+    );
+  } catch (err) {
+    hooks?.warn?.("Failed to save Today LeetCode completions", err);
+  }
 }
 
 export function mergeTodayLeetCodeCompletion(
@@ -136,8 +163,27 @@ export function mergeTodayLeetCodeCompletion(
   };
   const nextKeys = new Set(buildLeetCodeCompletionKeys(nextRecord));
   nextKeys.add(nextRecord.key);
-  const withoutExisting = completions.filter((record) => {
+  const matchingRecord = completions.find((record) => {
     if (record.date !== today) return false;
+    const recordKeys = new Set([
+      record.key,
+      ...buildLeetCodeCompletionKeys(record),
+    ]);
+    return [...nextKeys].some((key) => recordKeys.has(key));
+  });
+  if (
+    matchingRecord
+    && matchingRecord.problemId === nextRecord.problemId
+    && matchingRecord.action === nextRecord.action
+    && matchingRecord.submissionDbId === nextRecord.submissionDbId
+    && matchingRecord.leetcodeSubmissionId === nextRecord.leetcodeSubmissionId
+    && matchingRecord.titleSlug === nextRecord.titleSlug
+    && matchingRecord.leetcodeNumber === nextRecord.leetcodeNumber
+  ) {
+    return completions;
+  }
+  const withoutExisting = completions.filter((record) => {
+    if (record.date !== today) return true;
     const recordKeys = new Set([
       record.key,
       ...buildLeetCodeCompletionKeys(record),
@@ -147,16 +193,17 @@ export function mergeTodayLeetCodeCompletion(
   return [...withoutExisting, nextRecord];
 }
 
-export function addTodayLeetCodeCompletion(
+export async function addTodayLeetCodeCompletion(
+  storage: StorageAdapter,
   completion: LeetCodeCompletionIdentity & {
     submissionDbId: string;
     problemId: string;
     action: TodayLeetCodeCompletionAction;
   },
   today = todayStr(),
-): TodayLeetCodeCompletion[] {
-  const next = mergeTodayLeetCodeCompletion(loadTodayLeetCodeCompletions(today), completion, today);
-  saveTodayLeetCodeCompletions(next, today);
+): Promise<TodayLeetCodeCompletion[]> {
+  const next = mergeTodayLeetCodeCompletion(await loadTodayLeetCodeCompletions(storage, today), completion, today);
+  await saveTodayLeetCodeCompletions(storage, next, today);
   return next;
 }
 

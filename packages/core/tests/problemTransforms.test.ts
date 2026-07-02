@@ -7,24 +7,28 @@ import {
   computeReviewProgress,
   buildReviewedProblem,
   computeNextReviewDate,
-} from "../src/utils/problemTransforms";
+} from "../src/problemTransforms";
 import type { Confidence, LeetCodeProblem, Problem } from "../src/types";
 
-// Mock storage for countReviewedToday
-const mockLocalStorage = (() => {
-  let store: Record<string, string> = {};
+function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
-    getItem: vi.fn((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, val: string) => { store[key] = String(val); }),
-    removeItem: vi.fn((key: string) => { delete store[key]; }),
-    clear: vi.fn(() => { store = {}; }),
+    id: "p1",
+    title: "Two Sum",
+    leetcodeNumber: 1,
+    url: "https://leetcode.com/problems/two-sum/",
+    difficulty: "Easy",
+    patterns: ["Hash Table"],
+    confidence: 3,
+    notes: "",
+    excludeFromReview: false,
+    dateAdded: "2026-01-01",
+    lastReviewed: null,
+    nextReviewDate: "2026-01-05",
+    fiveStarStreak: 0,
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
   };
-})();
-Object.defineProperty(globalThis, "localStorage", { value: mockLocalStorage });
-
-beforeEach(() => {
-  mockLocalStorage.clear();
-});
+}
 
 describe("filterExistingProblems", () => {
   it("filters out problems with matching leetcodeNumber", () => {
@@ -50,6 +54,13 @@ describe("filterExistingProblems", () => {
     expect(skippedCount).toBe(0);
   });
 
+  it("returns empty when all exist", () => {
+    const lcProblems = [{ n: 1 }] as LeetCodeProblem[];
+    const existing = [{ id: "a", leetcodeNumber: 1 }] as Problem[];
+    const { newProblems } = filterExistingProblems(lcProblems, existing);
+    expect(newProblems).toHaveLength(0);
+  });
+
   it("handles empty input", () => {
     const { newProblems, skippedCount } = filterExistingProblems([], [{ id: "a", leetcodeNumber: 1 } as Problem]);
     expect(newProblems).toHaveLength(0);
@@ -61,6 +72,16 @@ describe("filterExistingProblems", () => {
     const existing = [{ id: "a", leetcodeNumber: null }] as Problem[];
     const { newProblems } = filterExistingProblems(lcProblems, existing);
     expect(newProblems).toHaveLength(1);
+  });
+
+  it("does not mutate input arrays", () => {
+    const lcProblems = [{ n: 1 }, { n: 2 }] as LeetCodeProblem[];
+    const existing = [{ id: "a", leetcodeNumber: 1 }] as Problem[];
+    const lcCopy = [...lcProblems];
+    const existingCopy = [...existing];
+    filterExistingProblems(lcProblems, existing);
+    expect(lcProblems).toEqual(lcCopy);
+    expect(existing).toEqual(existingCopy);
   });
 });
 
@@ -119,6 +140,16 @@ describe("interleaveByDifficulty", () => {
 
   it("returns empty array for empty input", () => {
     expect(interleaveByDifficulty([])).toEqual([]);
+  });
+
+  it("does not mutate input array", () => {
+    const problems = [
+      { n: 1, d: "Easy" },
+      { n: 2, d: "Hard" },
+    ] as LeetCodeProblem[];
+    const copy = [...problems];
+    interleaveByDifficulty(problems);
+    expect(problems).toEqual(copy);
   });
 });
 
@@ -237,6 +268,81 @@ describe("mergeImportedProblems", () => {
     expect(addedCount).toBe(0);
     expect(updatedCount).toBe(0);
   });
+
+  it("returns changedProblems for added and accepted newer imported problems only", () => {
+    const olderImported = makeProblem({ id: "a", leetcodeNumber: 1, title: "Older", updatedAt: "2026-01-01T00:00:00.000Z" });
+    const newerImported = makeProblem({ id: "b", leetcodeNumber: 2, title: "Newer Imported", updatedAt: "2026-03-01T00:00:00.000Z" });
+    const addedImported = makeProblem({ id: "c", leetcodeNumber: 3, title: "Added", updatedAt: "2026-02-01T00:00:00.000Z" });
+    const existing = [
+      makeProblem({ id: "a", leetcodeNumber: 1, title: "Current", updatedAt: "2026-02-01T00:00:00.000Z" }),
+      makeProblem({ id: "b", leetcodeNumber: 2, title: "Old Existing", updatedAt: "2026-02-01T00:00:00.000Z" }),
+    ];
+
+    const { changedProblems } = mergeImportedProblems(existing, [olderImported, newerImported, addedImported]);
+
+    expect(changedProblems).toEqual([newerImported, addedImported]);
+  });
+
+  it("returns empty changedProblems when nothing is accepted", () => {
+    const existing = [makeProblem({ id: "a", title: "Newer", updatedAt: "2026-02-01T00:00:00.000Z" })];
+    const imported = [makeProblem({ id: "a", title: "Older", updatedAt: "2026-01-01T00:00:00.000Z" })];
+    const { changedProblems } = mergeImportedProblems(existing, imported);
+    expect(changedProblems).toEqual([]);
+  });
+
+  it("does not duplicate an older imported LeetCode problem with a different local id", () => {
+    const existing = [makeProblem({
+      id: "local-id",
+      leetcodeNumber: 42,
+      title: "Local Winner",
+      updatedAt: "2026-03-01T00:00:00.000Z",
+    })];
+    const imported = [makeProblem({
+      id: "backup-id",
+      leetcodeNumber: 42,
+      title: "Older Backup",
+      updatedAt: "2026-02-01T00:00:00.000Z",
+    })];
+
+    const result = mergeImportedProblems(existing, imported);
+
+    expect(result.mergedProblems).toHaveLength(1);
+    expect(result.mergedProblems[0]).toMatchObject({ id: "local-id", title: "Local Winner" });
+    expect(result.changedProblems).toEqual([]);
+    expect(result.addedCount).toBe(0);
+    expect(result.updatedCount).toBe(0);
+    expect(result.importedIdToCanonicalId.get("backup-id")).toBe("local-id");
+  });
+
+  it("updates the canonical local id when a newer imported LeetCode duplicate wins", () => {
+    const existing = [makeProblem({
+      id: "local-id",
+      leetcodeNumber: 42,
+      title: "Old Local",
+      updatedAt: "2026-02-01T00:00:00.000Z",
+    })];
+    const imported = [makeProblem({
+      id: "backup-id",
+      leetcodeNumber: 42,
+      title: "Newer Backup",
+      confidence: 5,
+      updatedAt: "2026-03-01T00:00:00.000Z",
+    })];
+
+    const result = mergeImportedProblems(existing, imported);
+
+    expect(result.mergedProblems).toHaveLength(1);
+    expect(result.mergedProblems[0]).toMatchObject({
+      id: "local-id",
+      leetcodeNumber: 42,
+      title: "Newer Backup",
+      confidence: 5,
+    });
+    expect(result.changedProblems).toEqual([result.mergedProblems[0]]);
+    expect(result.addedCount).toBe(0);
+    expect(result.updatedCount).toBe(1);
+    expect(result.importedIdToCanonicalId.get("backup-id")).toBe("local-id");
+  });
 });
 
 describe("computeReviewProgress", () => {
@@ -249,6 +355,22 @@ describe("computeReviewProgress", () => {
     expect(currentReviewed).toBe(0);
     expect(totalDue).toBe(2);
     expect(effectiveGoal).toBe(2); // min(10, 2+0)
+  });
+
+  it("counts problems reviewed today toward the effective goal", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 2, 14, 12));
+    const problems = [
+      { id: "a", nextReviewDate: "2026-03-17", lastReviewed: "2026-03-14" },
+      { id: "b", nextReviewDate: "2026-03-10", lastReviewed: null },
+      { id: "c", nextReviewDate: "2026-03-14", lastReviewed: null },
+      { id: "d", nextReviewDate: "2026-03-20", lastReviewed: null },
+    ] as Problem[];
+    const { currentReviewed, totalDue, effectiveGoal } = computeReviewProgress(problems, 5);
+    expect(currentReviewed).toBe(1); // problem "a" reviewed today
+    expect(totalDue).toBe(2); // "b" and "c" are due
+    expect(effectiveGoal).toBe(3); // min(5, 2 + 1)
+    vi.useRealTimers();
   });
 
   it("handles zero due problems", () => {
@@ -349,6 +471,13 @@ describe("buildReviewedProblem", () => {
     expect(result.notes).toBe("my notes");
     expect(result.excludeFromReview).toBe(false);
     expect(result.dateAdded).toBe("2026-01-01");
+  });
+
+  it("does not mutate the input problem", () => {
+    const original = { ...baseReviewedProblem };
+    const copy = { ...original };
+    buildReviewedProblem(original, 5);
+    expect(original).toEqual(copy);
   });
 
   it("applies correct V2 base intervals", () => {

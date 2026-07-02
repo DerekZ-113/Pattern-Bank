@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
-import type { Problem } from "../src/types";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  buildNewProblems,
+  buildReviewedProblem,
+  computeReviewProgress,
+  filterExistingProblems,
+  mergeImportedProblems,
+} from "../src/problemTransforms";
+import { prioritizeProblems } from "../src/spacedRepetition";
+import type { Confidence, LeetCodeProblem, Problem } from "../src/types";
 
 // Helper to create a test problem
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
@@ -123,5 +131,68 @@ describe("Exclude from Review — Toggle Logic", () => {
     const toggled = { ...problem, excludeFromReview: !problem.excludeFromReview };
     expect(problem.excludeFromReview).toBe(false);
     expect(toggled.excludeFromReview).toBe(true);
+  });
+});
+
+describe("Exclude from Review — transforms (mobile union)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 2, 14, 12));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("buildNewProblems sets excludeFromReview: false", () => {
+    const lc = [{ n: 1, t: "Two Sum", s: "two-sum", d: "Easy" }] as LeetCodeProblem[];
+    const result = buildNewProblems(lc, {
+      today: "2026-03-14",
+      now: "2026-03-14T12:00:00.000Z",
+      dailyGoal: 5,
+      patternMap: null,
+    });
+    expect(result[0].excludeFromReview).toBe(false);
+  });
+
+  it("buildReviewedProblem preserves excludeFromReview", () => {
+    const problem = makeProblem({ excludeFromReview: true });
+    const result = buildReviewedProblem(problem, 4 as Confidence);
+    expect(result.excludeFromReview).toBe(true);
+  });
+
+  it("filterExistingProblems ignores excludeFromReview", () => {
+    const lc = [{ n: 1 }, { n: 2 }] as LeetCodeProblem[];
+    const existing = [makeProblem({ leetcodeNumber: 1, excludeFromReview: true })];
+    const { newProblems } = filterExistingProblems(lc, existing);
+    // Problem 1 is still filtered even though excluded
+    expect(newProblems).toHaveLength(1);
+    expect(newProblems[0].n).toBe(2);
+  });
+
+  it("computeReviewProgress excludes problems with excludeFromReview from totalDue", () => {
+    const problems = [
+      makeProblem({ id: "a", excludeFromReview: true, nextReviewDate: "2026-03-10", lastReviewed: null }),
+      makeProblem({ id: "b", excludeFromReview: false, nextReviewDate: "2026-03-10", lastReviewed: null }),
+    ];
+    const { totalDue } = computeReviewProgress(problems, 5);
+    expect(totalDue).toBe(1);
+  });
+
+  it("mergeImportedProblems preserves excludeFromReview", () => {
+    const existing = [makeProblem({ id: "a", excludeFromReview: false, updatedAt: "2026-01-01T00:00:00.000Z" })];
+    const imported = [makeProblem({ id: "a", excludeFromReview: true, updatedAt: "2026-02-01T00:00:00.000Z" })];
+    const { mergedProblems } = mergeImportedProblems(existing, imported);
+    expect(mergedProblems[0].excludeFromReview).toBe(true);
+  });
+
+  it("prioritizeProblems includes excluded problems (caller filters)", () => {
+    const problems = [
+      makeProblem({ id: "a", excludeFromReview: true, confidence: 1 as Confidence, nextReviewDate: "2026-03-10" }),
+      makeProblem({ id: "b", excludeFromReview: false, confidence: 2 as Confidence, nextReviewDate: "2026-03-10" }),
+    ];
+    const result = prioritizeProblems(problems, 5);
+    // prioritizeProblems does NOT filter by excludeFromReview — that's the caller's job
+    expect(result).toHaveLength(2);
   });
 });

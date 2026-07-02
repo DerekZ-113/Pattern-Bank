@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { resolveTodayLeetCodeState } from "../src/utils/todayLeetCodeResolver";
-import type { LeetCodeIgnoredImport, LeetCodeSubmission, Problem, ReviewEvent } from "../src/types";
-import type { TodayLeetCodeCompletion } from "../src/utils/todayLeetCodeCompletions";
+import { resolveTodayLeetCodeState } from "../../src/leetcode/todayResolver";
+import type { LeetCodeIgnoredImport, LeetCodeSubmission, Problem, ReviewEvent } from "../../src/types";
+import type { TodayLeetCodeCompletion } from "../../src/leetcode/todayCompletions";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {

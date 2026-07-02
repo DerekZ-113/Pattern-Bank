@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { deduplicateProblems } from "../src/utils/sync";
-import type { Problem } from "../src/types";
+import {
+  buildNewProblems,
+  deduplicateProblems,
+  filterExistingProblems,
+  interleaveByDifficulty,
+} from "../src/problemTransforms";
+import type { LeetCodeProblem, Problem } from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
@@ -128,5 +133,94 @@ describe("deduplicateProblems", () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("a");
     expect(removedIds).toEqual(["b"]);
+  });
+});
+
+describe("deduplicateProblems — ordering (mobile union)", () => {
+  it("keeps first entry when updatedAt is equal", () => {
+    const first = makeProblem({ id: "first", leetcodeNumber: 1, updatedAt: "2026-01-01T00:00:00.000Z" });
+    const second = makeProblem({ id: "second", leetcodeNumber: 1, updatedAt: "2026-01-01T00:00:00.000Z" });
+    const result = deduplicateProblems([first, second]);
+    expect(result.problems).toHaveLength(1);
+    expect(result.problems[0].id).toBe("first");
+    expect(result.removedIds).toEqual(["second"]);
+  });
+
+  it("preserves order of non-duplicate problems", () => {
+    const problems = [
+      makeProblem({ id: "a", leetcodeNumber: 3 }),
+      makeProblem({ id: "b", leetcodeNumber: null }),
+      makeProblem({ id: "c", leetcodeNumber: 1 }),
+      makeProblem({ id: "d", leetcodeNumber: 2 }),
+    ];
+    const result = deduplicateProblems(problems);
+    expect(result.problems.map((p) => p.id)).toEqual(["a", "b", "c", "d"]);
+  });
+});
+
+describe("duplicatePrevention — full bulk-add pipeline (mobile union)", () => {
+  const pipelineOptions = {
+    today: "2026-03-14",
+    now: "2026-03-14T12:00:00.000Z",
+    dailyGoal: 5,
+    patternMap: null,
+  };
+
+  function makeLCProblem(overrides: Partial<LeetCodeProblem> = {}): LeetCodeProblem {
+    return { n: 1, t: "Two Sum", s: "two-sum", d: "Easy", ...overrides } as LeetCodeProblem;
+  }
+
+  it("filter + interleave + build produces no duplicates", () => {
+    const lc = [
+      makeLCProblem({ n: 1, d: "Easy" }),
+      makeLCProblem({ n: 2, d: "Medium" }),
+      makeLCProblem({ n: 3, d: "Hard" }),
+    ];
+    const existing = [makeProblem({ leetcodeNumber: 1 })];
+
+    const { newProblems: filtered } = filterExistingProblems(lc, existing);
+    const interleaved = interleaveByDifficulty(filtered);
+    const built = buildNewProblems(interleaved, pipelineOptions);
+
+    expect(built).toHaveLength(2);
+    const nums = built.map((p) => p.leetcodeNumber);
+    expect(nums).not.toContain(1); // filtered out
+    expect(new Set(nums).size).toBe(2); // no duplicates
+  });
+
+  it("all-duplicates input produces zero new problems", () => {
+    const lc = [makeLCProblem({ n: 1 }), makeLCProblem({ n: 2 })];
+    const existing = [
+      makeProblem({ leetcodeNumber: 1 }),
+      makeProblem({ id: "x", leetcodeNumber: 2 }),
+    ];
+
+    const { newProblems: filtered } = filterExistingProblems(lc, existing);
+    expect(filtered).toHaveLength(0);
+
+    const built = buildNewProblems(filtered, pipelineOptions);
+    expect(built).toHaveLength(0);
+  });
+
+  it("mixed duplicates and new produces correct count", () => {
+    const lc = [
+      makeLCProblem({ n: 1 }),
+      makeLCProblem({ n: 2 }),
+      makeLCProblem({ n: 3 }),
+      makeLCProblem({ n: 4 }),
+      makeLCProblem({ n: 5 }),
+    ];
+    const existing = [
+      makeProblem({ leetcodeNumber: 2 }),
+      makeProblem({ id: "x", leetcodeNumber: 4 }),
+    ];
+
+    const { newProblems: filtered, skippedCount } = filterExistingProblems(lc, existing);
+    expect(filtered).toHaveLength(3);
+    expect(skippedCount).toBe(2);
+
+    const interleaved = interleaveByDifficulty(filtered);
+    const built = buildNewProblems(interleaved, pipelineOptions);
+    expect(built).toHaveLength(3);
   });
 });

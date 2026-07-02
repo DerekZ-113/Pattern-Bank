@@ -1,13 +1,11 @@
-import {
-  buildTodayLeetCodeItems,
-} from "@patternbank/core";
+import { buildTodayLeetCodeItems } from "./importTransforms";
 import {
   buildLeetCodeSubmissionsWithCompletions,
   isLeetCodeSubmissionCompletedToday,
   mergeTodayLeetCodeCompletion,
   type LeetCodeCompletionIdentity,
   type TodayLeetCodeCompletion,
-} from "./todayLeetCodeCompletions";
+} from "./todayCompletions";
 import type {
   LeetCodeIgnoredImport,
   LeetCodeSubmission,
@@ -35,15 +33,19 @@ type CompletionInput = LeetCodeCompletionIdentity & {
   submissionDbId: string;
   problemId: string;
   action: TodayLeetCodeCompletion["action"];
+  completedAt?: string;
 };
 
-function problemWasReviewedToday(
+function getReviewedTodayTimestamp(
   problem: Pick<Problem, "id" | "lastReviewed">,
   reviewEvents: ReviewEvent[],
   today: string,
-): boolean {
-  return problem.lastReviewed === today
-    || reviewEvents.some((event) => event.problemId === problem.id && event.date === today);
+): string | null {
+  const latestEvent = reviewEvents
+    .filter((event) => event.problemId === problem.id && event.date === today)
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+  if (latestEvent) return latestEvent.timestamp;
+  return problem.lastReviewed === today ? `${today}T00:00:00.000Z` : null;
 }
 
 export function buildReviewedTodayLeetCodeCompletions({
@@ -69,7 +71,9 @@ export function buildReviewedTodayLeetCodeCompletions({
     if (submission.status === "ignored") continue;
     const problem = (submission.problemId ? problemById.get(submission.problemId) : undefined)
       ?? (typeof submission.leetcodeNumber === "number" ? problemByNumber.get(submission.leetcodeNumber) : undefined);
-    if (!problem || !problemWasReviewedToday(problem, reviewEvents, today)) continue;
+    if (!problem) continue;
+    const completedAt = getReviewedTodayTimestamp(problem, reviewEvents, today);
+    if (!completedAt) continue;
 
     completions.push({
       submissionDbId: submission.id,
@@ -78,6 +82,7 @@ export function buildReviewedTodayLeetCodeCompletions({
       leetcodeNumber: submission.leetcodeNumber,
       problemId: problem.id,
       action: "rated",
+      completedAt,
     });
   }
 
@@ -139,55 +144,4 @@ export function resolveTodayLeetCodeState({
     doneTodayLeetCodeSubmissions,
     effectiveCompletions,
   };
-}
-
-export function logTodayLeetCodeDebugSnapshot(
-  label: string,
-  state: {
-    submissions: LeetCodeSubmission[];
-    completions: TodayLeetCodeCompletion[];
-    fromLeetCodeItems: TodayLeetCodeItem[];
-    doneTodayLeetCodeSubmissions: LeetCodeSubmission[];
-    reviewEvents: ReviewEvent[];
-    problems: Problem[];
-  },
-): void {
-  if (typeof localStorage === "undefined") return;
-  if (localStorage.getItem("patternbank-debug-today-lc") !== "1") return;
-
-  console.info("[PatternBank Today LC]", label, {
-    submissions: state.submissions.map((submission) => ({
-      id: submission.id,
-      leetcodeSubmissionId: submission.leetcodeSubmissionId,
-      titleSlug: submission.titleSlug,
-      leetcodeNumber: submission.leetcodeNumber,
-      status: submission.status,
-      problemId: submission.problemId ?? null,
-      updatedAt: submission.updatedAt ?? null,
-    })),
-    completions: state.completions,
-    fromLeetCodeItems: state.fromLeetCodeItems.map((item) => ({
-      kind: item.kind,
-      submissionDbId: item.submissionDbId,
-      leetcodeSubmissionId: item.leetcodeSubmissionId ?? null,
-      titleSlug: item.titleSlug,
-      leetcodeNumber: item.leetcodeNumber,
-      matchedProblemId: item.matchedProblemId,
-      status: item.status,
-    })),
-    doneTodayLeetCodeSubmissions: state.doneTodayLeetCodeSubmissions.map((submission) => ({
-      id: submission.id,
-      leetcodeSubmissionId: submission.leetcodeSubmissionId,
-      titleSlug: submission.titleSlug,
-      leetcodeNumber: submission.leetcodeNumber,
-      status: submission.status,
-      problemId: submission.problemId ?? null,
-    })),
-    reviewEvents: state.reviewEvents,
-    problems: state.problems.map((problem) => ({
-      id: problem.id,
-      leetcodeNumber: problem.leetcodeNumber,
-      lastReviewed: problem.lastReviewed,
-    })),
-  });
 }

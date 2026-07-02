@@ -7,12 +7,13 @@ import TodayLeetCodeCard from "./TodayLeetCodeCard";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
 import { formatDisplayDate, todayStr, utcToLocalDateStr } from "@patternbank/core";
-import { buildLeetCodeCompletionKey } from "../utils/todayLeetCodeCompletions";
 import {
   buildSolvedOnLeetCodeTodayIndex,
   buildTodayActivityFeedItems,
+  buildTodayLeetCodeItemKey,
   buildTodayReviewState,
-} from "../utils/todayView";
+  type ExitingTodayLeetCodeItem,
+} from "@patternbank/core";
 import type {
   Confidence,
   LeetCodeProblem,
@@ -51,21 +52,6 @@ interface Props {
   onOpenLeetCodeSettings?: () => void;
   onDismissLeetCodeIntro?: () => void;
   today?: string;
-}
-
-interface ExitingLeetCodeItem {
-  key: string;
-  item: TodayLeetCodeItem;
-}
-
-function buildTodayLeetCodeItemKey(item: TodayLeetCodeItem): string {
-  return buildLeetCodeCompletionKey({
-    submissionDbId: item.submissionDbId,
-    leetcodeSubmissionId: item.leetcodeSubmissionId,
-    titleSlug: item.titleSlug,
-    leetcodeNumber: item.leetcodeNumber,
-    problemId: item.matchedProblemId,
-  });
 }
 
 export default function TodayView({
@@ -117,7 +103,7 @@ export default function TodayView({
   );
   const previousLeetCodeItemsRef = useRef<TodayLeetCodeItem[]>(leetcodeSectionItems);
   const exitingLeetCodeKeysRef = useRef(new Set<string>());
-  const [exitingLeetCodeItems, setExitingLeetCodeItems] = useState<ExitingLeetCodeItem[]>([]);
+  const [exitingLeetCodeItems, setExitingLeetCodeItems] = useState<ExitingTodayLeetCodeItem[]>([]);
   const hasLeetCodeSolveToday = leetcodeSubmissions
     .some((submission) => utcToLocalDateStr(submission.submittedAt) === today);
   useLayoutEffect(() => {

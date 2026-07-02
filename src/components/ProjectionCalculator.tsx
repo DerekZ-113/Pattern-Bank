@@ -8,7 +8,7 @@ import {
 } from "react";
 import { todayStr, addDays } from "@patternbank/core";
 import { getConfidenceDistribution } from "@patternbank/core";
-import { simulateProjectionSeries, type Distribution } from "../utils/projectionEngine";
+import { simulateProjectionSeries, type ProjectionDistribution } from "@patternbank/core";
 import { INTERVALS } from "@patternbank/core";
 import type { Problem, ReviewEvent, Confidence } from "../types";
 
@@ -70,15 +70,15 @@ function computeDefaultNewPerWeek(problems: Problem[]): number {
   return Math.min(Math.round(recentCount / 4), 10);
 }
 
-function total(distribution: Distribution): number {
+function total(distribution: ProjectionDistribution): number {
   return distribution.reduce((sum, count) => sum + count, 0);
 }
 
-function mastered(distribution: Distribution): number {
+function mastered(distribution: ProjectionDistribution): number {
   return distribution[3] + distribution[4];
 }
 
-function cumulativeSeries(series: Distribution[], starIndex: number): number[] {
+function cumulativeSeries(series: ProjectionDistribution[], starIndex: number): number[] {
   return series.map((distribution) =>
     distribution.slice(0, starIndex + 1).reduce((sum, count) => sum + count, 0),
   );
