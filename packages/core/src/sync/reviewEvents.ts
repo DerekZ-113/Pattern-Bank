@@ -7,15 +7,18 @@ export function reviewEventKey(event: ReviewEvent): string {
 
 /**
  * Two events are the same review when their keys match exactly, or when they
- * hit the same problem within 5 seconds ON THE SAME calendar date (legacy
- * timestamp mismatch between platforms). The date gate is canonical core
- * behavior: near-midnight events on different dates are distinct streak days
- * and must both survive a merge.
+ * hit the same problem within 5 seconds ON THE SAME calendar date WITH THE
+ * SAME confidence (legacy timestamp mismatch between platforms). The date
+ * gate is canonical core behavior: near-midnight events on different dates
+ * are distinct streak days and must both survive a merge. The confidence
+ * gate keeps a genuine same-day re-rate alive — one review can't carry two
+ * ratings, so differing confidence means distinct reviews, not drift.
  */
 export function reviewEventsMatch(a: ReviewEvent, b: ReviewEvent): boolean {
   if (reviewEventKey(a) === reviewEventKey(b)) return true;
   if (a.problemId !== b.problemId) return false;
   if (a.date !== b.date) return false;
+  if (a.confidence !== b.confidence) return false;
   const aTime = timestampMs(a.timestamp);
   const bTime = timestampMs(b.timestamp);
   if (!aTime || !bTime) return false;

@@ -282,4 +282,23 @@ describe("mergeReviewEvents (mobile union)", () => {
 
     expect(result.localOnlyEvents).toEqual([]);
   });
+
+  it("keeps a same-day re-rate with a different confidence (distinct review, not timestamp drift)", () => {
+    const first = makeEvent({ problemId: "p1", confidence: 4, date: "2026-03-14", timestamp: "2026-03-14T12:00:00.000Z" });
+    const rerate = makeEvent({ problemId: "p1", confidence: 5, date: "2026-03-14", timestamp: "2026-03-14T12:00:01.000Z" });
+
+    const { events } = mergeReviewEvents([], [first, rerate]);
+
+    expect(events).toHaveLength(2);
+    expect(events.map((e) => e.confidence)).toEqual([4, 5]);
+  });
+
+  it("still collapses a same-confidence pair within the drift window as one review", () => {
+    const original = makeEvent({ problemId: "p1", confidence: 4, date: "2026-03-14", timestamp: "2026-03-14T12:00:00.000Z" });
+    const drifted = makeEvent({ problemId: "p1", confidence: 4, date: "2026-03-14", timestamp: "2026-03-14T12:00:02.000Z" });
+
+    const { events } = mergeReviewEvents([original], [drifted]);
+
+    expect(events).toHaveLength(1);
+  });
 });

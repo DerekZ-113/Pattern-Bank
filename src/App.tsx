@@ -102,7 +102,15 @@ export default function App() {
     }
 
     await handleClearAllData();
-    if (user) signOut();
+    if (user) {
+      // Await so a reload right after the dialog closes can't catch the
+      // session still stored — signed-in-with-empty-data is a confusing state.
+      try {
+        await signOut();
+      } catch (err) {
+        console.warn("Sign-out after clear-all failed:", err);
+      }
+    }
     ui.setClearDataConfirm(false);
   }, [handleClearAllData, hasLeetCodeActivityState, leetcodeActivity, signOut, ui, user]);
 
