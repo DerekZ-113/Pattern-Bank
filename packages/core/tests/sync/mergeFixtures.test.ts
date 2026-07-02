@@ -1,42 +1,13 @@
 import { describe, it, expect } from "vitest";
-import type { DataReset, Problem, ProblemTombstone, ReviewEvent } from "../../../../src/types";
+import type { DataReset, ProblemTombstone } from "../../src/types";
 import {
   mergeProblems,
   mergeProblemTombstones,
   filterTombstonedProblems,
   filterTombstonesAfterDataReset,
-  mergeReviewEvents,
-} from "../../../../src/utils/sync";
-
-function makeProblem(overrides: Partial<Problem> = {}): Problem {
-  return {
-    id: `id-${Math.random().toString(36).slice(2, 8)}`,
-    title: "Test Problem",
-    leetcodeNumber: null,
-    url: null,
-    difficulty: "Medium",
-    patterns: [],
-    confidence: 3,
-    notes: "",
-    excludeFromReview: false,
-    dateAdded: "2026-03-01",
-    lastReviewed: null,
-    nextReviewDate: "2026-03-02",
-    updatedAt: "2026-03-01T00:00:00.000Z",
-    ...overrides,
-  };
-}
-
-function makeEvent(overrides: Partial<ReviewEvent> = {}): ReviewEvent {
-  return {
-    date: "2026-03-10",
-    problemId: "prob-1",
-    confidence: 3,
-    patterns: ["Hash Table"],
-    timestamp: "2026-03-10T12:00:00.000Z",
-    ...overrides,
-  };
-}
+} from "../../src/sync/merge";
+import { mergeReviewEvents } from "../../src/sync/reviewEvents";
+import { makeEvent, makeProblem } from "../helpers/syncTestUtils";
 
 describe("mergeProblems — newest-wins with valid timestamps", () => {
   it("keeps the cloud version when cloud updatedAt is newer", () => {
@@ -78,9 +49,7 @@ describe("mergeProblems — newest-wins with valid timestamps", () => {
 describe("mergeProblems — F-17 invalid updatedAt guard", () => {
   // Canonical (mobile) semantics: a malformed updatedAt is treated as epoch 0,
   // so the side with a valid timestamp deterministically wins.
-  // Web compares `cloudTime > NaN` (always false), so the malformed LOCAL entry wins.
-  // FIXED-BY: Phase 5 (F-17) — web mergeProblems must NaN-guard updatedAt like mobile's timestampMs
-  it.fails("cloud entry with a valid updatedAt beats a local entry with malformed updatedAt", () => {
+  it("cloud entry with a valid updatedAt beats a local entry with malformed updatedAt", () => {
     const local = makeProblem({ id: "shared", notes: "local", updatedAt: "not-a-date" });
     const cloud = makeProblem({ id: "shared", notes: "cloud", updatedAt: "2026-03-10T00:00:00.000Z" });
     const { problems } = mergeProblems([local], [cloud]);
@@ -120,7 +89,7 @@ describe("tombstone suppression", () => {
     const problem = makeProblem({ id: "dead-1", updatedAt: "2026-03-10T00:00:00.000Z" });
     const cloudTombstone: ProblemTombstone = { problemId: "dead-1", deletedAt: "2026-03-11T00:00:00.000Z" };
 
-    // Compose the same steps syncOnSignIn performs: merge tombstones, then filter both sides.
+    // Compose the same steps performFullSync performs: merge tombstones, then filter both sides.
     const { tombstones } = mergeProblemTombstones([], [cloudTombstone]);
     const filteredLocal = filterTombstonedProblems([problem], tombstones);
     const filteredCloud = filterTombstonedProblems([problem], tombstones);
@@ -140,8 +109,6 @@ describe("tombstone suppression", () => {
 });
 
 describe("reset-marker filtering", () => {
-  // filterProblemsAfterDataReset is internal to web's syncOnSignIn; the exported
-  // reset-marker filter at this level is filterTombstonesAfterDataReset.
   const reset: DataReset = { resetAt: "2026-03-12T00:00:00.000Z" };
 
   it("excludes cloud tombstones older than the reset marker", () => {
@@ -177,13 +144,10 @@ describe("mergeReviewEvents — 5s near-duplicate tolerance", () => {
     expect(events).toHaveLength(2);
   });
 
-  // Canonical: two events 3s apart but on DIFFERENT calendar dates (near midnight)
-  // are distinct streak days and must both survive the merge — collapsing them
-  // silently drops a streak day. Web's reviewEventsMatch ignores the date field,
-  // so it collapses them into one.
-  // FIXED-BY: Phase 5 (date-aware event matching) — reviewEventsMatch must only
-  // treat near-duplicates as the same event when their date fields agree
-  it.fails("keeps near-midnight events 3s apart that fall on different dates", () => {
+  // Canonical (new in core, neither platform had it): two events 3s apart but
+  // on DIFFERENT calendar dates (near midnight) are distinct streak days and
+  // must both survive the merge — collapsing them silently drops a streak day.
+  it("keeps near-midnight events 3s apart that fall on different dates", () => {
     const beforeMidnight = makeEvent({
       date: "2026-03-10",
       timestamp: "2026-03-10T23:59:58.500Z",
@@ -195,5 +159,22 @@ describe("mergeReviewEvents — 5s near-duplicate tolerance", () => {
     const { events } = mergeReviewEvents([beforeMidnight], [afterMidnight]);
     expect(events).toHaveLength(2);
     expect(events.map((e) => e.date).sort()).toEqual(["2026-03-10", "2026-03-11"]);
+  });
+
+  it("still collapses events with identical problemId and timestamp even if their dates disagree (exact key)", () => {
+    // Same physical review recorded with different local-date derivations
+    // (timezone skew) must not duplicate.
+    const ts = "2026-03-10T23:59:58.500Z";
+    const local = makeEvent({ date: "2026-03-10", timestamp: ts });
+    const cloud = makeEvent({ date: "2026-03-11", timestamp: ts });
+    const { events } = mergeReviewEvents([local], [cloud]);
+    expect(events).toHaveLength(1);
+  });
+
+  it("treats events with unparseable timestamps as distinct on the tolerance path", () => {
+    const local = makeEvent({ timestamp: "garbage-a" });
+    const cloud = makeEvent({ timestamp: "garbage-b" });
+    const { events } = mergeReviewEvents([local], [cloud]);
+    expect(events).toHaveLength(2);
   });
 });

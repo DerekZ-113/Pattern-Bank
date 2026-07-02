@@ -27,7 +27,9 @@ export default function usePreferences({ user }: UsePreferencesParams): UsePrefe
   }, [preferences]);
 
   const handleUpdatePreferences = useCallback((updates: Partial<Preferences>) => {
-    const next = { ...preferencesRef.current, ...updates };
+    // Stamp user edits so newest-wins preference sync (F-6) can tell a fresh
+    // signed-out change apart from a stale cloud snapshot.
+    const next = { ...preferencesRef.current, ...updates, updatedAt: new Date().toISOString() };
     preferencesRef.current = next;
     preferenceRevisionRef.current += 1;
     setPreferences(next);

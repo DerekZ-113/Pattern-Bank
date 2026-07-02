@@ -215,7 +215,8 @@ describe("useProblems", () => {
         hidePatternsDuringReview: true,
         enabledExtraPatterns: ["Sliding Window"],
       };
-      const localPrefs: Preferences = { ...defaultPrefs, dailyReviewGoal: 8 };
+      // User edits are stamped with updatedAt (F-6 newest-wins).
+      const localPrefs = { ...defaultPrefs, dailyReviewGoal: 8, updatedAt: expect.any(String) };
       mockSyncOnSignIn.mockReturnValue(pendingSync);
 
       const { result } = renderHook(() =>

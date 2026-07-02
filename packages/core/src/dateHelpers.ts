@@ -59,3 +59,15 @@ export function formatRelativeDate(dateStr: string): string {
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
+
+/**
+ * Parse an ISO timestamp to epoch ms; missing or unparseable values collapse
+ * to 0 (the epoch). Sync merges rely on this guard (F-17) so a malformed
+ * timestamp deterministically loses to any valid one instead of winning a
+ * `NaN` comparison.
+ */
+export function timestampMs(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+}

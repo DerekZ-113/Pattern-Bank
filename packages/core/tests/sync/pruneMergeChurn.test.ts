@@ -1,17 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { ReviewEvent } from "../../../../src/types";
-import { mergeReviewEvents } from "../../../../src/utils/sync";
-
-function makeEvent(overrides: Partial<ReviewEvent> = {}): ReviewEvent {
-  return {
-    date: "2026-03-10",
-    problemId: "prob-1",
-    confidence: 3,
-    patterns: ["Two Pointers"],
-    timestamp: "2026-03-10T12:00:00.000Z",
-    ...overrides,
-  };
-}
+import { mergeReviewEvents } from "../../src/sync/reviewEvents";
+import { makeEvent } from "../helpers/syncTestUtils";
 
 // F-3 acceptance: local review events older than a prune cutoff were removed
 // locally (storage-size housekeeping). Cloud still holds the full history.
@@ -34,21 +23,36 @@ describe("mergeReviewEvents — F-3 prune churn", () => {
     makeEvent({ problemId: "p-recent-2", date: "2026-03-10", timestamp: "2026-03-10T10:00:00.000Z" }),
   ];
 
-  // Desired (core) behavior: merge respects the prune watermark and drops
-  // pre-cutoff cloud events. Web's 2-arg mergeReviewEvents has no cutoff
-  // concept and re-adds them.
-  // FIXED-BY: Phase 5 (F-3 prune watermark; call gains {prunedBefore} option)
-  it.fails("does not resurrect pre-cutoff cloud events after a local prune", () => {
-    const { events } = mergeReviewEvents(recentLocal, fullCloud);
+  it("does not resurrect pre-cutoff cloud events after a local prune", () => {
+    const { events, addedFromCloud } = mergeReviewEvents(recentLocal, fullCloud, { prunedBefore });
     const resurrected = events.filter((event) => event.timestamp < prunedBefore);
     expect(resurrected).toEqual([]);
     expect(events.map((e) => e.problemId).sort()).toEqual(["p-recent-1", "p-recent-2"]);
+    expect(addedFromCloud).toBe(0);
+  });
+
+  it("does not report pruned local survivors as local-only backfill", () => {
+    const { localOnlyEvents } = mergeReviewEvents(recentLocal, fullCloud, { prunedBefore });
+    expect(localOnlyEvents).toEqual([]);
+  });
+
+  it("keeps an event whose timestamp exactly equals the watermark", () => {
+    const boundary = makeEvent({ problemId: "p-boundary", date: "2026-03-01", timestamp: prunedBefore });
+    const { events } = mergeReviewEvents(recentLocal, [...fullCloud, boundary], { prunedBefore });
+    expect(events.map((e) => e.problemId)).toContain("p-boundary");
   });
 
   it("is idempotent — merging the merged result with cloud again yields identical events", () => {
-    const first = mergeReviewEvents(recentLocal, fullCloud);
-    const second = mergeReviewEvents(first.events, fullCloud);
+    const first = mergeReviewEvents(recentLocal, fullCloud, { prunedBefore });
+    const second = mergeReviewEvents(first.events, fullCloud, { prunedBefore });
     expect(second.events).toEqual(first.events);
     expect(second.addedFromCloud).toBe(0);
+  });
+
+  it("resurrects nothing extra without a watermark either when histories already match", () => {
+    const first = mergeReviewEvents(fullCloud, fullCloud);
+    expect(first.events).toEqual(fullCloud);
+    expect(first.addedFromCloud).toBe(0);
+    expect(first.localOnlyEvents).toEqual([]);
   });
 });
