@@ -115,6 +115,9 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   // Sync with Supabase on sign-in
   const handleSyncComplete = useCallback((result: SyncResult, context?: SyncCompleteContext) => {
     const currentDataReset = loadDataReset();
+    // F-20: a strictly-newer local reset can only mean clear-all ran while the
+    // sync was in flight — the whole result predates it, so discard wholesale.
+    if (dataResetTime(currentDataReset) > dataResetTime(result.dataReset)) return;
     const mergedDataReset = newerDataReset(currentDataReset, result.dataReset);
     const incomingResetIsNewer = dataResetTime(result.dataReset) > dataResetTime(currentDataReset);
     if (mergedDataReset) {
@@ -145,7 +148,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     setReviewCount((c) => c + 1);
   }, [getCurrentPreferences, getPreferenceRevision, replacePreferences, user]);
 
-  const { syncStatus } = useCloudSync({
+  const { syncStatus, invalidateInFlightSync } = useCloudSync({
     user, problems, preferences, getPreferenceRevision, showToast,
     onSyncComplete: handleSyncComplete,
   });
@@ -387,6 +390,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   }, [user, showToast]);
 
   const handleClearAllData = useCallback(async () => {
+    invalidateInFlightSync();
     const resetAt = new Date().toISOString();
     saveDataReset({ resetAt });
     saveProblemTombstones([]);
@@ -398,7 +402,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
       await clearAllCloudData(user.id, resetAt);
     }
     showToast("All data cleared");
-  }, [showToast, user]);
+  }, [invalidateInFlightSync, showToast, user]);
 
   return {
     problems,

@@ -8,8 +8,10 @@ import {
   logReviewEvent,
   logOrReplaceReviewEvent,
   saveReviewLog,
+  saveReviewEvents,
   recordProblemTombstone,
   saveProblemTombstones,
+  loadDataReset,
   saveDataReset,
 } from "../src/utils/storage";
 import {
@@ -23,6 +25,7 @@ import {
   deduplicateProblems,
 } from "../src/utils/sync";
 import type { User } from "@supabase/supabase-js";
+import type { SyncResult } from "../src/utils/sync";
 import type { Problem, Confidence, Preferences, SyncStatus } from "../src/types";
 import { addDays, todayStr } from "@patternbank/core";
 
@@ -769,6 +772,56 @@ describe("useProblems", () => {
       expect(saveReviewLog).toHaveBeenCalledWith([]);
       expect(saveDataReset).toHaveBeenCalledWith({ resetAt: expect.any(String) });
       expect(saveProblemTombstones).toHaveBeenCalledWith([]);
+    });
+
+    it("discards an in-flight sign-in sync that resolves after clear-all (F-20)", async () => {
+      let resolveSync!: (value: SyncResult) => void;
+      const pendingSync = new Promise<SyncResult>((resolve) => {
+        resolveSync = resolve;
+      });
+      mockSyncOnSignIn.mockReturnValue(pendingSync);
+      // Simulate persistence: the reset marker saved by clear-all must be
+      // visible to later loadDataReset() calls.
+      (saveDataReset as ReturnType<typeof vi.fn>).mockImplementation((reset) => {
+        (loadDataReset as ReturnType<typeof vi.fn>).mockReturnValue(reset);
+      });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([makeProblem({ id: "pre-clear-1" })]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      await waitFor(() => {
+        expect(mockSyncOnSignIn).toHaveBeenCalledTimes(1);
+      });
+
+      await act(async () => {
+        await result.current.handleClearAllData();
+      });
+      expect(result.current.problems).toEqual([]);
+      (saveReviewLog as ReturnType<typeof vi.fn>).mockClear();
+      (saveReviewEvents as ReturnType<typeof vi.fn>).mockClear();
+
+      // The pre-clear sync snapshot resolves AFTER the clear with the old data.
+      const resurrection: SyncResult = {
+        ...makeSyncResult(defaultPrefs, "synced"),
+        problems: [makeProblem({ id: "pre-clear-1" })],
+        reviewLog: [{ date: "2025-01-01" }],
+        reviewEvents: [
+          { date: "2025-01-01", problemId: "pre-clear-1", confidence: 3 as Confidence, patterns: [], timestamp: "2025-01-01T12:00:00.000Z" },
+        ],
+      };
+      await act(async () => {
+        resolveSync(resurrection);
+        await pendingSync;
+      });
+
+      expect(result.current.problems).toEqual([]);
+      expect(saveReviewLog).not.toHaveBeenCalled();
+      expect(saveReviewEvents).not.toHaveBeenCalled();
+      expect(pushProblemsToCloud).not.toHaveBeenCalled();
+      expect(pushProblemToCloud).not.toHaveBeenCalled();
+      expect(mockShowToast).not.toHaveBeenCalledWith("Data synced");
     });
   });
 

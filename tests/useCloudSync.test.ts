@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { User } from "@supabase/supabase-js";
 import useCloudSync from "../src/hooks/useCloudSync";
 import { syncOnSignIn } from "../src/utils/sync";
@@ -248,6 +248,39 @@ describe("useCloudSync", () => {
     });
     expect(params.onSyncComplete).not.toHaveBeenCalled();
     expect(params.showToast).not.toHaveBeenCalledWith("Data synced");
+  });
+
+  it("invalidateInFlightSync discards an in-flight sync (F-20)", async () => {
+    let resolveSyncFn!: (value: ReturnType<typeof makeSuccessResult>) => void;
+    const pendingPromise = new Promise<ReturnType<typeof makeSuccessResult>>(
+      (resolve) => { resolveSyncFn = resolve; }
+    );
+    mockSyncOnSignIn.mockReturnValue(pendingPromise);
+
+    const params = makeDefaultParams();
+    const { result, rerender } = renderHook((props) => useCloudSync(props), {
+      initialProps: params,
+    });
+
+    rerender({ ...params, user: mockUser });
+
+    await waitFor(() => {
+      expect(result.current.syncStatus).toBe("syncing");
+    });
+
+    act(() => {
+      result.current.invalidateInFlightSync();
+    });
+    expect(result.current.syncStatus).toBe("idle");
+
+    await act(async () => {
+      resolveSyncFn(makeSuccessResult([mockProblem], [], defaultPreferences, true));
+      await pendingPromise;
+    });
+
+    expect(params.onSyncComplete).not.toHaveBeenCalled();
+    expect(params.showToast).not.toHaveBeenCalled();
+    expect(result.current.syncStatus).toBe("idle");
   });
 
   it("shows toast on sync failure", async () => {
