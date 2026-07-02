@@ -19,6 +19,7 @@ import {
   filterProblemsAfterDataReset,
   filterReviewEventsAfterDataReset,
   filterReviewEventsToProblems,
+  filterReviewLogAfterDataReset,
   filterTombstonedProblems,
   filterTombstonesAfterDataReset,
   mergeProblems,
@@ -154,6 +155,23 @@ export async function performFullSync<P extends CorePreferences = CorePreference
     let effectiveCloudLog = cloudLogRes.data ?? [];
     let effectiveCloudEvents = reviewEventsFetchFailed ? [] : cloudEventsRes.data ?? [];
     let resetRemovedCloudProblemIds: string[] = [];
+
+    // F-20: local rows predating the newest reset must never survive the merge
+    // or be re-uploaded. This covers the resetWinner "local" and tie branches;
+    // the "cloud" branch below zeroes local state anyway.
+    let localRemovedByReset = 0;
+    if (dataReset) {
+      const filteredLocal = filterProblemsAfterDataReset(effectiveLocalProblems, dataReset);
+      const filteredLocalEvents = filterReviewEventsAfterDataReset(effectiveLocalEvents, dataReset);
+      const filteredLocalLog = filterReviewLogAfterDataReset(effectiveLocalLog, dataReset);
+      localRemovedByReset =
+        filteredLocal.removedIds.length +
+        (effectiveLocalEvents.length - filteredLocalEvents.length) +
+        (effectiveLocalLog.length - filteredLocalLog.length);
+      effectiveLocalProblems = filteredLocal.problems;
+      effectiveLocalEvents = filteredLocalEvents;
+      effectiveLocalLog = filteredLocalLog;
+    }
 
     if (resetWinner === "cloud") {
       effectiveLocalProblems = [];
@@ -338,6 +356,7 @@ export async function performFullSync<P extends CorePreferences = CorePreference
       tombstonesAddedFromCloud > 0 ||
       removedOrphanReviewEvents ||
       resetWinner === "cloud" ||
+      localRemovedByReset > 0 ||
       logAddedFromCloud > 0 ||
       eventsAddedFromCloud > 0 ||
       prunedCount > 0 ||

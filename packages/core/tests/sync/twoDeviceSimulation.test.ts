@@ -273,6 +273,39 @@ describe("two-device simulation — scenario 2: clear-all reset survives and doe
     await deviceB.sync();
     expect(deviceB.local.problems.map((p) => p.id)).toEqual(["new-1"]);
   });
+
+  it("does not resurrect pre-reset rows injected locally after the clear (F-20 web race)", async () => {
+    const before = addDays(TODAY, -5);
+    const staleProblem = makeProblem({ id: "old-1", leetcodeNumber: 1, updatedAt: iso(before) });
+    deviceA.addProblem(staleProblem);
+    deviceA.review("old-1", before, iso(before, "13:00:00.000"));
+    await deviceA.sync();
+
+    // A clears everything and syncs the reset to the cloud.
+    const resetAt = iso(addDays(TODAY, -1));
+    deviceA.clearAll(resetAt);
+    await deviceA.sync();
+    expect(cloud.state.problems.size).toBe(0);
+
+    // Simulate the web race: an in-flight pre-clear sync result lands AFTER the
+    // clear, writing pre-reset rows back into A's local state.
+    deviceA.local.problems.push({ ...staleProblem });
+    deviceA.local.reviewEvents.push(makeEvent({ problemId: "old-1", date: before, timestamp: iso(before, "13:00:00.000"), patterns: [] }));
+    deviceA.local.reviewLog.push({ date: before });
+
+    // The next sync must filter them out, not re-upload them.
+    await deviceA.sync();
+    expect(deviceA.local.problems).toEqual([]);
+    expect(deviceA.local.reviewEvents).toEqual([]);
+    expect(deviceA.local.reviewLog).toEqual([]);
+    expect(cloud.state.problems.size).toBe(0);
+    expect(cloud.state.reviewEvents.size).toBe(0);
+
+    // And device B never sees the resurrected rows either.
+    await deviceB.sync();
+    expect(deviceB.local.problems).toEqual([]);
+    expect(deviceB.local.reviewEvents).toEqual([]);
+  });
 });
 
 describe("two-device simulation — scenario 3: offline edits converge, newest wins, no duplicates", () => {
