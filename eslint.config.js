@@ -9,7 +9,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 const tsPlugin = tseslint.plugin
 
 export default defineConfig([
-  globalIgnores(['dist', '.claude', '**/*.d.ts', '**/leetcodeProblems.js', 'packages/*/dist']),
+  globalIgnores(['dist', '.claude', '**/*.d.ts', 'packages/*/src/leetcode/problems.js', 'packages/*/dist']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

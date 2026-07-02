@@ -1,13 +1,5 @@
 import { addDays, dateOnlyToUtcMs } from "./dateHelpers";
-import type { ReviewLogEntry, ReviewEvent } from "../types";
-
-export const CONFIDENCE_BAR_COLORS = [
-  "#f85149", // 1
-  "#f0883e", // 2
-  "#d29922", // 3
-  "#8fbd3a", // 4
-  "#3fb950", // 5
-];
+import type { ReviewLogEntry, ReviewEvent } from "./types";
 
 export function calculateLongestStreak(log: ReviewLogEntry[]): number {
   if (log.length === 0) return 0;

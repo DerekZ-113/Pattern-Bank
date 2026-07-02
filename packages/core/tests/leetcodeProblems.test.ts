@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { searchProblems, getProblemByNumber, buildLeetCodeUrl } from "../src/utils/leetcodeProblems";
+import { searchProblems, getProblemByNumber, buildLeetCodeUrl } from "../src/leetcode/problems";
 
 describe("getProblemByNumber", () => {
   it("returns problem for valid number", () => {

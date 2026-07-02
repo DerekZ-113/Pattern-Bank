@@ -6,7 +6,7 @@ import {
   groupEventsByWeek,
   getConfidenceDistribution,
   getTopPatterns,
-} from "../src/utils/progressUtils";
+} from "../src/progressUtils";
 import type { ReviewLogEntry, ReviewEvent } from "../src/types";
 
 // ── calculateLongestStreak ───────────────────────────────

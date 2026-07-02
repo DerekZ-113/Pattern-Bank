@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { searchProblems, buildLeetCodeUrl } from "../utils/leetcodeProblems";
+import { searchProblems, buildLeetCodeUrl } from "@patternbank/core";
 import type { LeetCodeProblem, Difficulty } from "../types";
 
 interface Props {

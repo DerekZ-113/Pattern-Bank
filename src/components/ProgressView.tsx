@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { PATTERN_COLORS, getVisiblePatterns } from "../utils/constants";
 import { calculateStreak } from "../utils/storage";
-import { todayStr, addDays, formatLocalDate } from "../utils/dateHelpers";
+import { todayStr, addDays, formatLocalDate } from "@patternbank/core";
 import {
   calculateLongestStreak,
   buildReviewCountMap,
@@ -9,7 +9,7 @@ import {
   groupEventsByWeek,
   getConfidenceDistribution,
   getTopPatterns,
-} from "../utils/progressUtils";
+} from "@patternbank/core";
 import PatternHeatmap from "./PatternHeatmap";
 import ProjectionCalculator from "./ProjectionCalculator";
 import type { Problem, ReviewLogEntry, ReviewEvent } from "../types";

@@ -6,7 +6,7 @@ import {
   REVIEW_LOG_KEY,
   STORAGE_KEY,
 } from "./constants";
-import { addDays, formatLocalDate, parseDateOnly } from "./dateHelpers";
+import { addDays, formatLocalDate, parseDateOnly } from "@patternbank/core";
 import type { Confidence, Difficulty, Preferences, Problem, ReviewEvent, ReviewLogEntry } from "../types";
 
 interface DemoProblemInput {

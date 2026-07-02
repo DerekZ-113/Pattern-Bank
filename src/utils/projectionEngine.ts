@@ -1,4 +1,4 @@
-import { INTERVALS } from "./spacedRepetition";
+import { INTERVALS } from "@patternbank/core";
 import type { Confidence } from "../types";
 
 export type Distribution = [number, number, number, number, number];

@@ -39,7 +39,7 @@ const {
   exportData,
 } = await import("../src/utils/storage");
 
-const { todayStr, addDays } = await import("../src/utils/dateHelpers");
+const { todayStr, addDays } = await import("@patternbank/core");
 
 beforeEach(() => {
   localStorageMock.clear();

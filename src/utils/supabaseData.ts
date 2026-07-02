@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
-import { todayStr, utcToLocalDateStr } from "./dateHelpers";
-import { getDefaultFiveStarStreak } from "./spacedRepetition";
+import { todayStr, utcToLocalDateStr } from "@patternbank/core";
+import { getDefaultFiveStarStreak } from "@patternbank/core";
 import type {
   Problem,
   Confidence,

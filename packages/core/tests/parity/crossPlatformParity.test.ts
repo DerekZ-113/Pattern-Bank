@@ -3,7 +3,7 @@ import {
   getIntervalDays,
   getNextFiveStarStreak,
   getReviewIntervalDays,
-} from "../../../../src/utils/spacedRepetition";
+} from "../../src/spacedRepetition";
 import { buildTodayActivityFeedItems, buildTodayReviewState } from "../../../../src/utils/todayView";
 import { resolveTodayLeetCodeState } from "../../../../src/utils/todayLeetCodeResolver";
 import {

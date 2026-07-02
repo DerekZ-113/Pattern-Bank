@@ -1,5 +1,5 @@
-import { todayStr, utcToLocalDateStr } from "./dateHelpers";
-import { prioritizeProblems } from "./spacedRepetition";
+import { todayStr, utcToLocalDateStr } from "@patternbank/core";
+import { prioritizeProblems } from "@patternbank/core";
 import type { Confidence, Difficulty, LeetCodeSubmission, Problem, ReviewEvent } from "../types";
 
 export interface TodayReviewState {

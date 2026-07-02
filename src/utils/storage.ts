@@ -7,7 +7,7 @@ import {
   DATA_RESET_KEY,
   DEFAULT_PREFERENCES,
 } from "./constants";
-import { todayStr, addDays, utcToLocalDateStr } from "./dateHelpers";
+import { todayStr, addDays, utcToLocalDateStr } from "@patternbank/core";
 import type { Problem, ReviewLogEntry, ReviewEvent, Preferences, BackupData, ProblemTombstone, DataReset } from "../types";
 
 export function loadProblems(): Problem[] {

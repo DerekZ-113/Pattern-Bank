@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { todayStr, utcToLocalDateStr, addDays, formatRelativeDate, generateId } from "../src/utils/dateHelpers";
+import { todayStr, utcToLocalDateStr, addDays, formatRelativeDate, generateId } from "../src/dateHelpers";
 
 describe("todayStr", () => {
   afterEach(() => {

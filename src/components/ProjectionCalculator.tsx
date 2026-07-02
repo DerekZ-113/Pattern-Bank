@@ -6,10 +6,10 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
-import { todayStr, addDays } from "../utils/dateHelpers";
-import { getConfidenceDistribution } from "../utils/progressUtils";
+import { todayStr, addDays } from "@patternbank/core";
+import { getConfidenceDistribution } from "@patternbank/core";
 import { simulateProjectionSeries, type Distribution } from "../utils/projectionEngine";
-import { INTERVALS } from "../utils/spacedRepetition";
+import { INTERVALS } from "@patternbank/core";
 import type { Problem, ReviewEvent, Confidence } from "../types";
 
 interface Props {

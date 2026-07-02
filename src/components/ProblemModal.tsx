@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { DIFFICULTIES } from "../utils/constants";
-import { todayStr, generateId } from "../utils/dateHelpers";
+import { todayStr, generateId } from "@patternbank/core";
 import { computeNextReviewDate } from "../utils/problemTransforms";
-import { getDefaultFiveStarStreak } from "../utils/spacedRepetition";
+import { getDefaultFiveStarStreak } from "@patternbank/core";
 import StarRating from "./StarRating";
 import InlineError from "./InlineError";
 import LeetCodeSearch from "./LeetCodeSearch";

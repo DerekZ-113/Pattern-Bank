@@ -19,7 +19,7 @@ import {
   fetchPreferences,
   upsertPreferences,
 } from "./supabaseData";
-import { todayStr, utcToLocalDateStr } from "./dateHelpers";
+import { todayStr, utcToLocalDateStr } from "@patternbank/core";
 import type {
   Problem,
   ReviewLogEntry,

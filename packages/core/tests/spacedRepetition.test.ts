@@ -9,7 +9,7 @@ import {
   getPreviousFiveStarStreak,
   getReviewIntervalDays,
   prioritizeProblems,
-} from "../src/utils/spacedRepetition";
+} from "../src/spacedRepetition";
 import type { Confidence, Problem } from "../src/types";
 
 describe("INTERVALS", () => {

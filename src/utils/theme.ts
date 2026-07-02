@@ -1,5 +1,14 @@
 export type Theme = "dark" | "light";
 
+/** Web-only visual constants (moved out of progressUtils when it went to core). */
+export const CONFIDENCE_BAR_COLORS = [
+  "#f85149", // 1
+  "#f0883e", // 2
+  "#d29922", // 3
+  "#8fbd3a", // 4
+  "#3fb950", // 5
+];
+
 const STORAGE_KEY = "patternbank-theme";
 
 export function getTheme(): Theme {

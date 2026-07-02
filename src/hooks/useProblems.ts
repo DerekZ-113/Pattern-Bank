@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { User } from "@supabase/supabase-js";
-import { todayStr, addDays } from "../utils/dateHelpers";
-import { getIntervalDays, getReviewIntervalDays } from "../utils/spacedRepetition";
+import { todayStr, addDays } from "@patternbank/core";
+import { getIntervalDays, getReviewIntervalDays } from "@patternbank/core";
 import {
   loadProblems,
   saveProblems,

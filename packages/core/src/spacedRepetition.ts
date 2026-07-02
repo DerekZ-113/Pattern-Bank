@@ -1,5 +1,5 @@
 import { todayStr } from "./dateHelpers";
-import type { Confidence, Problem } from "../types";
+import type { Confidence, Problem } from "./types";
 
 // V2 base intervals based on confidence rating.
 // Explicit 5-star reviews can graduate beyond this base interval.

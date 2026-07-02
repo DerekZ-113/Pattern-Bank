@@ -1,4 +1,4 @@
-import { todayStr } from "./dateHelpers";
+import { todayStr } from "@patternbank/core";
 import type { LeetCodeSubmission } from "../types";
 
 export type TodayLeetCodeCompletionAction = "imported" | "linked_existing" | "rated";

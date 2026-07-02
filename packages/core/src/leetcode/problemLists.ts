@@ -2,8 +2,8 @@
 // Verified against leetcodeProblems.js (3,846 problems) on March 2, 2026
 // Pattern assignments use PatternBank's 18 patterns from constants.js
 
-import { getProblemByNumber } from "./leetcodeProblems";
-import type { LeetCodeProblem } from "../types";
+import { getProblemByNumber } from "./problems";
+import type { LeetCodeProblem, ListSummary, ProblemList } from "../types";
 
 // ============================================================
 // SHARED PATTERN MAP
@@ -355,15 +355,6 @@ const PATTERN_MAP: Record<number, string> = {
 // LIST DEFINITIONS
 // ============================================================
 
-interface ProblemList {
-  id: string;
-  name: string;
-  nameZh: string;
-  description: string;
-  source: string;
-  numbers: number[];
-}
-
 const PROBLEM_LISTS: ProblemList[] = [
   {
     id: "neetcode75",
@@ -484,16 +475,6 @@ const PROBLEM_LISTS: ProblemList[] = [
 // ============================================================
 // PUBLIC API
 // ============================================================
-
-interface ListSummary {
-  id: string;
-  name: string;
-  nameZh: string;
-  description: string;
-  total: number;
-  existing: number;
-  newCount: number;
-}
 
 /**
  * Get all available lists with computed counts.

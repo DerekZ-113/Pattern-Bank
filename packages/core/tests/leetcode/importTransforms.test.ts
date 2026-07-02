@@ -3,17 +3,17 @@ import {
   buildTodayLeetCodeItems,
   buildPendingLeetCodeImports,
   buildProblemFromLeetCodeImport,
-} from "../src/utils/leetcodeImportTransforms";
+} from "../../src/leetcode/importTransforms";
 import type {
   Confidence,
   LeetCodeIgnoredImport,
   LeetCodeSubmission,
   Problem,
   ReviewEvent,
-} from "../src/types";
+} from "../../src/types";
 
-vi.mock("../src/utils/dateHelpers", async () => {
-  const actual = await vi.importActual<typeof import("../src/utils/dateHelpers")>("../src/utils/dateHelpers");
+vi.mock("../../src/dateHelpers", async () => {
+  const actual = await vi.importActual<typeof import("../../src/dateHelpers")>("../../src/dateHelpers");
   return {
     ...actual,
     generateId: () => "generated-problem-id",

@@ -1,7 +1,7 @@
 import StarRating from "./StarRating";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTag from "./PatternTag";
-import { todayStr, formatRelativeDate } from "../utils/dateHelpers";
+import { todayStr, formatRelativeDate } from "@patternbank/core";
 import type { Problem } from "../types";
 
 interface Props {

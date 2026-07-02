@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getListSummaries, getListProblems } from "../src/utils/problemLists";
+import { getListSummaries, getListProblems } from "../src/leetcode/problemLists";
 
 describe("getListSummaries", () => {
   it("returns all 6 curated lists", () => {

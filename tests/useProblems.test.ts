@@ -24,7 +24,7 @@ import {
 } from "../src/utils/sync";
 import type { User } from "@supabase/supabase-js";
 import type { Problem, Confidence, Preferences, SyncStatus } from "../src/types";
-import { addDays, todayStr } from "../src/utils/dateHelpers";
+import { addDays, todayStr } from "@patternbank/core";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 

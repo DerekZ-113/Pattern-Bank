@@ -6,7 +6,7 @@ import TodayLeetCodeIntroCard from "./TodayLeetCodeIntroCard";
 import TodayLeetCodeCard from "./TodayLeetCodeCard";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
-import { formatDisplayDate, todayStr, utcToLocalDateStr } from "../utils/dateHelpers";
+import { formatDisplayDate, todayStr, utcToLocalDateStr } from "@patternbank/core";
 import { buildLeetCodeCompletionKey } from "../utils/todayLeetCodeCompletions";
 import {
   buildSolvedOnLeetCodeTodayIndex,

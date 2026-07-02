@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import posthog from "posthog-js";
-import { getListSummaries, getListProblems } from "../utils/problemLists";
+import { getListSummaries, getListProblems } from "@patternbank/core";
 import type { LeetCodeProblem } from "../types";
 
 interface Props {

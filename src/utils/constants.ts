@@ -1,19 +1,23 @@
-import type { PatternColor, Preferences } from "../types";
+// Shared constants live in @patternbank/core; this module re-exports them so
+// web code keeps importing from "./constants". Web-only constants live below.
+export {
+  CORE_PATTERNS,
+  DATA_RESET_KEY,
+  DEFAULT_PREFERENCES,
+  DIFFICULTIES,
+  EXTRA_PATTERNS,
+  getVisiblePatterns,
+  PREFERENCES_KEY,
+  PROBLEM_TOMBSTONES_KEY,
+  REVIEW_EVENTS_KEY,
+  REVIEW_EVENTS_PRUNED_BEFORE_KEY,
+  REVIEW_LOG_KEY,
+  STORAGE_KEY,
+} from "@patternbank/core";
 
-export const CORE_PATTERNS = [
-  "Two Pointers", "Hash Table", "Sliding Window",
-  "Binary Search", "Sorting", "Linked List",
-  "Stack", "Queue", "Tree",
-  "BFS", "DFS", "Heap",
-  "Greedy", "Backtracking", "Graph",
-  "Union Find", "Trie", "DP",
-] as const;
+import type { PatternColor } from "../types";
 
-export const EXTRA_PATTERNS = [
-  "Intervals", "Mono Stack", "Prefix Sum",
-  "Bit", "System Design", "OOD",
-] as const;
-
+// Web renders pattern chips with CSS variables (mobile uses hex values).
 export const PATTERN_COLORS: Record<string, PatternColor> = {
   "Two Pointers":       { text: "var(--color-pattern-two-pointers-text)", bg: "var(--color-pattern-two-pointers-bg)" },
   "Hash Table":         { text: "var(--color-pattern-hash-table-text)", bg: "var(--color-pattern-hash-table-bg)" },
@@ -39,26 +43,4 @@ export const PATTERN_COLORS: Record<string, PatternColor> = {
   "Bit":                { text: "var(--color-pattern-bit-text)", bg: "var(--color-pattern-bit-bg)" },
   "System Design":      { text: "var(--color-pattern-system-design-text)", bg: "var(--color-pattern-system-design-bg)" },
   "OOD":                { text: "var(--color-pattern-ood-text)", bg: "var(--color-pattern-ood-bg)" },
-};
-
-export function getVisiblePatterns(enabledExtras: string[]): string[] {
-  return [
-    ...CORE_PATTERNS,
-    ...EXTRA_PATTERNS.filter((p) => enabledExtras.includes(p)),
-  ];
-}
-
-export const DIFFICULTIES = ["Easy", "Medium", "Hard"] as const;
-
-export const STORAGE_KEY = "patternbank-problems";
-export const REVIEW_LOG_KEY = "patternbank-review-log";
-export const REVIEW_EVENTS_KEY = "patternbank-review-events";
-export const PREFERENCES_KEY = "patternbank-preferences";
-export const PROBLEM_TOMBSTONES_KEY = "patternbank-problem-tombstones";
-export const DATA_RESET_KEY = "patternbank-data-reset";
-
-export const DEFAULT_PREFERENCES: Preferences = {
-  dailyReviewGoal: 5,
-  hidePatternsDuringReview: false,
-  enabledExtraPatterns: [],
 };
