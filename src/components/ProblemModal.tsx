@@ -45,6 +45,20 @@ const EMPTY_FORM: ProblemFormState = {
   excludeFromReview: false,
 };
 
+function formFromProblem(problem: Problem | null): ProblemFormState {
+  if (!problem) return EMPTY_FORM;
+  return {
+    title: problem.title || "",
+    leetcodeNumber: problem.leetcodeNumber || "",
+    url: problem.url || "",
+    difficulty: problem.difficulty || "Medium",
+    patterns: problem.patterns || [],
+    confidence: problem.confidence || 3,
+    notes: problem.notes || "",
+    excludeFromReview: problem.excludeFromReview || false,
+  };
+}
+
 export default function ProblemModal({ isOpen, onClose, onSave, initialData, existingProblemNumbers = new Set(), enabledExtraPatterns }: Props) {
   useEffect(() => {
     if (!isOpen) return;
@@ -55,35 +69,22 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
 
   const isEdit = !!initialData;
   const [mode, setMode] = useState(() => initialData?.leetcodeNumber ? "leetcode" : initialData ? "custom" : "leetcode");
-  const [form, setForm] = useState<ProblemFormState>(() => initialData ? {
-    title: initialData.title || "",
-    leetcodeNumber: initialData.leetcodeNumber || "",
-    url: initialData.url || "",
-    difficulty: initialData.difficulty || "Medium",
-    patterns: initialData.patterns || [],
-    confidence: initialData.confidence || 3,
-    notes: initialData.notes || "",
-    excludeFromReview: initialData.excludeFromReview || false,
-  } : EMPTY_FORM);
+  const [form, setForm] = useState<ProblemFormState>(() => formFromProblem(initialData));
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [attempted, setAttempted] = useState(false);
 
-  const [prevInitialId, setPrevInitialId] = useState<string | null>(initialData?.id ?? null);
-  if ((initialData?.id ?? null) !== prevInitialId) {
-    setPrevInitialId(initialData?.id ?? null);
-    setForm(initialData ? {
-      title: initialData.title || "",
-      leetcodeNumber: initialData.leetcodeNumber || "",
-      url: initialData.url || "",
-      difficulty: initialData.difficulty || "Medium",
-      patterns: initialData.patterns || [],
-      confidence: initialData.confidence || 3,
-      notes: initialData.notes || "",
-      excludeFromReview: initialData.excludeFromReview || false,
-    } : EMPTY_FORM);
-    setMode(initialData?.leetcodeNumber ? "leetcode" : initialData ? "custom" : "leetcode");
-    setErrors({});
-    setAttempted(false);
+  // F-22: the modal stays mounted while closed (and may keep the same
+  // initialData.id), so re-init the form on every closed→open transition —
+  // render-time setState, same idiom React docs recommend for derived resets.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setForm(formFromProblem(initialData));
+      setMode(initialData?.leetcodeNumber ? "leetcode" : initialData ? "custom" : "leetcode");
+      setErrors({});
+      setAttempted(false);
+    }
   }
 
   const validate = useCallback(() => {
