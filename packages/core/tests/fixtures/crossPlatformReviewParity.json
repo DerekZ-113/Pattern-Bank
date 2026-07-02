@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "today": "2026-05-15",
+  "intervalCases": [
+    { "confidence": 1, "days": 1 },
+    { "confidence": 2, "days": 2 },
+    { "confidence": 3, "days": 5 },
+    { "confidence": 4, "days": 10 },
+    { "confidence": 5, "days": 30 }
+  ],
+  "fiveStarGraduationCases": [
+    { "previousConfidence": 4, "previousFiveStarStreak": 0, "newConfidence": 5, "expectedNextFiveStarStreak": 1, "expectedIntervalDays": 30 },
+    { "previousConfidence": 5, "previousFiveStarStreak": 1, "newConfidence": 5, "expectedNextFiveStarStreak": 2, "expectedIntervalDays": 60 },
+    { "previousConfidence": 5, "previousFiveStarStreak": 2, "newConfidence": 5, "expectedNextFiveStarStreak": 3, "expectedIntervalDays": 120 },
+    { "previousConfidence": 5, "previousFiveStarStreak": 4, "newConfidence": 5, "expectedNextFiveStarStreak": 5, "expectedIntervalDays": 365 }
+  ],
+  "todayDueState": {
+    "dailyGoal": 3,
+    "problems": [
+      { "id": "weak-overdue", "confidence": 1, "nextReviewDate": "2026-05-10" },
+      { "id": "weak-today", "confidence": 1, "nextReviewDate": "2026-05-15" },
+      { "id": "medium-older", "confidence": 2, "nextReviewDate": "2026-05-01" },
+      { "id": "strong-old", "confidence": 5, "nextReviewDate": "2026-04-01" },
+      { "id": "excluded-weak", "confidence": 1, "nextReviewDate": "2026-05-01", "excludeFromReview": true },
+      { "id": "future-weak", "confidence": 1, "nextReviewDate": "2026-05-20" }
+    ],
+    "expected": {
+      "totalDueCount": 4,
+      "reviewedToday": 0,
+      "effectiveGoal": 3,
+      "remainingSlots": 3,
+      "todaysReviewIds": ["weak-overdue", "weak-today", "medium-older"]
+    }
+  },
+  "doneToday": {
+    "problems": [
+      { "id": "review-today", "title": "Binary Search", "leetcodeNumber": 704 },
+      { "id": "review-yesterday", "title": "Three Sum", "leetcodeNumber": 15 }
+    ],
+    "reviewEvents": [
+      { "problemId": "review-today", "date": "2026-05-15", "confidence": 4, "timestamp": "2026-05-15T20:00:00.000Z" },
+      { "problemId": "review-yesterday", "date": "2026-05-14", "confidence": 2, "timestamp": "2026-05-14T20:00:00.000Z" }
+    ],
+    "expected": {
+      "pbReviewProblemIds": ["review-today"]
+    }
+  },
+  "leetcodeCompletionIdentity": {
+    "problems": [
+      { "id": "slug-problem", "title": "Two Sum", "leetcodeNumber": 1, "nextReviewDate": "2026-05-15" },
+      { "id": "number-problem", "title": "Three Sum", "leetcodeNumber": 15, "nextReviewDate": "2026-05-15" },
+      { "id": "problem-id-only", "title": "Custom Graph Drill", "leetcodeNumber": null, "nextReviewDate": "2026-05-15" },
+      { "id": "submission-id-only", "title": "Submission Only Drill", "leetcodeNumber": null, "nextReviewDate": "2026-05-15" },
+      { "id": "actionable-problem", "title": "Valid Parentheses", "leetcodeNumber": 20, "nextReviewDate": "2026-05-15" }
+    ],
+    "todayCompletions": [
+      { "key": "slug:two-sum", "date": "2026-05-15", "submissionDbId": "old-slug-row", "leetcodeSubmissionId": "old-lc-slug", "titleSlug": "two-sum", "leetcodeNumber": 1, "problemId": "slug-problem", "action": "rated", "completedAt": "2026-05-15T18:00:00.000Z" },
+      { "key": "number:15", "date": "2026-05-15", "submissionDbId": "old-number-row", "leetcodeSubmissionId": "old-lc-number", "titleSlug": null, "leetcodeNumber": 15, "problemId": "number-problem", "action": "rated", "completedAt": "2026-05-15T18:01:00.000Z" },
+      { "key": "problem:problem-id-only", "date": "2026-05-15", "submissionDbId": "old-problem-row", "leetcodeSubmissionId": null, "titleSlug": null, "leetcodeNumber": null, "problemId": "problem-id-only", "action": "rated", "completedAt": "2026-05-15T18:02:00.000Z" },
+      { "key": "leetcode-submission:lc-submission-stable", "date": "2026-05-15", "submissionDbId": "old-submission-row", "leetcodeSubmissionId": "lc-submission-stable", "titleSlug": null, "leetcodeNumber": null, "problemId": "submission-id-only", "action": "rated", "completedAt": "2026-05-15T18:03:00.000Z" }
+    ],
+    "submissions": [
+      { "id": "fresh-slug-row", "leetcodeSubmissionId": "fresh-lc-slug", "titleSlug": "two-sum", "title": "Two Sum", "leetcodeNumber": null, "problemId": "slug-problem", "status": "linked_existing", "submittedAt": "2026-05-15T19:00:00.000Z" },
+      { "id": "fresh-number-row", "leetcodeSubmissionId": "fresh-lc-number", "titleSlug": "three-sum-renamed", "title": "Three Sum", "leetcodeNumber": 15, "problemId": "number-problem", "status": "linked_existing", "submittedAt": "2026-05-15T19:01:00.000Z" },
+      { "id": "fresh-problem-row", "leetcodeSubmissionId": "fresh-lc-problem", "titleSlug": "graph-drill-renamed", "title": "Custom Graph Drill", "leetcodeNumber": null, "problemId": "problem-id-only", "status": "linked_existing", "submittedAt": "2026-05-15T19:02:00.000Z" },
+      { "id": "fresh-submission-row", "leetcodeSubmissionId": "lc-submission-stable", "titleSlug": "submission-only-renamed", "title": "Submission Only Drill", "leetcodeNumber": null, "problemId": null, "status": "detected", "submittedAt": "2026-05-15T19:03:00.000Z" },
+      { "id": "actionable-row", "leetcodeSubmissionId": "fresh-lc-action", "titleSlug": "valid-parentheses", "title": "Valid Parentheses", "leetcodeNumber": 20, "problemId": "actionable-problem", "status": "linked_existing", "submittedAt": "2026-05-15T19:04:00.000Z" }
+    ],
+    "expected": {
+      "completedSubmissionIds": ["fresh-slug-row", "fresh-number-row", "fresh-problem-row", "fresh-submission-row"],
+      "fromLeetCodeSubmissionIds": ["actionable-row"],
+      "ratedDoneTodaySubmissionIds": ["fresh-slug-row", "fresh-number-row", "fresh-problem-row", "fresh-submission-row"]
+    }
+  }
+}
