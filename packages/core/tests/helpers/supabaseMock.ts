@@ -2,11 +2,12 @@
  * Shared Supabase client mock for unit tests.
  * Creates a chainable mock that mimics the Supabase query builder pattern.
  *
- * Usage:
- *   vi.mock("../../src/utils/supabaseClient", () => ({
- *     supabase: createSupabaseMock({ data: [...], error: null }),
- *   }));
+ * Usage (core factories take an injected client — no module mocking needed):
+ *   const mock = createSupabaseMock({ data: [...], error: null });
+ *   const cloud = createCloudData({ supabase: asClient(mock) });
  */
+
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 interface MockResult {
   data?: unknown;
@@ -70,4 +71,9 @@ export function createSupabaseMock(result: MockResult = { data: null, error: nul
  */
 export function createNullSupabaseMock(): null {
   return null;
+}
+
+/** Casts the chainable mock (or null) to the client type the core factories accept. */
+export function asClient(mock: SupabaseMock | null): SupabaseClient | null {
+  return mock as unknown as SupabaseClient | null;
 }

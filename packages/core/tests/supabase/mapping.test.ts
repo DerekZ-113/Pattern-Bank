@@ -1,6 +1,8 @@
-import { describe, it, expect } from "vitest";
-import type { Problem } from "../src/types";
-import { toSnakeCase, toCamelCase } from "../src/utils/supabaseData";
+import { describe, it, expect, vi } from "vitest";
+import { toSnakeCase, toCamelCase } from "../../src/supabase/mapping";
+import type { Confidence, Problem } from "../../src/types";
+
+const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
   return {
@@ -21,8 +23,7 @@ function makeProblem(overrides: Partial<Problem> = {}): Problem {
   };
 }
 
-// SnakeCaseProblem is not exported, so we construct it inline for toCamelCase tests
-function makeSnakeCaseRow(overrides: Record<string, unknown> = {}) {
+function makeSnakeCaseRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: "test-1",
     title: "Two Sum",
@@ -38,14 +39,12 @@ function makeSnakeCaseRow(overrides: Record<string, unknown> = {}) {
     next_review_date: "2025-01-02",
     updated_at: "2025-01-01T00:00:00.000Z",
     ...overrides,
-  } as any;
+  };
 }
 
 describe("toSnakeCase", () => {
   it("maps all camelCase Problem fields to snake_case", () => {
-    const problem = makeProblem({
-      lastReviewed: "2025-01-01",
-    });
+    const problem = makeProblem({ lastReviewed: "2025-01-01" });
     const result = toSnakeCase(problem);
 
     expect(result.id).toBe(problem.id);
@@ -62,6 +61,11 @@ describe("toSnakeCase", () => {
     expect(result.updated_at).toBe(problem.updatedAt);
     expect(result.exclude_from_review).toBe(problem.excludeFromReview);
     expect(result.five_star_streak).toBe(0);
+  });
+
+  it("does not include user_id in output", () => {
+    const result = toSnakeCase(makeProblem());
+    expect("user_id" in result).toBe(false);
   });
 
   it("writes explicit fiveStarStreak when present", () => {
@@ -94,6 +98,14 @@ describe("toSnakeCase", () => {
     expect(result.url).toBeNull();
   });
 
+  // F-13: `?? null` semantics — only null/undefined coerce to null, falsy
+  // values like 0 or "" pass through (mobile's old `|| null` dropped them).
+  it("preserves falsy-but-present leetcodeNumber 0 and empty url (F-13)", () => {
+    const result = toSnakeCase(makeProblem({ leetcodeNumber: 0, url: "" }));
+    expect(result.leetcode_number).toBe(0);
+    expect(result.url).toBe("");
+  });
+
   it("handles null lastReviewed → null", () => {
     const result = toSnakeCase(makeProblem({ lastReviewed: null }));
     expect(result.last_reviewed).toBeNull();
@@ -109,15 +121,17 @@ describe("toSnakeCase", () => {
     const result = toSnakeCase(makeProblem({ updatedAt: "" }));
     const after = Date.now();
 
-    // updatedAt falsy ("") triggers new Date().toISOString()
     expect(result.updated_at).toBeTruthy();
     const ts = new Date(result.updated_at).getTime();
     expect(ts).toBeGreaterThanOrEqual(before);
     expect(ts).toBeLessThanOrEqual(after);
   });
 
-  it("handles excludeFromReview defaulting to false", () => {
-    const result = toSnakeCase(makeProblem({ excludeFromReview: false }));
+  it("excludeFromReview defaults to false when undefined", () => {
+    const problem = makeProblem();
+    // @ts-expect-error — testing undefined fallback
+    delete problem.excludeFromReview;
+    const result = toSnakeCase(problem);
     expect(result.exclude_from_review).toBe(false);
   });
 
@@ -179,36 +193,88 @@ describe("toCamelCase", () => {
   });
 
   it("casts confidence number to Confidence type", () => {
-    for (const confidence of [1, 2, 3, 4, 5] as const) {
+    for (const confidence of [1, 2, 3, 4, 5] as Confidence[]) {
       const result = toCamelCase(makeSnakeCaseRow({ confidence }));
       expect(result.confidence).toBe(confidence);
     }
   });
 
   it("handles null/missing patterns → empty array", () => {
-    const result = toCamelCase(makeSnakeCaseRow({ patterns: null }));
-    expect(result.patterns).toEqual([]);
+    expect(toCamelCase(makeSnakeCaseRow({ patterns: null })).patterns).toEqual([]);
+    const row = makeSnakeCaseRow();
+    delete row.patterns;
+    expect(toCamelCase(row).patterns).toEqual([]);
   });
 
   it("handles null/missing notes → empty string", () => {
-    const result = toCamelCase(makeSnakeCaseRow({ notes: null }));
-    expect(result.notes).toBe("");
+    expect(toCamelCase(makeSnakeCaseRow({ notes: null })).notes).toBe("");
+    const row = makeSnakeCaseRow();
+    delete row.notes;
+    expect(toCamelCase(row).notes).toBe("");
   });
 
-  it("handles null/missing updated_at → generates ISO timestamp", () => {
-    const before = Date.now();
-    const result = toCamelCase(makeSnakeCaseRow({ updated_at: null }));
-    const after = Date.now();
-
-    expect(result.updatedAt).toBeTruthy();
-    const ts = new Date(result.updatedAt).getTime();
-    expect(ts).toBeGreaterThanOrEqual(before);
-    expect(ts).toBeLessThanOrEqual(after);
+  it("handles null optional fields", () => {
+    const result = toCamelCase(
+      makeSnakeCaseRow({ leetcode_number: null, url: null, last_reviewed: null }),
+    );
+    expect(result.leetcodeNumber).toBeNull();
+    expect(result.url).toBeNull();
+    expect(result.lastReviewed).toBeNull();
   });
 
   it("handles null/missing exclude_from_review → false", () => {
-    const result = toCamelCase(makeSnakeCaseRow({ exclude_from_review: null }));
-    expect(result.excludeFromReview).toBe(false);
+    expect(toCamelCase(makeSnakeCaseRow({ exclude_from_review: null })).excludeFromReview).toBe(false);
+    const row = makeSnakeCaseRow();
+    delete row.exclude_from_review;
+    expect(toCamelCase(row).excludeFromReview).toBe(false);
+  });
+
+  // ============================================================
+  // F-14: updated_at is validated on read — a corrupt row falls back to the
+  // EPOCH (so it loses last-write-wins merges) and reports via the warn hook.
+  // Never a silent now(), which would make the corrupt row win.
+  // ============================================================
+
+  it("falls back to the epoch and warns when updated_at is missing (F-14)", () => {
+    const warn = vi.fn();
+    const row = makeSnakeCaseRow();
+    delete row.updated_at;
+
+    const result = toCamelCase(row, { warn });
+
+    expect(result.updatedAt).toBe(EPOCH_ISO);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][1]).toMatchObject({ id: "test-1" });
+  });
+
+  it("falls back to the epoch and warns when updated_at is null (F-14)", () => {
+    const warn = vi.fn();
+    const result = toCamelCase(makeSnakeCaseRow({ updated_at: null }), { warn });
+
+    expect(result.updatedAt).toBe(EPOCH_ISO);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the epoch and warns when updated_at is unparseable (F-14)", () => {
+    const warn = vi.fn();
+    const result = toCamelCase(makeSnakeCaseRow({ updated_at: "not-a-date" }), { warn });
+
+    expect(result.updatedAt).toBe(EPOCH_ISO);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][1]).toMatchObject({ updated_at: "not-a-date" });
+  });
+
+  it("passes a valid updated_at through untouched and stays silent", () => {
+    const warn = vi.fn();
+    const result = toCamelCase(makeSnakeCaseRow({ updated_at: "2025-06-01T12:00:00.000Z" }), { warn });
+
+    expect(result.updatedAt).toBe("2025-06-01T12:00:00.000Z");
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("does not crash on a corrupt updated_at when no hooks are provided", () => {
+    const result = toCamelCase(makeSnakeCaseRow({ updated_at: null }));
+    expect(result.updatedAt).toBe(EPOCH_ISO);
   });
 });
 
@@ -227,7 +293,7 @@ describe("round-trip fidelity", () => {
       updatedAt: "2025-06-01T12:00:00.000Z",
     });
 
-    const roundTripped = toCamelCase(toSnakeCase(original));
+    const roundTripped = toCamelCase(toSnakeCase(original) as unknown as Record<string, unknown>);
 
     expect(roundTripped).toEqual(original);
   });
@@ -242,7 +308,7 @@ describe("round-trip fidelity", () => {
       updatedAt: "2025-01-01T00:00:00.000Z",
     });
 
-    const roundTripped = toCamelCase(toSnakeCase(original));
+    const roundTripped = toCamelCase(toSnakeCase(original) as unknown as Record<string, unknown>);
 
     expect(roundTripped.leetcodeNumber).toBeNull();
     expect(roundTripped.url).toBeNull();
@@ -265,7 +331,7 @@ describe("round-trip fidelity", () => {
       updatedAt: "2025-12-31T23:59:59.000Z",
     });
 
-    const roundTripped = toCamelCase(toSnakeCase(original));
+    const roundTripped = toCamelCase(toSnakeCase(original) as unknown as Record<string, unknown>);
 
     expect(roundTripped).toEqual(original);
   });

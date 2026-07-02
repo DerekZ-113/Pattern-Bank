@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { rateLeetCodeReviewLocallyFirst } from "../src/utils/leetcodeReviewActions";
+import { rateLeetCodeReviewLocallyFirst } from "../../src/leetcode/reviewActions";
 
 describe("rateLeetCodeReviewLocallyFirst", () => {
   it("reviews locally before marking the LeetCode submission rated", async () => {

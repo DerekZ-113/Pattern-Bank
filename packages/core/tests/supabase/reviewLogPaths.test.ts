@@ -1,20 +1,17 @@
-import { createSupabaseMock, type SupabaseMock } from "../../../../tests/helpers/supabaseMock";
-import type { ReviewEvent } from "../../../../src/types";
+import { asClient, createSupabaseMock, type SupabaseMock } from "../helpers/supabaseMock";
+import { createCloudData, type CloudData } from "../../src/supabase/data";
+import type { ReviewEvent } from "../../src/types";
 
 // ============================================================
 // Module-level mock variable — controlled per-test (same pattern
-// as tests/supabaseData.test.ts)
+// as packages/core/tests/supabase/data.test.ts)
 // ============================================================
 
 let mockSupabase: SupabaseMock | null = null;
 
-vi.mock("../../../../src/utils/supabaseClient", () => ({
-  get supabase() {
-    return mockSupabase;
-  },
-}));
-
-import { logReview, batchInsertReviewLogs } from "../../../../src/utils/supabaseData";
+function cloud(): CloudData {
+  return createCloudData({ supabase: asClient(mockSupabase) });
+}
 
 const USER_ID = "user-abc";
 
@@ -49,7 +46,7 @@ describe("logReview review_date derivation (local-date contract)", () => {
   it("writes review_date as the LOCAL calendar date for a timestamp just after local midnight", async () => {
     mockSupabase = createSupabaseMock({ data: null, error: null });
 
-    const result = await logReview(USER_ID, "prob-1", 2, 3, ["Hash Table"], localMorningIso);
+    const result = await cloud().logReview(USER_ID, "prob-1", 2, 3, ["Hash Table"], localMorningIso);
 
     expect(result.error).toBeNull();
     const row = capturedWriteRow(mockSupabase);
@@ -60,7 +57,7 @@ describe("logReview review_date derivation (local-date contract)", () => {
   it("writes review_date as the LOCAL calendar date for a timestamp just before local midnight", async () => {
     mockSupabase = createSupabaseMock({ data: null, error: null });
 
-    const result = await logReview(USER_ID, "prob-1", 2, 4, ["Graph"], localNightIso);
+    const result = await cloud().logReview(USER_ID, "prob-1", 2, 4, ["Graph"], localNightIso);
 
     expect(result.error).toBeNull();
     const row = capturedWriteRow(mockSupabase);
@@ -83,7 +80,7 @@ describe("logReview review_date derivation (local-date contract)", () => {
 
     for (const iso of [localMorningIso, localNightIso]) {
       mockSupabase = createSupabaseMock({ data: null, error: null });
-      await logReview(USER_ID, "prob-1", 2, 3, [], iso);
+      await cloud().logReview(USER_ID, "prob-1", 2, 3, [], iso);
       const row = capturedWriteRow(mockSupabase);
       // Local calendar date wins even when the UTC slice says otherwise
       expect(row.review_date).toBe("2026-05-15");
@@ -96,7 +93,7 @@ describe("logReview review_date derivation (local-date contract)", () => {
     vi.setSystemTime(new Date(2026, 4, 15, 23, 30, 0));
     mockSupabase = createSupabaseMock({ data: null, error: null });
 
-    const result = await logReview(USER_ID, "prob-1", 1, 2, []);
+    const result = await cloud().logReview(USER_ID, "prob-1", 1, 2, []);
 
     expect(result.error).toBeNull();
     const row = capturedWriteRow(mockSupabase);
@@ -105,31 +102,29 @@ describe("logReview review_date derivation (local-date contract)", () => {
 });
 
 // ============================================================
-// logReview — dedupe_key (canonical mobile contract)
+// logReview — dedupe_key (canonical mobile contract, F-8 —
+// landed in Phase 4 via core's createCloudData)
 // ============================================================
 
 describe("logReview dedupe_key", () => {
-  // Canonical contract (mobile src/utils/supabaseData.ts):
+  // Canonical contract:
   //   reviewDedupeKey = `review:${userId}:${problemId}:${timestamp}`
   //   written via .upsert(row, { onConflict: "dedupe_key" })
-  // Web's logReview today does a plain insert with NO dedupe_key at all.
 
-  // FIXED-BY: Phase 4 (F-8 dedupe-key upserts) — web logReview does a plain insert without dedupe_key, so retried syncs duplicate review rows
-  it.fails("writes a dedupe_key matching mobile's review:<userId>:<problemId>:<timestamp> format", async () => {
+  it("writes a dedupe_key matching mobile's review:<userId>:<problemId>:<timestamp> format", async () => {
     mockSupabase = createSupabaseMock({ data: null, error: null });
     const timestamp = "2026-03-10T12:00:00.000Z";
 
-    await logReview(USER_ID, "prob-1", 2, 3, ["Two Pointers"], timestamp);
+    await cloud().logReview(USER_ID, "prob-1", 2, 3, ["Two Pointers"], timestamp);
 
     const row = capturedWriteRow(mockSupabase);
     expect(row.dedupe_key).toBe(`review:${USER_ID}:prob-1:${timestamp}`);
   });
 
-  // FIXED-BY: Phase 4 (F-8 dedupe-key upserts) — web logReview inserts instead of upserting on dedupe_key, so replays are not idempotent
-  it.fails("upserts on dedupe_key conflict instead of plain-inserting", async () => {
+  it("upserts on dedupe_key conflict instead of plain-inserting", async () => {
     mockSupabase = createSupabaseMock({ data: null, error: null });
 
-    await logReview(USER_ID, "prob-1", 2, 3, [], "2026-03-10T12:00:00.000Z");
+    await cloud().logReview(USER_ID, "prob-1", 2, 3, [], "2026-03-10T12:00:00.000Z");
 
     expect(mockSupabase.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ user_id: USER_ID, problem_id: "prob-1" }),
@@ -171,9 +166,27 @@ describe("batchInsertReviewLogs partial-chunk failure", () => {
 
   it("returns { error: null } when events is empty without touching the client", async () => {
     mockSupabase = createSupabaseMock({});
-    const result = await batchInsertReviewLogs(USER_ID, []);
+    const result = await cloud().batchInsertReviewLogs(USER_ID, []);
     expect(result).toEqual({ error: null });
     expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("writes every batched row with the deterministic review dedupe key (F-8)", async () => {
+    mockSupabase = createSupabaseMock({});
+    const chunks = queueChunkResults(mockSupabase, [{ error: null }]);
+
+    const result = await cloud().batchInsertReviewLogs(USER_ID, [makeEvent(0), makeEvent(1)]);
+
+    expect(result.error).toBeNull();
+    expect(chunks[0][0]).toMatchObject({
+      problem_id: "prob-0",
+      dedupe_key: `review:${USER_ID}:prob-0:2026-03-10T12:00:00.000Z`,
+    });
+    expect(chunks[0][1]).toMatchObject({
+      problem_id: "prob-1",
+      dedupe_key: `review:${USER_ID}:prob-1:2026-03-10T12:00:01.000Z`,
+    });
+    expect(mockSupabase.upsert).toHaveBeenCalledWith(expect.anything(), { onConflict: "dedupe_key" });
   });
 
   it("surfaces the error when the second chunk fails — no silent full-success claim", async () => {
@@ -183,7 +196,7 @@ describe("batchInsertReviewLogs partial-chunk failure", () => {
 
     // 501 events → two chunks of 500 + 1
     const events = Array.from({ length: 501 }, (_, i) => makeEvent(i));
-    const result = await batchInsertReviewLogs(USER_ID, events);
+    const result = await cloud().batchInsertReviewLogs(USER_ID, events);
 
     // The failure MUST be surfaced to the caller (fail-closed), not swallowed
     expect(result.error).toBe(chunkError);
@@ -204,7 +217,7 @@ describe("batchInsertReviewLogs partial-chunk failure", () => {
     const chunks = queueChunkResults(mockSupabase, [{ error: chunkError }]);
 
     const events = Array.from({ length: 501 }, (_, i) => makeEvent(i));
-    const result = await batchInsertReviewLogs(USER_ID, events);
+    const result = await cloud().batchInsertReviewLogs(USER_ID, events);
 
     expect(result.error).toBe(chunkError);
     // Second chunk is never attempted once the first has failed
@@ -217,7 +230,7 @@ describe("batchInsertReviewLogs partial-chunk failure", () => {
     const chunks = queueChunkResults(mockSupabase, [{ error: null }, { error: null }]);
 
     const events = Array.from({ length: 501 }, (_, i) => makeEvent(i));
-    const result = await batchInsertReviewLogs(USER_ID, events);
+    const result = await cloud().batchInsertReviewLogs(USER_ID, events);
 
     expect(result.error).toBeNull();
     expect(chunks).toHaveLength(2);

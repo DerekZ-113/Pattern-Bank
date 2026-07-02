@@ -1,8 +1,8 @@
 import type { Confidence } from "../types";
-import type { LeetCodeActivityResult } from "./leetcodeActivityData";
-import type { LeetCodeCompletionIdentity } from "@patternbank/core";
+import type { LeetCodeActivityResult } from "./activityData";
+import type { LeetCodeCompletionIdentity } from "./todayCompletions";
 
-interface RateLeetCodeReviewLocallyFirstParams {
+export interface RateLeetCodeReviewLocallyFirstParams {
   submissionDbId: string;
   problemId: string;
   confidence: Confidence;

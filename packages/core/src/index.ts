@@ -19,8 +19,12 @@ export * from "./syncTimeout";
 export * from "./todayView";
 export * from "./storage/adapter";
 export * from "./storage/logic";
+export * from "./supabase/mapping";
+export * from "./supabase/data";
+export * from "./leetcode/activityData";
 export * from "./leetcode/importTransforms";
 export * from "./leetcode/problemLists";
+export * from "./leetcode/reviewActions";
 export * from "./leetcode/todayCompletions";
 export * from "./leetcode/todayResolver";
 export {

@@ -26,6 +26,24 @@ Source of truth for module verdicts: `docs/reviews/2026-07-01-cross-repo-review/
 | **F-15/16/4** | Mobile canonical: `Math.max(0, dailyGoal)` clamp; keep non-today completion records in merge; mobile `mergeImportedProblems` (canonical-id remap, NaN-guarded `timestampMs`) + single `deduplicateProblems`. |
 | Out of scope | Web-only UI bugs F-20/21/22 (standalone PR later); mutation queue + notifications stay mobile-side (map #19); Edge Function/DB already fixed in Step 0. |
 
+## Status ledger (Phases 0–3 complete)
+
+| Phase | Commit | Outcome |
+|---|---|---|
+| 0 scaffold | `92d46ce` | packages/core workspace; tsup dual ESM+CJS; web consumes core AS SOURCE (tsconfig paths + Vite alias, `import.meta.dirname`); CI `build:core` gate; Vercel untouched |
+| 1 tests | `966eedb` | Parity fixture byte-identical + date-shift layer; 10 `it.fails` FIXED-BY markers; pins: web already fail-closes batch inserts, already orders reset deletes before re-upserts, `replaceReviewLog` already shares mobile's dedupe format |
+| 2 leaf utils | `3f68d4e` | types/constants/dateHelpers/spacedRepetition/progress*/leetcode{problems,importTransforms,problemLists} in core; permanent shims `src/types.ts` + `src/utils/constants.ts`; SyncStatus superset; `CorePreferences.updatedAt?` + prune-watermark key |
+| 3 domain | `d55f2e5` | problemTransforms (F-4 ✓), projectionEngine (F-15 ✓), todayView, todayResolver (timestamp), todayCompletions (F-16 ✓, pure parse/serialize + async adapter load/save); syncTimeout, StorageAdapter+CoreHooks, pure `pruneOldEvents` |
+| Mobile prep | `fceb7f1` (mobile repo, `fix/test-fixture-rot`) | 3 rotting suites → relative dates; mobile baseline 466 pass / 0 fail (57/57 in Derek's checkout) |
+
+## Overnight run order + limit-recovery protocol (Phases 4–7)
+
+Run order (unattended): seed `OVERNIGHT-REPORT.md` ledger first → Phase 4 (web) → gate → commit → automated live smoke → Phase 5 (web, incl. two-device simulation suite) → gate → commit → Phase 6 validation + pack only (NO publish) → Phase 7 mobile adoption in an isolated worktree consuming the packed tarball (per-sub-step commits; NO EAS release, NO merges, NO push).
+
+Hard rails: never `git push` (either repo); never publish to npm; never touch mobile's `V2.0-release-check` branch or Derek's mobile working copy; no Supabase admin-write MCP tools; one checkpoint = one commit.
+
+Limit-hit recovery: `OVERNIGHT-REPORT.md` is a live checkbox ledger (step → commit SHA → suite result). Every checkpoint ends committed-green or reverted-to-last-green; a mid-step cutoff loses at most one step (`git status`; if dirty, discard and redo that step). No auto-resume — the report ends with a paste-to-resume prompt Derek uses in the morning. Web phases run first because they gate the morning publish; Phase 7 runs last so a cutoff costs only mobile-adoption progress.
+
 ## Phase 0 — Workspace scaffolding (no logic moves; web byte-identical at runtime)
 
 - **Root `package.json`:** add `"workspaces": ["packages/*"]`, `"engines": {"node": ">=22"}` (matches CI), scripts `build:core` / `typecheck:core` (`npm run <x> -w @patternbank/core`). Run `npm install` once to regenerate the lockfile with workspace metadata.
@@ -78,19 +96,23 @@ Web: delete the five utils; add `src/adapters/webStorage.ts` (localStorage behin
 
 ## Phase 4 — Supabase mapping + data layer (map #15, #20) — first shared-backend behavior change
 
-Create in core: `supabase/mapping.ts` (`toSnakeCase`/`toCamelCase` + row types; F-13 `?? null`; F-14 validated `updated_at`; mobile's `CloudPreferences` cloud-subset split + `updatedAt`), `supabase/data.ts` (CRUD as factory `createCloudData({supabase, hooks, timeoutMs})` — all calls timeout-wrapped (F-9), review-log writes dedupe-key upserts (F-8)), `leetcode/activityData.ts` (**mobile**, timeout-wrapped).
+Create in core: `supabase/mapping.ts` (`toSnakeCase`/`toCamelCase` + row types; F-13 `?? null` for leetcodeNumber/url/notes; F-14 `updated_at` typed `string`, validated on read → epoch fallback + `warn` hook; mobile's `CloudPreferences` cloud-subset split + `updatedAt`), `supabase/data.ts` (factory `createCloudData({supabase, hooks, timeoutMs})` — every call wrapped in the cloud-operation timeout (F-9), review-log writes upsert `onConflict: 'dedupe_key'` (F-8)), `leetcode/activityData.ts` (**mobile** canonical, timeout-wrapped, factory `createLeetCodeActivityData`), and `leetcode/reviewActions.ts` (deferred from Phase 2 — its type imports resolve once activityData lands).
 
-Web: delete mapping/CRUD from `src/utils/supabaseData.ts` + `leetcodeActivityData.ts`; keep `supabaseClient.ts`; construct the factory once in new `src/utils/cloudData.ts`; rewire `usePreferences`/`useProblems`/`useLeetCodeActivity`. Tests moved: supabaseData, supabaseFieldMapping (F-13/14 flip), leetcodeActivityData — against injected mock client. New: dedupe-key format contract test (byte-identical across platforms), timezone-boundary `review_date`, batch partial-failure surfaces error.
+**Phase 7 constraint:** `createCloudData` accepts `supabase: SupabaseClient | null` and, when null, every returned function no-ops with the exact per-function guard shape both platforms use today (`{ data: null, error: null }` style) — mobile injects a nullable client. All new symbols (`createCloudData`, `toSnakeCase`, `toCamelCase`, row types, `CloudPreferences`, activityData + reviewActions exports) export from the barrel — Phase 7's canary imports them from `@patternbank/core`.
 
-**Gate:** full green + **manual cloud smoke against live Supabase from the preview deploy before merging** (log a review → row has `dedupe_key`; confirm mobile build replaces rather than duplicates it).
+Refinements from execution (don't re-fix): `review_date` derivation already identical on both platforms (pinned contract test); `batchInsertReviewLogs` already surfaces chunk errors (pinned); only `logReview` + batch rows need dedupe keys — contract `review:${userId}:${problemId}:${timestamp}`; `replaceReviewLog` already uses `leetcode-rating:${userId}:${problemId}:${reviewDate}`.
 
-## Phase 5 — sync merge core + fullSync orchestration (map #17–18; F-3/5/6/7 land) — highest risk
+Web: `src/utils/supabaseData.ts` + `leetcodeActivityData.ts` shrink to re-export shims (they stay as vi.mock targets); `leetcodeReviewActions.ts` deletes; keep `supabaseClient.ts`; new `src/utils/cloudData.ts` constructs the factories once. Tests: supabaseData, supabaseFieldMapping, leetcodeActivityData, leetcodeReviewActions suites move to `packages/core/tests/` (union with mobile's richer versions) against injected mock clients; the 2 F-8 `it.fails` markers flip.
 
-Create in core: `sync/reviewEvents.ts` (mobile's split; 5s tolerance; **event matching includes `date`** so a streak day can't be silently collapsed — pinned by Phase 1 test), `sync/merge.ts` (mergeProblems/ReviewLog/Tombstones/ReviewEvents + reset/tombstone filters; mobile NaN guards; **web's richer stats returns**; `{prunedBefore}` param), `sync/fullSync.ts` (single `performFullSync(deps)` — fail-closed, orphan filter, prefs newest-wins, watermark merge + post-sync prune, reset ordering guaranteed), `preferences.ts` (`mergePreferences` newest-wins + epoch shim).
+**Gate:** full green + **manual cloud smoke against live Supabase from a preview deploy before merging** (log a review signed-in → row carries `dedupe_key`; replay to confirm idempotent upsert). This plan doc synced in the same working tree.
 
-Web: `src/utils/sync.ts` shrinks to the fire-and-forget push layer + deps assembly; local `deduplicateProblems` copy deleted; `useCloudSync` calls core `performFullSync`, surfaces `error` state honestly, stays non-blocking. Tests: sync.test + syncOnSignIn.test consolidate to `packages/core/tests/sync/`; Phase 1 `it.fails` all flip green (F-3, F-6, F-17, tolerance, reset ordering); new partial-failure mid-sync test (tombstone upsert fails → local state not poisoned). Web keeps useCloudSync/syncPush/usePreferences hook tests rewired.
+## Phase 5 — sync merge core + performFullSync (map #17–18; F-3/5/6/7/17 land) — highest risk
 
-**Gate:** full green; **two-browser manual sync matrix on preview** (sign-in merge; clear-all + reset marker; offline change → reconnect; prefs changed signed-out → sign-in); F-20/21/22 areas not worsened. Merge only after matrix passes.
+Create in core: `sync/reviewEvents.ts` (mobile's file split; 5s tolerance; **date-aware event matching is NEW canonical behavior — neither platform has it today**, pinned by the mergeFixtures marker), `sync/merge.ts` (merges + reset/tombstone filters; NaN guards (F-17); web's richer stats returns; `{prunedBefore}` param (F-3)), `sync/fullSync.ts` (`performFullSync(deps)` — fail-closed (F-5), orphan filter (F-7), prefs newest-wins (F-6), watermark merge + post-sync prune; reset ordering already correct — keep the passing pin green), `preferences.ts` (`mergePreferences` newest-wins + epoch shim for blobs without `updatedAt`).
+
+Web: `src/utils/sync.ts` shrinks to fire-and-forget push layer + deps assembly (delete its `deduplicateProblems` copy — core's is the covered one); `useCloudSync` calls core `performFullSync`, surfaces `error` honestly (no more synced-on-error), stays non-blocking; `webStorage` adapter finally consumed; web passes `eventRetentionDays: null` (never prunes — unchanged behavior). Tests: `sync.test.ts` + `syncOnSignIn.test.ts` consolidate into `packages/core/tests/sync/` (union with mobile's); flip the 4 remaining markers; new partial-failure mid-sync test (tombstone upsert fails → local state not poisoned, error returned).
+
+**Gate (overnight):** full green, zero remaining `it.fails`, plus NEW `packages/core/tests/sync/twoDeviceSimulation.test.ts` — two in-memory adapters + one fake cloud, 5 scenarios (sign-in merge both directions / clear-all + reset marker / offline edit → reconnect / prefs newest-wins across devices / prune watermark churn). The **manual two-browser matrix on a preview deploy stays as Derek's gate before merging to main** (morning checklist), not the overnight run's.
 
 ## Adapter contracts (fixed now, implemented Phases 3–5)
 
@@ -107,29 +129,37 @@ export interface CoreHooks {                      // core never imports posthog/
   warn?: (message: string, data?: unknown) => void;        // F-14 corrupt-row warnings
   now?: () => Date;                                        // testability
 }
-// createCloudData({ supabase, hooks?, timeoutMs? }) → bound CRUD (throws on failure — F-5)
+// createCloudData({ supabase: SupabaseClient | null, hooks?, timeoutMs? }) → bound CRUD
+//   ({ data, error } returns; null client → per-function no-op guard shapes)
 // performFullSync({ storage, cloud, userId, hooks?, eventRetentionDays? /* null=web, 180=mobile */ })
 //   → { ok: true; stats } | { ok: false; error }
 ```
 
 Mutation queue + notifications deliberately have **no** core interface in v1.
 
-## Phase 6 — Publish + versioning
+## Phase 6 — split: validation + pack overnight; publish is Derek's morning step
 
-- Create free npm org `patternbank`; publish `@patternbank/core@0.1.0`: root green → `cd packages/core && npm publish` (prepublishOnly builds) → `git tag core-v0.1.0 && git push --tags`. Bumps via `npm version patch|minor --no-git-tag-version` thereafter. **Manual publish, no CI token** (a solo dev publishing a few times a quarter doesn't earn NPM_TOKEN management in a public repo).
-- One-time pre-publish validation: `npx publint` + `npx @arethetypeswrong/cli --pack .` from `packages/core` (validates the exports map for Metro/bundler resolution).
-- 0.x semver; `1.0.0` when mobile adoption completes. Mobile pins **exact** (`"0.1.0"`, no caret) and records the tag SHA in its PR.
+- **Overnight (unattended):** from `packages/core`: `npm run build` → `npx publint` → `npx @arethetypeswrong/cli --pack .` → `npm pack` producing `patternbank-core-0.1.0.tgz` (left untracked in `packages/core/`; absolute path recorded in the report). The tarball is byte-identical to what `npm publish` would upload — Phase 7 installs from it, so mobile adoption is NOT blocked on npm login.
+- **Morning (Derek, ~5 min):** `npm login` (verified: no auth on this machine) + create free npm org `patternbank` (`@patternbank/core` confirmed unclaimed) → `cd packages/core && npm publish` (prepublishOnly rebuilds) → `git tag core-v0.1.0`. Then in the mobile worktree: `npm i -E @patternbank/core@0.1.0` swaps the tarball dep for the registry dep (tiny follow-up commit). 0.x semver; `1.0.0` when mobile adoption ships as V2.1. Manual publish, no CI token.
 
-## Phase 7 — Mobile adoption (follow-up plan, in `patternbank-mobile`, ships as V2.1)
+## Phase 7 — Mobile adoption (isolated worktree, tarball dep; ships later as V2.1)
 
-Sequenced **after V2.0 ships** from `V2.0-release-check`. One exception rides V2.0 independently: relative-date rewrite of the 3 rotting suites (`storage`/`ProgressScreen`/`ProjectionCalculator` tests) — needed regardless so baseline failures don't mask regressions.
+Runs unattended after Phase 6-validate, in a fresh worktree of patternbank-mobile — Derek's checkout (on `fix/test-fixture-rot`, with untracked parity suite) is never touched. NO EAS release, NO merges, NO push; the branch waits for V2.0 to ship, then rides as V2.1.
 
-1. Re-diff mobile `src/utils/` vs core (utils may have moved after the extraction-map commit); publish matching `0.1.x` before swapping.
-2. `npm i -E @patternbank/core@0.1.x`; jest: add `@patternbank/core` to `transformIgnorePatterns` whitelist; Metro: **no config change** (default node_modules transpilation + standard exports map; validated by publint in Phase 6).
-3. Swap in per-family atomic commits (delete local util + its duplicated `__tests__` suite in the same commit): types/constants split → leaf utils → domain layer (+ AsyncStorage `StorageAdapter`) → supabase mapping/data (inject mobile client + PostHog hook) → sync merge + `performFullSync` (mutation queue keeps calling core cloud functions).
-4. Stays mobile-side: `cloudMutationQueue/Processor`, `notifications`, `posthog`, `supabaseAuthStorage`, `supabaseClient`, `syncStatus`, `uiState`, import/export. Core has no import-time side effects (`sideEffects: false`).
-5. Delete mobile's parity suite after the swap (same code now, asserted in core CI). QA the deltas core introduces: F-3 watermark key, F-6 newest-wins, F-14 validation, resolver `date`-aware event matching.
-6. Release: normal EAS `production` profile (`autoIncrement`); pure-JS dep, no native modules → no `runtimeVersion` implications.
+**Verified resolution facts:** mobile tsconfig extends `expo/tsconfig.base` → `moduleResolution: "bundler"` reads core's exports map; core package.json has top-level `main`/`module`/`types` fallbacks — no core or tsconfig edits needed. jest-expo's `customExportConditions ['require','react-native']` loads `dist/index.cjs` untransformed. Mobile-only surface stays as shims: `Preferences extends CorePreferences` (+notification fields), `PATTERN_COLORS`, nav/UI types. Measure the tracked baseline at F7.0 (expect 55 suites / ~458 tests), don't assume.
+
+Sub-steps — every one ends `npm run typecheck && npm run lint && npm test` green + ONE commit + ledger row:
+
+- **F7.0 setup:** `git worktree add .claude/worktrees/core-adoption -b feat/core-adoption fceb7f1`; append `.claude/` to `.git/info/exclude`; `npm ci`; record baseline counts (if not green, STOP and record why); empty baseline commit.
+- **F7.1 tarball + canary:** copy the tarball into `vendor/` (source path has a space; vendored copy keeps the lockfile relative) → `npm i file:vendor/patternbank-core-0.1.0.tgz`. Append `|@patternbank/core` to jest transformIgnorePatterns' negative lookahead (insurance). Canary suite `coreResolution.test.ts` imports `CORE_PACKAGE_NAME, LEETCODE_PROBLEMS, searchProblems, createCloudData, performFullSync, toSnakeCase` from the barrel. Paste `createCloudData`/`performFullSync` d.ts signatures into the ledger.
+- **F7.2 types/constants shims** (no importer changes): `src/types.ts` re-exports core types keeping local `Preferences extends CorePreferences`, nav/UI types; `src/utils/constants.ts` re-exports core constants keeping `PATTERN_COLORS` + local `DEFAULT_PREFERENCES` spread over core's.
+- **F7.3 leaf utils** (~25 importers): delete dateHelpers/spacedRepetition/progressUtils/progressVisuals/projectionEngine/syncTimeout/leetcodeProblems{.js,.d.ts}; rewire to `@patternbank/core`; rewrite the one dying mock target (`useLeetCodePendingImports.test.ts` → `jest.mock("@patternbank/core", () => ({...jest.requireActual(...), <fakes>}))`); delete 6 duplicated suites.
+- **F7.4 domain + AsyncStorage adapter:** delete problemTransforms/todayView/todayLeetCodeResolver/problemLists/leetcodeImportTransforms + rewire (todayResolver timestamp delta is intended — update callers, don't re-pin); `todayLeetCodeCompletions.ts` becomes a thin wrapper binding core's adapter-based load/save with AsyncStorage passed directly as the StorageAdapter; delete 8 duplicated suites.
+- **F7.5 supabase factory injection** (paths KEPT as shims — processor/hook tests mock them): `supabaseData.ts` → `createCloudData({supabase, hooks: {analytics: posthog.capture, warn: console.warn}})`, destructure-re-export all current named exports + `toSnakeCase`/`toCamelCase`; `leetcodeActivityData.ts` same treatment; `leetcodeReviewActions.ts` deletes (rewire `DataContext.tsx`). Mutation queue/processor: ZERO changes. Delete 3 suites.
+- **F7.6 performFullSync** (highest risk): delete `reviewEvents.ts`; `sync.ts` shrinks — `syncOnSignIn(...)` keeps its 7-arg signature, delegates to core `performFullSync(deps)` with `eventRetentionDays: 180` (mobile prunes; web passes null) + watermark from `REVIEW_EVENTS_PRUNED_BEFORE_KEY`; re-export core merge helpers so `useCloudSync`'s `jest.mock("../../utils/sync")` survives; `storage.ts` swaps calculateStreak/countReviewedToday/pruneOldEvents to core (`savePreferences` stamps `updatedAt`). Update surviving tests to the four intentional deltas (F-3/F-6/F-14/date-aware) — never re-pin old behavior. Contingency: if deps don't map cleanly, keep mobile's syncOnSignIn internals but swap all merge helpers to core (partial adoption, still green) and flag in the ledger.
+- **F7.final:** delete canary; grep sweep proves zero references to deleted utils (deliberate survivors: the shim/platform paths); drop `leetcodeProblems.js` from mobile eslint globalIgnores; final gate + commit + ledger.
+
+Stays mobile-side: `cloudMutationQueue/Processor`, `notifications`, `posthog`, `supabaseAuthStorage`, `supabaseClient`, `syncStatus`, `uiState`, import/export. Delete mobile's parity suite after the swap (core CI owns parity). Release later: normal EAS `production` profile; pure-JS dep → no `runtimeVersion` implications.
 
 ## Risks & rollback
 
