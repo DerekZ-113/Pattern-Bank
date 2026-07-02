@@ -17,8 +17,13 @@ vi.mock("../src/utils/leetcodeActivityData", () => ({
   restoreIgnoredLeetCodeImport: vi.fn(),
 }));
 
-vi.mock("../src/utils/dateHelpers", async () => {
-  const actual = await vi.importActual<typeof import("../src/utils/dateHelpers")>("../src/utils/dateHelpers");
+// Mock core's dateHelpers module directly (not the "@patternbank/core" barrel):
+// core-internal modules import "../dateHelpers" relatively, and the barrel
+// re-exports it, so mocking the file intercepts both import paths.
+vi.mock("../packages/core/src/dateHelpers", async () => {
+  const actual = await vi.importActual<typeof import("../packages/core/src/dateHelpers")>(
+    "../packages/core/src/dateHelpers",
+  );
   return {
     ...actual,
     generateId: () => "generated-problem-id",

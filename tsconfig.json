@@ -13,8 +13,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals"],
+    "paths": {
+      "@patternbank/core": ["./packages/core/src/index.ts"]
+    }
   },
-  "include": ["src", "tests"],
-  "exclude": ["node_modules", "dist", "e2e"]
+  "include": ["src", "tests", "packages/core/src", "packages/core/tests"],
+  "exclude": ["node_modules", "dist", "e2e", "packages/core/dist"]
 }

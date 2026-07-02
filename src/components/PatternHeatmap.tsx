@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getVisiblePatterns } from "../utils/constants";
-import { getProgressHeatmapTint } from "../utils/progressVisuals";
+import { getProgressHeatmapTint } from "@patternbank/core";
 import type { Problem } from "../types";
 
 interface Props {

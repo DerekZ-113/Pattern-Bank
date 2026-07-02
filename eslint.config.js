@@ -9,7 +9,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 const tsPlugin = tseslint.plugin
 
 export default defineConfig([
-  globalIgnores(['dist', '.claude', '**/*.d.ts', 'src/utils/leetcodeProblems.js']),
+  globalIgnores(['dist', '.claude', '**/*.d.ts', 'packages/*/src/leetcode/problems.js', 'packages/*/dist']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -59,7 +59,31 @@ export default defineConfig([
     },
   },
   {
-    files: ['tests/**/*.{ts,tsx,js,jsx}'],
+    // Core package: pure logic, no React — plain JS + TS rules only.
+    files: ['packages/*/src/**/*.{ts,tsx}'],
+    extends: [js.configs.recommended],
+    plugins: {
+      '@typescript-eslint': tsPlugin,
+    },
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^_',
+      }],
+    },
+  },
+  {
+    files: ['tests/**/*.{ts,tsx,js,jsx}', 'packages/*/tests/**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
     ],

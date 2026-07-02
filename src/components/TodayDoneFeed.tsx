@@ -1,7 +1,7 @@
 import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
 import type { Confidence } from "../types";
-import type { TodayActivityFeedItem } from "../utils/todayView";
+import type { TodayActivityFeedItem } from "@patternbank/core";
 
 interface Props {
   items: TodayActivityFeedItem[];
@@ -38,7 +38,14 @@ export default function TodayDoneFeed({ items, onRateLeetCodeReview }: Props) {
   ) => {
     if (pendingRatingRowId) return;
     setPendingRatingRowId(item.id);
-    await onRateLeetCodeReview?.(item.submissionDbId, item.problemId, confidence);
+    try {
+      await onRateLeetCodeReview?.(item.submissionDbId, item.problemId, confidence);
+    } catch (err) {
+      // The onClick fires this via `void handleRate(...)` — a throw must not leak.
+      console.warn("Rating failed:", err);
+    } finally {
+      setPendingRatingRowId(null);
+    }
   };
 
   return (

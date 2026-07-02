@@ -60,7 +60,7 @@ describe("usePreferences", () => {
     });
 
     await waitFor(() => {
-      expect(savePreferences).toHaveBeenCalledWith({ ...fullPrefs, dailyReviewGoal: 10 });
+      expect(savePreferences).toHaveBeenCalledWith({ ...fullPrefs, dailyReviewGoal: 10, updatedAt: expect.any(String) });
     });
   });
 
@@ -71,7 +71,20 @@ describe("usePreferences", () => {
       result.current.handleUpdatePreferences({ dailyReviewGoal: 20 });
     });
 
-    expect(result.current.preferences).toEqual({ ...fullPrefs, dailyReviewGoal: 20 });
+    expect(result.current.preferences).toEqual({ ...fullPrefs, dailyReviewGoal: 20, updatedAt: expect.any(String) });
+  });
+
+  it("stamps updatedAt on user edits so newest-wins sync can rank them (F-6)", () => {
+    const { result } = renderHook(() => usePreferences({ user: null }));
+    const before = Date.now();
+
+    act(() => {
+      result.current.handleUpdatePreferences({ hidePatternsDuringReview: true });
+    });
+
+    const stamped = result.current.preferences.updatedAt;
+    expect(stamped).toBeDefined();
+    expect(new Date(stamped!).getTime()).toBeGreaterThanOrEqual(before);
   });
 
   it("replacePreferences overwrites all preferences", () => {
@@ -111,7 +124,7 @@ describe("usePreferences", () => {
       result.current.handleUpdatePreferences({ dailyReviewGoal: 12 });
     });
 
-    expect(result.current.getCurrentPreferences()).toEqual({ ...fullPrefs, dailyReviewGoal: 12 });
+    expect(result.current.getCurrentPreferences()).toEqual({ ...fullPrefs, dailyReviewGoal: 12, updatedAt: expect.any(String) });
 
     const cloudPrefs = { dailyReviewGoal: 9, hidePatternsDuringReview: true, enabledExtraPatterns: ["Graph"] };
     act(() => {
@@ -129,7 +142,7 @@ describe("usePreferences", () => {
     });
 
     expect(pushPreferencesToCloud).toHaveBeenCalledTimes(1);
-    expect(pushPreferencesToCloud).toHaveBeenCalledWith("user-123", { ...fullPrefs, dailyReviewGoal: 15 });
+    expect(pushPreferencesToCloud).toHaveBeenCalledWith("user-123", { ...fullPrefs, dailyReviewGoal: 15, updatedAt: expect.any(String) });
   });
 
   it("does not push to cloud when user is null", () => {

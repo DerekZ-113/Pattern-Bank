@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { simulateProjection } from "../utils/projectionEngine";
-import { PROGRESS_CONFIDENCE_TINTS } from "../utils/progressVisuals";
-import { INTERVALS } from "../utils/spacedRepetition";
+import { simulateProjection } from "@patternbank/core";
+import { PROGRESS_CONFIDENCE_TINTS } from "@patternbank/core";
+import { INTERVALS } from "@patternbank/core";
 import type { Confidence } from "../types";
 import type { CSSProperties } from "react";
 

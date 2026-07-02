@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { INTERVALS } from "../utils/spacedRepetition";
+import { INTERVALS } from "@patternbank/core";
 import type { Confidence } from "../types";
 
 export default function ConfidenceInfo() {

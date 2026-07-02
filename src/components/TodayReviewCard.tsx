@@ -2,7 +2,7 @@ import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTag from "./PatternTag";
 import StarRating from "./StarRating";
-import { formatRelativeDate } from "../utils/dateHelpers";
+import { formatRelativeDate } from "@patternbank/core";
 import type { Confidence, Problem } from "../types";
 
 interface Props {

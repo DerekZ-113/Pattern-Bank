@@ -7,8 +7,17 @@ import {
   DATA_RESET_KEY,
   DEFAULT_PREFERENCES,
 } from "./constants";
-import { todayStr, addDays, utcToLocalDateStr } from "./dateHelpers";
+import {
+  todayStr,
+  utcToLocalDateStr,
+  calculateStreak as computeStreakFromLog,
+  countReviewedToday,
+} from "@patternbank/core";
 import type { Problem, ReviewLogEntry, ReviewEvent, Preferences, BackupData, ProblemTombstone, DataReset } from "../types";
+
+// Pure review-log/problem logic lives in @patternbank/core; re-exported here so
+// web consumers keep importing from "./storage".
+export { countReviewedToday };
 
 export function loadProblems(): Problem[] {
   try {
@@ -54,20 +63,7 @@ export function logReviewToday(): void {
 }
 
 export function calculateStreak(): number {
-  const log = loadReviewLog();
-  if (log.length === 0) return 0;
-  const dates = new Set(log.map((e) => e.date));
-  let streak = 0;
-  let checkDate = todayStr();
-  if (!dates.has(checkDate)) {
-    checkDate = addDays(checkDate, -1);
-    if (!dates.has(checkDate)) return 0;
-  }
-  while (dates.has(checkDate)) {
-    streak++;
-    checkDate = addDays(checkDate, -1);
-  }
-  return streak;
+  return computeStreakFromLog(loadReviewLog());
 }
 
 export function loadReviewEvents(): ReviewEvent[] {
@@ -169,11 +165,6 @@ export function logOrReplaceReviewEvent(problemId: string, confidence: number, p
     timestamp: reviewTimestamp,
   });
   saveReviewEvents(withoutSameDayProblem);
-}
-
-export function countReviewedToday(problems: Problem[]): number {
-  const today = todayStr();
-  return problems.filter((p) => p.lastReviewed === today).length;
 }
 
 export function loadPreferences(): Preferences {

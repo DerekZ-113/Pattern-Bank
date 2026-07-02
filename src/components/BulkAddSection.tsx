@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { getProblemByNumber } from "../utils/leetcodeProblems";
+import { getProblemByNumber } from "@patternbank/core";
 import type { Difficulty, LeetCodeProblem } from "../types";
 
 const DIFF_COLORS: Record<Difficulty, string> = { Easy: "#3fb950", Medium: "#d29922", Hard: "#f85149" };

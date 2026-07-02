@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import qrCode from "./assets/qr-appstore.png";
 import LandingProjection from "./components/LandingProjection";
-import { getProgressHeatmapTint } from "./utils/progressVisuals";
+import { getProgressHeatmapTint } from "@patternbank/core";
 import type { CSSProperties, ReactNode, RefObject } from "react";
 
 interface LandingPageProps {

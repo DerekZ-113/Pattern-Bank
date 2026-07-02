@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import useAuth from "../hooks/useAuth";
 import { fetchProblemReviewHistory } from "../utils/supabaseData";
-import { formatRelativeDate, utcToLocalDateStr } from "../utils/dateHelpers";
+import { formatRelativeDate, utcToLocalDateStr } from "@patternbank/core";
 import type { ReviewHistoryEntry } from "../types";
 
 interface Props {
