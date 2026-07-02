@@ -77,10 +77,19 @@ export function mergeProblemTombstones(
   return { tombstones: Array.from(merged.values()), addedFromCloud };
 }
 
+/**
+ * F-25: last-write-wins — a tombstone only kills rows not updated after it, so
+ * a problem restored from a backup (re-stamped past its tombstone) survives
+ * everywhere while stale pre-delete copies on other devices still die. Ties go
+ * to the delete.
+ */
 export function filterTombstonedProblems(problems: Problem[], tombstones: ProblemTombstone[]): Problem[] {
   if (tombstones.length === 0) return problems;
-  const deletedIds = new Set(tombstones.map((t) => t.problemId));
-  return problems.filter((p) => !deletedIds.has(p.id));
+  const deletedAtById = new Map(tombstones.map((t) => [t.problemId, t.deletedAt]));
+  return problems.filter((p) => {
+    const deletedAt = deletedAtById.get(p.id);
+    return deletedAt === undefined || timestampMs(p.updatedAt) > timestampMs(deletedAt);
+  });
 }
 
 export interface MergeReviewLogResult {

@@ -236,6 +236,28 @@ describe("tombstone helpers (mobile union)", () => {
     expect(result.map((p) => p.id)).toEqual(["p2"]);
   });
 
+  it("keeps a problem updated after its tombstone (restore wins, F-25)", () => {
+    const result = filterTombstonedProblems(
+      [
+        makeProblem({ id: "restored", updatedAt: "2026-03-15T12:00:00.000Z" }),
+        makeProblem({ id: "stale", updatedAt: "2026-03-13T12:00:00.000Z" }),
+      ],
+      [
+        { problemId: "restored", deletedAt: "2026-03-14T12:00:00.000Z" },
+        { problemId: "stale", deletedAt: "2026-03-14T12:00:00.000Z" },
+      ],
+    );
+    expect(result.map((p) => p.id)).toEqual(["restored"]);
+  });
+
+  it("removes a problem whose update ties its tombstone (delete wins ties)", () => {
+    const result = filterTombstonedProblems(
+      [makeProblem({ id: "tie", updatedAt: "2026-03-14T12:00:00.000Z" })],
+      [{ problemId: "tie", deletedAt: "2026-03-14T12:00:00.000Z" }],
+    );
+    expect(result).toEqual([]);
+  });
+
   it("ignores tombstones that are older than or equal to the active reset", () => {
     const result = filterTombstonesAfterDataReset(
       [

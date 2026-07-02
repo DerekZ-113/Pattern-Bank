@@ -219,9 +219,11 @@ export async function performFullSync<P extends CorePreferences = CorePreference
 
     const filteredLocalProblems = filterTombstonedProblems(effectiveLocalProblems, mergedTombstones);
     const filteredCloudProblems = filterTombstonedProblems(effectiveCloudProblems, mergedTombstones);
-    const tombstoneIds = new Set(mergedTombstones.map((t) => t.problemId));
+    // Only cloud rows the LWW tombstone filter actually killed get deleted —
+    // a row restored past its tombstone (F-25) must keep its cloud copy.
+    const survivingCloudIds = new Set(filteredCloudProblems.map((p) => p.id));
     const tombstonedCloudIds = effectiveCloudProblems
-      .filter((p) => tombstoneIds.has(p.id))
+      .filter((p) => !survivingCloudIds.has(p.id))
       .map((p) => p.id);
 
     const { problems: merged, cloudAdded, cloudWon } = mergeProblems(filteredLocalProblems, filteredCloudProblems);
@@ -286,7 +288,7 @@ export async function performFullSync<P extends CorePreferences = CorePreference
       warn("Sync: failed to read the review-event prune watermark", err);
     }
 
-    const { log: mergedLog, addedFromCloud: logAddedFromCloud } = mergeReviewLog(
+    const { log: baseMergedLog, addedFromCloud: logAddedFromCloud } = mergeReviewLog(
       effectiveLocalLog,
       effectiveCloudLog,
     );
@@ -295,6 +297,17 @@ export async function performFullSync<P extends CorePreferences = CorePreference
       addedFromCloud: eventsAddedFromCloud,
       localOnlyEvents,
     } = mergeReviewEvents(validLocalEvents, validCloudEvents, { prunedBefore });
+
+    // Any date carried by a surviving event counts as a practiced day. This is
+    // how pre-reset review-log dates come back after a backup restore: the
+    // date-only log entries die to the reset filter (they cannot be
+    // re-stamped), but the restored events — re-stamped past the reset — still
+    // carry them. Union only ever adds dates, so a cleared device (whose
+    // pre-reset events were filtered) resurrects nothing.
+    const { log: mergedLog, addedFromCloud: logAddedFromEvents } = mergeReviewLog(
+      baseMergedLog,
+      reviewLogFromEvents(mergedEvents),
+    );
 
     if (localOnlyEvents.length > 0 && !reviewEventsFetchFailed) {
       const { error } = await cloud.batchInsertReviewLogs(userId, localOnlyEvents);
@@ -358,6 +371,7 @@ export async function performFullSync<P extends CorePreferences = CorePreference
       resetWinner === "cloud" ||
       localRemovedByReset > 0 ||
       logAddedFromCloud > 0 ||
+      logAddedFromEvents > 0 ||
       eventsAddedFromCloud > 0 ||
       prunedCount > 0 ||
       preferencesChanged;
