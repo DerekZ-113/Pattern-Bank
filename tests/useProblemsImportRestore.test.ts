@@ -248,6 +248,27 @@ describe("handleImport restore contract", () => {
     ]);
   });
 
+  it("a same-day re-rate in the backup survives a restore after clear-all (latest rating wins)", async () => {
+    mockedStorage(loadDataReset).mockReturnValue(RESET);
+    const { result } = renderHook(() => useProblems({ user: mockUser, showToast: mockShowToast }));
+
+    await importBackup(
+      result,
+      makeBackup({
+        problems: [makeProblem()],
+        reviewEvents: [
+          makeEvent({ confidence: 4, date: "2026-05-01", timestamp: "2026-05-01T10:00:00.000Z" }),
+          makeEvent({ confidence: 5, date: "2026-05-01", timestamp: "2026-05-01T10:00:02.000Z" }),
+        ],
+      }),
+    );
+
+    const saved = vi.mocked(saveReviewEvents).mock.lastCall![0] as ReviewEvent[];
+    expect(saved).toHaveLength(2);
+    const sorted = [...saved].sort((a, b) => timestampMs(a.timestamp) - timestampMs(b.timestamp));
+    expect(sorted[sorted.length - 1].confidence).toBe(5);
+  });
+
   it("does not duplicate review events when the same backup is imported twice after a clear-all", async () => {
     mockedStorage(loadDataReset).mockReturnValue(RESET);
     const { result } = renderHook(() => useProblems({ user: mockUser, showToast: mockShowToast }));
