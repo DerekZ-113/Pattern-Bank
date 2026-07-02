@@ -3,8 +3,16 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
+    "build:core": "npm run build -w @patternbank/core",
+    "typecheck:core": "npm run typecheck -w @patternbank/core",
     "build": "tsc --noEmit && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

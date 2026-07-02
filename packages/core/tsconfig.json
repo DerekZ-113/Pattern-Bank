@@ -3,21 +3,16 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "react-jsx",
     "strict": true,
     "noEmit": true,
     "allowJs": false,
-    "checkJs": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["vitest/globals"],
-    "paths": {
-      "@patternbank/core": ["./packages/core/src/index.ts"]
-    }
+    "types": ["vitest/globals"]
   },
-  "include": ["src", "tests", "packages/core/src", "packages/core/tests"],
-  "exclude": ["node_modules", "dist", "e2e", "packages/core/dist"]
+  "include": ["src", "tests"],
+  "exclude": ["dist", "node_modules"]
 }
