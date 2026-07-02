@@ -38,7 +38,14 @@ export default function TodayDoneFeed({ items, onRateLeetCodeReview }: Props) {
   ) => {
     if (pendingRatingRowId) return;
     setPendingRatingRowId(item.id);
-    await onRateLeetCodeReview?.(item.submissionDbId, item.problemId, confidence);
+    try {
+      await onRateLeetCodeReview?.(item.submissionDbId, item.problemId, confidence);
+    } catch (err) {
+      // The onClick fires this via `void handleRate(...)` — a throw must not leak.
+      console.warn("Rating failed:", err);
+    } finally {
+      setPendingRatingRowId(null);
+    }
   };
 
   return (

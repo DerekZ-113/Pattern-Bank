@@ -1,4 +1,4 @@
-import { timestampMs } from "../dateHelpers";
+import { timestampMs, utcToLocalDateStr } from "../dateHelpers";
 import type {
   DataReset,
   Problem,
@@ -77,10 +77,19 @@ export function mergeProblemTombstones(
   return { tombstones: Array.from(merged.values()), addedFromCloud };
 }
 
+/**
+ * F-25: last-write-wins — a tombstone only kills rows not updated after it, so
+ * a problem restored from a backup (re-stamped past its tombstone) survives
+ * everywhere while stale pre-delete copies on other devices still die. Ties go
+ * to the delete.
+ */
 export function filterTombstonedProblems(problems: Problem[], tombstones: ProblemTombstone[]): Problem[] {
   if (tombstones.length === 0) return problems;
-  const deletedIds = new Set(tombstones.map((t) => t.problemId));
-  return problems.filter((p) => !deletedIds.has(p.id));
+  const deletedAtById = new Map(tombstones.map((t) => [t.problemId, t.deletedAt]));
+  return problems.filter((p) => {
+    const deletedAt = deletedAtById.get(p.id);
+    return deletedAt === undefined || timestampMs(p.updatedAt) > timestampMs(deletedAt);
+  });
 }
 
 export interface MergeReviewLogResult {
@@ -157,6 +166,22 @@ export function filterReviewEventsAfterDataReset(events: ReviewEvent[], reset: D
   const cutoff = dataResetTime(reset);
   if (cutoff === 0) return events;
   return events.filter((event) => timestampMs(event.timestamp) > cutoff);
+}
+
+/**
+ * F-20: review-log entries are date-only, so compare against the LOCAL date of
+ * the reset. `>=` keeps legitimate same-day post-clear reviews; the plain
+ * date-string compare avoids rebuilding the log from events (which would churn
+ * under mobile's 180-day event retention).
+ */
+export function filterReviewLogAfterDataReset(
+  log: ReviewLogEntry[],
+  reset: DataReset | null,
+): ReviewLogEntry[] {
+  if (dataResetTime(reset) === 0) return log;
+  const resetDate = utcToLocalDateStr(reset!.resetAt);
+  if (!resetDate) return log;
+  return log.filter((entry) => entry.date >= resetDate);
 }
 
 export function filterTombstonesAfterDataReset(

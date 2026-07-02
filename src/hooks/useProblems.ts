@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { User } from "@supabase/supabase-js";
-import { todayStr, addDays } from "@patternbank/core";
+import { todayStr, addDays, timestampMs, reviewEventsMatch } from "@patternbank/core";
 import { getIntervalDays, getReviewIntervalDays } from "@patternbank/core";
 import {
   loadProblems,
@@ -48,7 +48,7 @@ import {
   clearAllCloudData,
 } from "../utils/sync";
 import posthog from "posthog-js";
-import type { DataReset, Problem, Preferences, SyncStatus, Confidence, LeetCodeProblem } from "../types";
+import type { DataReset, Problem, Preferences, ReviewEvent, SyncStatus, Confidence, LeetCodeProblem } from "../types";
 import type { SyncResult } from "../utils/sync";
 
 interface UseProblemsParams {
@@ -115,6 +115,9 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   // Sync with Supabase on sign-in
   const handleSyncComplete = useCallback((result: SyncResult, context?: SyncCompleteContext) => {
     const currentDataReset = loadDataReset();
+    // F-20: a strictly-newer local reset can only mean clear-all ran while the
+    // sync was in flight — the whole result predates it, so discard wholesale.
+    if (dataResetTime(currentDataReset) > dataResetTime(result.dataReset)) return;
     const mergedDataReset = newerDataReset(currentDataReset, result.dataReset);
     const incomingResetIsNewer = dataResetTime(result.dataReset) > dataResetTime(currentDataReset);
     if (mergedDataReset) {
@@ -145,7 +148,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     setReviewCount((c) => c + 1);
   }, [getCurrentPreferences, getPreferenceRevision, replacePreferences, user]);
 
-  const { syncStatus } = useCloudSync({
+  const { syncStatus, invalidateInFlightSync } = useCloudSync({
     user, problems, preferences, getPreferenceRevision, showToast,
     onSyncComplete: handleSyncComplete,
   });
@@ -299,25 +302,72 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
         const data = await importData(file);
         const { mergedProblems, addedCount, updatedCount, changedProblems, importedIdToCanonicalId } =
           mergeImportedProblems(problems, data.problems);
-        setProblems(mergedProblems);
+
+        // F-20/F-25: an accepted backup row that predates the active data
+        // reset or a live tombstone is re-stamped to the import time —
+        // restoring IS a write. Left as-is, the next sign-in sync would
+        // filter it back out (reset) or delete it again (tombstone).
+        const nowMs = Date.now();
+        const nowIso = new Date(nowMs).toISOString();
+        const resetTime = dataResetTime(loadDataReset());
+        const tombstoneTimeById = new Map(
+          loadProblemTombstones().map((t) => [t.problemId, timestampMs(t.deletedAt)]),
+        );
+        const restampedIds = new Set(
+          changedProblems
+            .filter((p) => {
+              const updated = timestampMs(p.updatedAt);
+              return updated <= resetTime || updated <= (tombstoneTimeById.get(p.id) ?? -1);
+            })
+            .map((p) => p.id),
+        );
+        const restamp = (p: Problem) => (restampedIds.has(p.id) ? { ...p, updatedAt: nowIso } : p);
+        setProblems(mergedProblems.map(restamp));
+
+        // F-23: merge — never replace — the local review log with the backup's.
         if (data.reviewLog) {
-          saveReviewLog(data.reviewLog);
+          saveReviewLog(mergeReviewLog(loadReviewLog(), data.reviewLog).log);
         }
-        // F-4: remap imported review events to the canonical local problem ids
-        // so cross-device history stays attached to the surviving entry.
-        const importedReviewEvents = data.reviewEvents?.map((event) => ({
-          ...event,
-          problemId: importedIdToCanonicalId.get(event.problemId) ?? event.problemId,
-        }));
-        if (importedReviewEvents) {
-          saveReviewEvents(importedReviewEvents);
+
+        let eventsToPush: ReviewEvent[] = [];
+        if (data.reviewEvents) {
+          const currentEvents = loadReviewEvents();
+          const importedReviewEvents: ReviewEvent[] = [];
+          for (const event of data.reviewEvents) {
+            // F-4: remap imported review events to the canonical local problem
+            // ids so cross-device history stays attached to the surviving entry.
+            const remapped = {
+              ...event,
+              problemId: importedIdToCanonicalId.get(event.problemId) ?? event.problemId,
+            };
+            if (timestampMs(remapped.timestamp) > resetTime) {
+              importedReviewEvents.push(remapped);
+              continue;
+            }
+            // Pre-reset event: restore it re-stamped past the reset, keeping
+            // its date for history/streaks. Skip dates already covered locally
+            // so a double import cannot duplicate history.
+            if (currentEvents.some((e) => e.problemId === remapped.problemId && e.date === remapped.date)) {
+              continue;
+            }
+            importedReviewEvents.push({
+              ...remapped,
+              timestamp: new Date(nowMs + importedReviewEvents.length).toISOString(),
+            });
+          }
+          // F-23: merge — never replace — the local review events.
+          saveReviewEvents(mergeReviewEvents(currentEvents, importedReviewEvents).events);
+          eventsToPush = importedReviewEvents.filter(
+            (event) => !currentEvents.some((existing) => reviewEventsMatch(existing, event)),
+          );
         }
+
         if (user) {
           // Push only added/updated problems: raw imported ids may have been
           // remapped, and pushing them verbatim would recreate cloud duplicates.
-          pushProblemsToCloud(user.id, changedProblems);
-          if (importedReviewEvents?.length) {
-            pushReviewEventsToCloud(user.id, importedReviewEvents);
+          pushProblemsToCloud(user.id, changedProblems.map(restamp));
+          if (eventsToPush.length) {
+            pushReviewEventsToCloud(user.id, eventsToPush);
           }
         }
         setReviewCount((c) => c + 1);
@@ -387,6 +437,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   }, [user, showToast]);
 
   const handleClearAllData = useCallback(async () => {
+    invalidateInFlightSync();
     const resetAt = new Date().toISOString();
     saveDataReset({ resetAt });
     saveProblemTombstones([]);
@@ -398,7 +449,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
       await clearAllCloudData(user.id, resetAt);
     }
     showToast("All data cleared");
-  }, [showToast, user]);
+  }, [invalidateInFlightSync, showToast, user]);
 
   return {
     problems,

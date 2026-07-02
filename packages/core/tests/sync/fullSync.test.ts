@@ -4,7 +4,7 @@
 // in-memory StorageAdapter (no module mocking, no localStorage).
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { REVIEW_EVENTS_PRUNED_BEFORE_KEY } from "../../src/constants";
-import { addDays, todayStr } from "../../src/dateHelpers";
+import { addDays, todayStr, utcToLocalDateStr } from "../../src/dateHelpers";
 import {
   performFullSync,
   type FullSyncDeps,
@@ -198,7 +198,10 @@ describe("performFullSync — merge behavior", () => {
 });
 
 describe("performFullSync — tombstones", () => {
-  const localTombstone: ProblemTombstone = { problemId: "deleted-1", deletedAt: "2026-03-10T12:00:00.000Z" };
+  // The delete flow stamps deletedAt at delete time, after the row's last
+  // update — a tombstone predating the row means a later edit/restore won
+  // under LWW (F-25), covered in the import-restore describe below.
+  const localTombstone: ProblemTombstone = { problemId: "deleted-1", deletedAt: "2026-03-12T12:00:00.000Z" };
 
   it("does not resurrect a cloud problem when a local tombstone exists", async () => {
     const deletedCloudProblem = makeProblem({ id: "deleted-1", updatedAt: "2026-03-11T12:00:00.000Z" });
@@ -343,14 +346,16 @@ describe("performFullSync — data resets", () => {
     expect(result.problemTombstones).toEqual([newCloudTombstone]);
   });
 
-  it("does not let old cloud tombstones delete an imported local backup after reset", async () => {
+  it("does not let old cloud tombstones delete a problem restored after reset", async () => {
+    // Note (F-20): the restored problem must carry a post-reset updatedAt to
+    // survive — local rows predating the reset are filtered like cloud rows.
     const importedProblem = makeProblem({
-      id: "restored-older-updated-at",
-      updatedAt: "2026-03-01T12:00:00.000Z",
+      id: "restored-after-reset",
+      updatedAt: "2026-03-13T12:00:00.000Z",
     });
     const matchingReset = { resetAt: "2026-03-12T12:00:00.000Z" };
     const oldCloudTombstone = {
-      problemId: "restored-older-updated-at",
+      problemId: "restored-after-reset",
       deletedAt: "2026-03-11T12:00:00.000Z",
     };
     cloud.fetchDataReset.mockResolvedValue({ data: matchingReset, error: null });
@@ -458,6 +463,191 @@ describe("performFullSync — data resets", () => {
     expect(deleteIndex).toBeLessThan(upsertIndex);
     // And the durable reset marker must land before the destructive wipe.
     expect(callOrder.indexOf("upsertDataReset:done")).toBeLessThan(deleteIndex);
+  });
+});
+
+describe("performFullSync — local rows predating the reset are filtered (F-20)", () => {
+  const reset: DataReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+  const staleProblem = () => makeProblem({ id: "stale-local-1", updatedAt: "2026-03-10T12:00:00.000Z" });
+  const staleEvent = () =>
+    makeEvent({ problemId: "stale-local-1", date: "2026-03-08", timestamp: "2026-03-08T12:00:00.000Z" });
+
+  it("filters stale local problems/events/log on matching reset markers (tie), pushing nothing", async () => {
+    cloud.fetchDataReset.mockResolvedValue({ data: reset, error: null });
+
+    const result = expectSuccess(
+      await performFullSync(
+        deps({
+          local: local({
+            problems: [staleProblem()],
+            reviewEvents: [staleEvent()],
+            reviewLog: [makeEntry("2026-03-08")],
+            dataReset: reset,
+          }),
+        }),
+      ),
+    );
+
+    expect(result.problems).toEqual([]);
+    expect(result.reviewEvents).toEqual([]);
+    expect(result.reviewLog).toEqual([]);
+    expect(result.hasChanges).toBe(true);
+    expect(cloud.upsertProblems).not.toHaveBeenCalled();
+    expect(cloud.batchInsertReviewLogs).not.toHaveBeenCalled();
+  });
+
+  it("neither returns nor pushes stale local rows when the local reset wins", async () => {
+    // Cloud has no reset marker at all — resetWinner is "local".
+    const result = expectSuccess(
+      await performFullSync(
+        deps({
+          local: local({
+            problems: [staleProblem()],
+            reviewEvents: [staleEvent()],
+            reviewLog: [makeEntry("2026-03-08")],
+            dataReset: reset,
+          }),
+        }),
+      ),
+    );
+
+    expect(cloud.upsertDataReset).toHaveBeenCalledWith(USER_ID, reset);
+    expect(cloud.deleteAllUserProblems).toHaveBeenCalledWith(USER_ID);
+    expect(result.problems).toEqual([]);
+    expect(result.reviewEvents).toEqual([]);
+    expect(result.reviewLog).toEqual([]);
+    expect(cloud.upsertProblems).not.toHaveBeenCalled();
+    expect(cloud.batchInsertReviewLogs).not.toHaveBeenCalled();
+  });
+
+  it("keeps same-day post-reset review log entries (>= boundary) and post-reset rows", async () => {
+    const resetDay = utcToLocalDateStr(reset.resetAt)!;
+    const survivor = makeProblem({ id: "survivor-1", updatedAt: "2026-03-13T12:00:00.000Z" });
+    cloud.fetchDataReset.mockResolvedValue({ data: reset, error: null });
+
+    const result = expectSuccess(
+      await performFullSync(
+        deps({
+          local: local({
+            problems: [survivor],
+            reviewLog: [makeEntry("2026-03-08"), makeEntry(resetDay)],
+            dataReset: reset,
+          }),
+        }),
+      ),
+    );
+
+    expect(result.problems).toEqual([survivor]);
+    expect(result.reviewLog).toEqual([makeEntry(resetDay)]);
+    expect(cloud.upsertProblems).toHaveBeenCalledWith(USER_ID, [survivor]);
+  });
+});
+
+describe("performFullSync — backup restored after clear-all (import-restore contract)", () => {
+  // handleImport re-stamps restored rows past the reset marker: problems get
+  // updatedAt = import time; review events keep their historical date but get
+  // a fresh timestamp. These pin that such rows survive the F-20 filters and
+  // reach the cloud, and that their date-only log entries are rebuilt from
+  // the surviving events (the log itself cannot be re-stamped).
+  const reset: DataReset = { resetAt: "2026-03-12T12:00:00.000Z" };
+  const restoredProblem = () => makeProblem({ id: "restored-1", updatedAt: "2026-03-12T13:00:00.000Z" });
+  const restoredEvent = () =>
+    makeEvent({ problemId: "restored-1", date: "2026-02-01", timestamp: "2026-03-12T13:00:00.001Z" });
+
+  it("keeps re-stamped restored rows through a tie reset and pushes them to the cloud", async () => {
+    cloud.fetchDataReset.mockResolvedValue({ data: reset, error: null });
+
+    const result = expectSuccess(
+      await performFullSync(
+        deps({
+          local: local({
+            problems: [restoredProblem()],
+            reviewEvents: [restoredEvent()],
+            dataReset: reset,
+          }),
+        }),
+      ),
+    );
+
+    expect(result.problems).toEqual([restoredProblem()]);
+    expect(result.reviewEvents).toEqual([restoredEvent()]);
+    expect(cloud.upsertProblems).toHaveBeenCalledWith(USER_ID, [restoredProblem()]);
+    expect(cloud.batchInsertReviewLogs).toHaveBeenCalledWith(USER_ID, [restoredEvent()]);
+  });
+
+  it("rebuilds pre-reset review-log dates from surviving events (tie reset)", async () => {
+    cloud.fetchDataReset.mockResolvedValue({ data: reset, error: null });
+
+    const result = expectSuccess(
+      await performFullSync(
+        deps({
+          local: local({
+            problems: [restoredProblem()],
+            reviewEvents: [restoredEvent()],
+            reviewLog: [makeEntry("2026-02-01")],
+            dataReset: reset,
+          }),
+        }),
+      ),
+    );
+
+    expect(result.reviewLog).toContainEqual(makeEntry("2026-02-01"));
+    expect(result.hasChanges).toBe(true);
+  });
+
+  it("rebuilds review-log dates from surviving events when the local reset wins", async () => {
+    // Clear-all + import happened signed out; the cloud still has stale data.
+    cloud.fetchProblems.mockResolvedValue({
+      data: [makeProblem({ id: "stale-cloud-1", updatedAt: "2026-03-10T12:00:00.000Z" })],
+      error: null,
+    });
+    cloud.fetchReviewLog.mockResolvedValue({ data: [makeEntry("2026-03-10")], error: null });
+
+    const result = expectSuccess(
+      await performFullSync(
+        deps({
+          local: local({
+            problems: [restoredProblem()],
+            reviewEvents: [restoredEvent()],
+            reviewLog: [makeEntry("2026-02-01")],
+            dataReset: reset,
+          }),
+        }),
+      ),
+    );
+
+    expect(result.problems).toEqual([restoredProblem()]);
+    expect(result.reviewLog).toContainEqual(makeEntry("2026-02-01"));
+    expect(result.reviewLog).not.toContainEqual(makeEntry("2026-03-10"));
+    expect(cloud.upsertProblems).toHaveBeenCalledWith(USER_ID, [restoredProblem()]);
+  });
+
+  it("keeps a restored problem past an older surviving tombstone and spares its cloud row (F-25 LWW)", async () => {
+    // No reset in play: delete P, then import a backup restoring P re-stamped
+    // past the tombstone. The tombstone stays (it still kills stale copies on
+    // other devices) but must not kill or cloud-delete the restored row.
+    const tombstone: ProblemTombstone = { problemId: "restored-1", deletedAt: "2026-03-14T12:00:00.000Z" };
+    const restored = makeProblem({ id: "restored-1", updatedAt: "2026-03-15T12:00:00.000Z" });
+    cloud.fetchProblemTombstones.mockResolvedValue({ data: [tombstone], error: null });
+    cloud.fetchProblems.mockResolvedValue({ data: [restored], error: null });
+
+    const result = expectSuccess(await performFullSync(deps({ local: local({ problems: [restored] }) })));
+
+    expect(result.problems).toEqual([restored]);
+    expect(result.problemTombstones).toEqual([tombstone]);
+    expect(cloud.deleteProblems).not.toHaveBeenCalled();
+  });
+
+  it("still deletes rows older than their tombstone (delete keeps winning)", async () => {
+    const tombstone: ProblemTombstone = { problemId: "stale-1", deletedAt: "2026-03-14T12:00:00.000Z" };
+    const staleCloud = makeProblem({ id: "stale-1", updatedAt: "2026-03-13T12:00:00.000Z" });
+    cloud.fetchProblemTombstones.mockResolvedValue({ data: [tombstone], error: null });
+    cloud.fetchProblems.mockResolvedValue({ data: [staleCloud], error: null });
+
+    const result = expectSuccess(await performFullSync(deps()));
+
+    expect(result.problems).toEqual([]);
+    expect(cloud.deleteProblems).toHaveBeenCalledWith(["stale-1"]);
   });
 });
 
@@ -878,7 +1068,14 @@ describe("performFullSync — prune watermark (F-3 within the full flow)", () =>
       await performFullSync(
         deps({
           eventRetentionDays: 180,
-          local: local({ problems: [problem], reviewEvents: [recentEvent] }),
+          // The log carries the surviving event's date, as every review flow
+          // guarantees — otherwise the log-from-events union heals it (one
+          // legitimate hasChanges).
+          local: local({
+            problems: [problem],
+            reviewEvents: [recentEvent],
+            reviewLog: [makeEntry(recentDate)],
+          }),
         }),
       ),
     );

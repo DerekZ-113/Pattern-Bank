@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { User } from "@supabase/supabase-js";
 import { loadReviewLog, loadReviewEvents, loadProblemTombstones, loadDataReset } from "../utils/storage";
 import { syncOnSignIn, SyncResult } from "../utils/sync";
@@ -15,6 +15,7 @@ interface UseCloudSyncParams {
 
 interface UseCloudSyncReturn {
   syncStatus: SyncStatus;
+  invalidateInFlightSync: () => void;
 }
 
 export interface SyncCompleteContext {
@@ -79,5 +80,12 @@ export default function useCloudSync({
     };
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { syncStatus };
+  // F-20: makes a pending sync's .then continuation a no-op (e.g. clear-all
+  // mid-sync). hasSyncedRef stays true so no re-sync fires before sign-out.
+  const invalidateInFlightSync = useCallback(() => {
+    syncRunRef.current += 1;
+    setSyncStatus((status) => (status === "syncing" ? "idle" : status));
+  }, []);
+
+  return { syncStatus, invalidateInFlightSync };
 }
