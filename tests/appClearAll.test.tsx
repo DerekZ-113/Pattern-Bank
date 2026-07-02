@@ -248,6 +248,37 @@ describe("App clear-all confirmation", () => {
     expect(disconnect).not.toHaveBeenCalled();
   });
 
+  it("waits for sign-out to finish before closing the confirmation dialog", async () => {
+    let resolveSignOut!: () => void;
+    signOut.mockReturnValue(new Promise<void>((resolve) => { resolveSignOut = resolve; }));
+    mockBaseHooks();
+
+    await confirmClearAll();
+
+    await waitFor(() => {
+      expect(signOut).toHaveBeenCalledTimes(1);
+    });
+    // A reload before the session is actually cleared must not be possible to
+    // mistake for success — the dialog stays open until sign-out completes.
+    expect(setClearDataConfirm).not.toHaveBeenCalled();
+
+    resolveSignOut();
+    await waitFor(() => {
+      expect(setClearDataConfirm).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it("closes the confirmation dialog even when sign-out fails", async () => {
+    signOut.mockRejectedValue(new Error("network down"));
+    mockBaseHooks();
+
+    await confirmClearAll();
+
+    await waitFor(() => {
+      expect(setClearDataConfirm).toHaveBeenCalledWith(false);
+    });
+  });
+
   it("clears local data without sign-out when signed out", async () => {
     mockBaseHooks({ user: null });
 
