@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
-import { rateLeetCodeReviewLocallyFirst, todayStr, type LeetCodeCompletionIdentity } from "@patternbank/core";
+import { rateLeetCodeReviewLocallyFirst, respreadScheduledProblems, todayStr, type LeetCodeCompletionIdentity } from "@patternbank/core";
 
 import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";
@@ -66,15 +66,23 @@ export default function App() {
 
   // Never-reviewed problems scheduled beyond today — the imports the daily
   // goal paced. Drives the Settings reschedule affordance; pace is display-only.
+  // Null when a re-spread would be a no-op, so the affordance can't re-arm on
+  // an already-goal-paced schedule.
   const upcomingScheduleInfo = useMemo(() => {
     const today = todayStr();
     const upcoming = problems.filter(
       (p) => p.lastReviewed === null && !p.excludeFromReview && p.nextReviewDate > today,
     );
     if (upcoming.length === 0) return null;
+    const { changedCount } = respreadScheduledProblems(problems, {
+      dailyGoal: preferences.dailyReviewGoal,
+      today,
+      now: "1970-01-01T00:00:00.000Z",
+    });
+    if (changedCount === 0) return null;
     const distinctDays = new Set(upcoming.map((p) => p.nextReviewDate)).size;
     return { count: upcoming.length, currentPace: Math.ceil(upcoming.length / distinctDays) };
-  }, [problems]);
+  }, [problems, preferences.dailyReviewGoal]);
 
   const handleRateLeetCodeReview = useCallback(async (
     submissionDbId: string,
@@ -157,7 +165,7 @@ export default function App() {
       <ConfirmDialog
         isOpen={ui.respreadConfirm}
         title="Reschedule upcoming problems?"
-        message={`This will re-pace ${upcomingScheduleInfo?.count ?? 0} upcoming problem${(upcomingScheduleInfo?.count ?? 0) !== 1 ? "s" : ""} at ${preferences.dailyReviewGoal} per day, starting today. Reviewed problems keep their schedule.`}
+        message={`This will re-pace ${upcomingScheduleInfo?.count ?? 0} upcoming problem${(upcomingScheduleInfo?.count ?? 0) !== 1 ? "s" : ""} at ${preferences.dailyReviewGoal} per day, starting today.`}
         confirmLabel="Reschedule"
         destructive={false}
         onConfirm={() => {
@@ -168,7 +176,9 @@ export default function App() {
       />
       <SettingsModal
         isOpen={ui.settingsOpen}
-        onClose={() => ui.setSettingsOpen(false)}
+        // While the respread ConfirmDialog is stacked on top, Escape/backdrop
+        // must close only the dialog — both register document-level listeners.
+        onClose={() => { if (!ui.respreadConfirm) ui.setSettingsOpen(false); }}
         preferences={preferences}
         onUpdatePreferences={handleUpdatePreferences}
         onExport={exportData}

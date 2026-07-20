@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface Props {
   isOpen: boolean;
@@ -27,6 +27,13 @@ export default function ConfirmDialog({
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onCancel]);
 
+  // Move keyboard focus into the dialog on open — otherwise it stays on the
+  // trigger behind the overlay, where Enter would re-fire the opener.
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (isOpen) cancelRef.current?.focus();
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -41,6 +48,7 @@ export default function ConfirmDialog({
         </div>
         <div className="flex justify-end gap-2.5 border-t border-pb-border px-6 py-3.5">
           <button
+            ref={cancelRef}
             onClick={onCancel}
             className="cursor-pointer rounded-lg border border-pb-border bg-transparent px-[18px] py-2 text-[13px] font-semibold text-pb-text-muted hover:border-pb-text-muted"
           >

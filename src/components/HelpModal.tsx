@@ -88,8 +88,9 @@ export default function HelpModal({ isOpen, onClose }: Props) {
               Imported lists are spread out at your daily goal rate, so day one
               isn&apos;t 150 reviews. Problems appear once their scheduled date
               arrives, and the goal caps what&apos;s shown each day. Raised your
-              goal? Reschedule upcoming problems from Settings. Set All Due
-              (Danger Zone) makes everything due at once.
+              goal? Reschedule upcoming problems from Settings. &ldquo;Set all
+              problems due today&rdquo; (Danger Zone) makes everything due at
+              once.
             </p>
           </div>
 

@@ -83,6 +83,28 @@ describe("DailyGoalSection", () => {
     expect(input.value).toBe("5");
   });
 
+  it("resyncs the input when the goal prop changes (steppers, cloud sync)", () => {
+    const { rerender } = render(
+      <DailyGoalSection
+        preferences={makePrefs(5)}
+        onUpdatePreferences={vi.fn()}
+        upcomingScheduleInfo={null}
+        onRequestRespread={vi.fn()}
+      />
+    );
+    const input = screen.getByLabelText<HTMLInputElement>(/daily review goal/i);
+    expect(input.value).toBe("5");
+    rerender(
+      <DailyGoalSection
+        preferences={makePrefs(6)}
+        onUpdatePreferences={vi.fn()}
+        upcomingScheduleInfo={null}
+        onRequestRespread={vi.fn()}
+      />
+    );
+    expect(input.value).toBe("6");
+  });
+
   it("steppers still adjust the goal by one", () => {
     const { onUpdatePreferences } = renderSection({ goal: 5 });
     fireEvent.click(screen.getByRole("button", { name: "+" }));

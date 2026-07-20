@@ -348,6 +348,36 @@ describe("respreadScheduledProblems", () => {
       updatedAt: now,
     });
   });
+
+  it("fills today only up to the goal when problems are already due or reviewed today", () => {
+    const dueA = makeScheduled("due-a", "2026-03-13");
+    const dueB = makeScheduled("due-b", "2026-03-01");
+    const reviewedToday = makeScheduled("rev-today", "2026-03-18", { lastReviewed: "2026-03-13" });
+    const candidates = Array.from({ length: 6 }, (_, i) =>
+      makeScheduled(`c${i}`, addDays(today, i + 1)),
+    );
+    const { problems: result } = respreadScheduledProblems(
+      [dueA, dueB, reviewedToday, ...candidates],
+      { dailyGoal: 5, today, now },
+    );
+    const byId = new Map(result.map((p) => [p.id, p]));
+    // 3 slots already used today (2 due + 1 reviewed) → only 2 candidates pulled to today
+    const candidateDates = candidates.map((c) => byId.get(c.id)!.nextReviewDate);
+    expect(candidateDates.filter((d) => d === today)).toHaveLength(2);
+    expect(candidateDates.filter((d) => d === addDays(today, 1))).toHaveLength(4);
+  });
+
+  it("is idempotent — a second run changes nothing", () => {
+    const due = Array.from({ length: 3 }, (_, i) => makeScheduled(`d${i}`, today));
+    const upcoming = Array.from({ length: 40 }, (_, i) =>
+      makeScheduled(`u${i}`, addDays(today, Math.floor(i / 3) + 1)),
+    );
+    const first = respreadScheduledProblems([...due, ...upcoming], { dailyGoal: 15, today, now });
+    expect(first.changedCount).toBeGreaterThan(0);
+    const second = respreadScheduledProblems(first.problems, { dailyGoal: 15, today, now });
+    expect(second.changedCount).toBe(0);
+    expect(second.problems).toBe(first.problems);
+  });
 });
 
 describe("mergeImportedProblems", () => {

@@ -81,10 +81,13 @@ interface RespreadScheduledOptions {
 }
 
 /**
- * Re-pace never-reviewed, future-scheduled problems at dailyGoal per day
- * starting today — the same distribution buildNewProblems applies at import.
- * Reviewed, excluded, and already-due problems are left untouched; updatedAt
- * is stamped only on rows whose date actually moves (LWW).
+ * Re-pace never-reviewed, future-scheduled problems at dailyGoal per day —
+ * the same distribution buildNewProblems applies at import. Today is only
+ * topped up to the goal (due and reviewed-today problems already consume
+ * slots), which makes the operation idempotent: re-running on an already
+ * re-paced schedule changes nothing. Reviewed, excluded, and already-due
+ * problems are left untouched; updatedAt is stamped only on rows whose date
+ * actually moves (LWW).
  */
 export function respreadScheduledProblems(
   problems: Problem[],
@@ -95,12 +98,18 @@ export function respreadScheduledProblems(
   );
   if (candidates.length === 0) return { problems, changedCount: 0 };
 
+  const slotsUsedToday = problems.filter(
+    (p) => !p.excludeFromReview && (p.nextReviewDate <= today || p.lastReviewed === today),
+  ).length;
+  const remainingToday = Math.max(0, dailyGoal - slotsUsedToday);
+
   const ordered = [...candidates].sort((a, b) =>
     a.nextReviewDate < b.nextReviewDate ? -1 : a.nextReviewDate > b.nextReviewDate ? 1 : 0,
   );
   const newDateById = new Map<string, string>();
   ordered.forEach((p, i) => {
-    newDateById.set(p.id, addDays(today, Math.floor(i / dailyGoal)));
+    const day = i < remainingToday ? 0 : Math.floor((i - remainingToday) / dailyGoal) + 1;
+    newDateById.set(p.id, addDays(today, day));
   });
 
   let changedCount = 0;
