@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
-import { rateLeetCodeReviewLocallyFirst, type LeetCodeCompletionIdentity } from "@patternbank/core";
+import { rateLeetCodeReviewLocallyFirst, todayStr, type LeetCodeCompletionIdentity } from "@patternbank/core";
 
 import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";
@@ -38,6 +38,7 @@ export default function App() {
     handleUpdatePreferences,
     handleBulkAdd,
     handleToggleExclude,
+    handleRespreadUpcoming,
     handleSetAllDue,
     handleClearAllData,
   } = useProblems({ user, showToast: ui.showToast });
@@ -62,6 +63,18 @@ export default function App() {
     () => new Set(problems.map((p) => p.leetcodeNumber).filter((n): n is number => Boolean(n))),
     [problems],
   );
+
+  // Never-reviewed problems scheduled beyond today — the imports the daily
+  // goal paced. Drives the Settings reschedule affordance; pace is display-only.
+  const upcomingScheduleInfo = useMemo(() => {
+    const today = todayStr();
+    const upcoming = problems.filter(
+      (p) => p.lastReviewed === null && !p.excludeFromReview && p.nextReviewDate > today,
+    );
+    if (upcoming.length === 0) return null;
+    const distinctDays = new Set(upcoming.map((p) => p.nextReviewDate)).size;
+    return { count: upcoming.length, currentPace: Math.ceil(upcoming.length / distinctDays) };
+  }, [problems]);
 
   const handleRateLeetCodeReview = useCallback(async (
     submissionDbId: string,
@@ -141,6 +154,18 @@ export default function App() {
         onConfirm={handleConfirmClearAllData}
         onCancel={() => ui.setClearDataConfirm(false)}
       />
+      <ConfirmDialog
+        isOpen={ui.respreadConfirm}
+        title="Reschedule upcoming problems?"
+        message={`This will re-pace ${upcomingScheduleInfo?.count ?? 0} upcoming problem${(upcomingScheduleInfo?.count ?? 0) !== 1 ? "s" : ""} at ${preferences.dailyReviewGoal} per day, starting today. Reviewed problems keep their schedule.`}
+        confirmLabel="Reschedule"
+        destructive={false}
+        onConfirm={() => {
+          handleRespreadUpcoming();
+          ui.setRespreadConfirm(false);
+        }}
+        onCancel={() => ui.setRespreadConfirm(false)}
+      />
       <SettingsModal
         isOpen={ui.settingsOpen}
         onClose={() => ui.setSettingsOpen(false)}
@@ -159,6 +184,8 @@ export default function App() {
         onSignOut={signOut}
         onSetAllDue={() => { handleSetAllDue(); ui.setSettingsOpen(false); }}
         onRequestClearData={ui.requestClearData}
+        upcomingScheduleInfo={upcomingScheduleInfo}
+        onRequestRespread={() => ui.setRespreadConfirm(true)}
       />
       <HelpModal
         isOpen={ui.helpOpen}

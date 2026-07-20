@@ -20,11 +20,13 @@ interface UseUIReturn {
   problemsInitialSort: AllProblemsSort;
   problemsInitialPatternFilter: string;
   clearDataConfirm: boolean;
+  respreadConfirm: boolean;
   v2LeetCodeIntroDismissed: boolean;
   setSettingsOpen: (open: boolean) => void;
   setHelpOpen: (open: boolean) => void;
   setDeleteTarget: (problem: Problem | null) => void;
   setClearDataConfirm: (confirm: boolean) => void;
+  setRespreadConfirm: (confirm: boolean) => void;
   showToast: (msg: string, action?: ToastState["action"], variant?: ToastState["variant"]) => void;
   hideToast: () => void;
   handleEdit: (problem: Problem) => void;
@@ -50,6 +52,7 @@ export default function useUI(): UseUIReturn {
   const [problemsInitialSort, setProblemsInitialSort] = useState<AllProblemsSort>(() => loadAllProblemsSort());
   const [problemsInitialPatternFilter, setProblemsInitialPatternFilter] = useState("all");
   const [clearDataConfirm, setClearDataConfirm] = useState(false);
+  const [respreadConfirm, setRespreadConfirm] = useState(false);
   const [v2LeetCodeIntroDismissed, setV2LeetCodeIntroDismissed] = useState(() => loadV2LeetCodeIntroDismissed());
 
   const showToast = useCallback(
@@ -129,11 +132,13 @@ export default function useUI(): UseUIReturn {
     problemsInitialSort,
     problemsInitialPatternFilter,
     clearDataConfirm,
+    respreadConfirm,
     v2LeetCodeIntroDismissed,
     setSettingsOpen,
     setHelpOpen,
     setDeleteTarget,
     setClearDataConfirm,
+    setRespreadConfirm,
     showToast,
     hideToast,
     handleEdit,

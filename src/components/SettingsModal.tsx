@@ -3,6 +3,7 @@ import useTheme from "../hooks/useTheme";
 import AccountSection from "./AccountSection";
 import MobileAppSection from "./MobileAppSection";
 import DailyGoalSection from "./DailyGoalSection";
+import type { UpcomingScheduleInfo } from "./DailyGoalSection";
 import ProblemListPicker from "./ProblemListPicker";
 import BulkAddSection from "./BulkAddSection";
 import DataSection from "./DataSection";
@@ -57,6 +58,8 @@ interface Props {
   onSignOut: () => Promise<void>;
   onSetAllDue: () => void;
   onRequestClearData: () => void;
+  upcomingScheduleInfo: UpcomingScheduleInfo | null;
+  onRequestRespread: () => void;
 }
 
 export default function SettingsModal({
@@ -77,6 +80,8 @@ export default function SettingsModal({
   onSignOut,
   onSetAllDue,
   onRequestClearData,
+  upcomingScheduleInfo,
+  onRequestRespread,
 }: Props) {
   const { theme, toggleTheme } = useTheme();
 
@@ -154,6 +159,8 @@ export default function SettingsModal({
           <DailyGoalSection
             preferences={preferences}
             onUpdatePreferences={onUpdatePreferences}
+            upcomingScheduleInfo={upcomingScheduleInfo}
+            onRequestRespread={onRequestRespread}
           />
 
           <div>

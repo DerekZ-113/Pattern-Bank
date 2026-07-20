@@ -27,7 +27,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 import type { SyncResult } from "../src/utils/sync";
 import type { Problem, Confidence, Preferences, SyncStatus } from "../src/types";
-import { addDays, todayStr } from "@patternbank/core";
+import { addDays, parseDateOnly, todayStr } from "@patternbank/core";
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -723,6 +723,178 @@ describe("useProblems", () => {
         "user-123",
         expect.arrayContaining([expect.objectContaining({ leetcodeNumber: 50 })])
       );
+    });
+
+    it("tells the user the pacing plan when an import spans multiple days", () => {
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      // 12 problems at the default goal of 5 → spread across 3 days
+      const lcProblems = Array.from({ length: 12 }, (_, i) => ({
+        n: 500 + i,
+        t: `P${i}`,
+        d: "Easy" as const,
+        s: `p-${i}`,
+      }));
+
+      act(() => {
+        result.current.handleBulkAdd(lcProblems);
+      });
+
+      const endDate = addDays(todayStr(), Math.floor((12 - 1) / 5));
+      const { year, month, day } = parseDateOnly(endDate);
+      const endLabel = new Date(year, month - 1, day).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      expect(mockShowToast).toHaveBeenCalledWith(
+        `Added 12 problems — 5/day through ${endLabel}`
+      );
+    });
+
+    it("keeps the plain toast when everything fits today", () => {
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      // 4 problems at the default goal of 5 → all due today, no pacing note
+      const lcProblems = Array.from({ length: 4 }, (_, i) => ({
+        n: 600 + i,
+        t: `Q${i}`,
+        d: "Easy" as const,
+        s: `q-${i}`,
+      }));
+
+      act(() => {
+        result.current.handleBulkAdd(lcProblems);
+      });
+
+      expect(mockShowToast).toHaveBeenCalledWith("Added 4 problems");
+    });
+  });
+
+  // ── handleRespreadUpcoming ────────────────────────────────────────────────
+
+  describe("handleRespreadUpcoming", () => {
+    it("re-paces upcoming unreviewed problems at the current daily goal", () => {
+      const today = todayStr();
+      // 10 upcoming problems paced 2/day starting tomorrow
+      const upcoming = Array.from({ length: 10 }, (_, i) =>
+        makeProblem({
+          id: `up-${i}`,
+          leetcodeNumber: 100 + i,
+          nextReviewDate: addDays(today, Math.floor(i / 2) + 1),
+        })
+      );
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue(upcoming);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleRespreadUpcoming();
+      });
+
+      // goal 5 → first 5 pulled to today, remaining 5 to tomorrow
+      const dates = result.current.problems.map((p) => p.nextReviewDate);
+      expect(dates.filter((d) => d === today)).toHaveLength(5);
+      expect(dates.filter((d) => d === addDays(today, 1))).toHaveLength(5);
+      // no review-log mutation — reviewCount stays untouched
+      expect(result.current.reviewCount).toBe(0);
+      expect(mockShowToast).toHaveBeenCalledWith("Rescheduled 10 upcoming problems at 5/day");
+    });
+
+    it("leaves due and reviewed problems untouched", () => {
+      const today = todayStr();
+      const due = makeProblem({ id: "due", leetcodeNumber: 1, nextReviewDate: "2020-01-01" });
+      const reviewed = makeProblem({
+        id: "rev",
+        leetcodeNumber: 2,
+        lastReviewed: today,
+        nextReviewDate: addDays(today, 9),
+      });
+      const candidate = makeProblem({ id: "cand", leetcodeNumber: 3, nextReviewDate: addDays(today, 4) });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([due, reviewed, candidate]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleRespreadUpcoming();
+      });
+
+      const byId = new Map(result.current.problems.map((p) => [p.id, p]));
+      expect(byId.get("due")!.nextReviewDate).toBe("2020-01-01");
+      expect(byId.get("rev")!.nextReviewDate).toBe(addDays(today, 9));
+      expect(byId.get("cand")!.nextReviewDate).toBe(today);
+      expect(mockShowToast).toHaveBeenCalledWith("Rescheduled 1 upcoming problem at 5/day");
+    });
+
+    it("pushes only the rescheduled problems to the cloud when signed in", () => {
+      const today = todayStr();
+      const due = makeProblem({ id: "due", leetcodeNumber: 1, nextReviewDate: "2020-01-01" });
+      const candidate = makeProblem({ id: "cand", leetcodeNumber: 3, nextReviewDate: addDays(today, 6) });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([due, candidate]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleRespreadUpcoming();
+      });
+
+      expect(pushProblemsToCloud).toHaveBeenCalledWith("user-123", [
+        expect.objectContaining({ id: "cand", nextReviewDate: today, updatedAt: expect.any(String) }),
+      ]);
+    });
+
+    it("is a no-op when there is nothing upcoming to reschedule", () => {
+      const due = makeProblem({ id: "due", leetcodeNumber: 1, nextReviewDate: "2020-01-01" });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([due]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleRespreadUpcoming();
+      });
+
+      expect(pushProblemsToCloud).not.toHaveBeenCalled();
+      expect(mockShowToast).not.toHaveBeenCalledWith(expect.stringMatching(/Rescheduled/));
+    });
+
+    it("re-paces at a freshly raised goal", () => {
+      const today = todayStr();
+      // 12 upcoming problems paced 2/day starting tomorrow
+      const upcoming = Array.from({ length: 12 }, (_, i) =>
+        makeProblem({
+          id: `up-${i}`,
+          leetcodeNumber: 100 + i,
+          nextReviewDate: addDays(today, Math.floor(i / 2) + 1),
+        })
+      );
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue(upcoming);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleUpdatePreferences({ dailyReviewGoal: 8 });
+      });
+      act(() => {
+        result.current.handleRespreadUpcoming();
+      });
+
+      const dates = result.current.problems.map((p) => p.nextReviewDate);
+      expect(dates.filter((d) => d === today)).toHaveLength(8);
+      expect(dates.filter((d) => d === addDays(today, 1))).toHaveLength(4);
+      expect(mockShowToast).toHaveBeenCalledWith("Rescheduled 12 upcoming problems at 8/day");
     });
   });
 
