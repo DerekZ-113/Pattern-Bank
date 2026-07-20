@@ -74,6 +74,47 @@ export function buildNewProblems(
   }));
 }
 
+interface RespreadScheduledOptions {
+  dailyGoal: number;
+  today: string;
+  now: string;
+}
+
+/**
+ * Re-pace never-reviewed, future-scheduled problems at dailyGoal per day
+ * starting today — the same distribution buildNewProblems applies at import.
+ * Reviewed, excluded, and already-due problems are left untouched; updatedAt
+ * is stamped only on rows whose date actually moves (LWW).
+ */
+export function respreadScheduledProblems(
+  problems: Problem[],
+  { dailyGoal, today, now }: RespreadScheduledOptions,
+): { problems: Problem[]; changedCount: number } {
+  const candidates = problems.filter(
+    (p) => p.lastReviewed === null && !p.excludeFromReview && p.nextReviewDate > today,
+  );
+  if (candidates.length === 0) return { problems, changedCount: 0 };
+
+  const ordered = [...candidates].sort((a, b) =>
+    a.nextReviewDate < b.nextReviewDate ? -1 : a.nextReviewDate > b.nextReviewDate ? 1 : 0,
+  );
+  const newDateById = new Map<string, string>();
+  ordered.forEach((p, i) => {
+    newDateById.set(p.id, addDays(today, Math.floor(i / dailyGoal)));
+  });
+
+  let changedCount = 0;
+  const respread = problems.map((p) => {
+    const newDate = newDateById.get(p.id);
+    if (newDate === undefined || newDate === p.nextReviewDate) return p;
+    changedCount++;
+    return { ...p, nextReviewDate: newDate, updatedAt: now };
+  });
+  return changedCount === 0
+    ? { problems, changedCount: 0 }
+    : { problems: respread, changedCount };
+}
+
 /**
  * Deduplicate problems by leetcodeNumber, keeping the entry with the most recent updatedAt.
  * Problems without a leetcodeNumber are always kept.

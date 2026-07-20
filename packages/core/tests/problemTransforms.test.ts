@@ -3,11 +3,13 @@ import {
   filterExistingProblems,
   interleaveByDifficulty,
   buildNewProblems,
+  respreadScheduledProblems,
   mergeImportedProblems,
   computeReviewProgress,
   buildReviewedProblem,
   computeNextReviewDate,
 } from "../src/problemTransforms";
+import { addDays } from "../src/dateHelpers";
 import type { Confidence, LeetCodeProblem, Problem } from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
@@ -208,6 +210,143 @@ describe("buildNewProblems", () => {
       patternMap,
     });
     expect(result[0].patterns).toEqual(["Hash Table", "Two Pointers"]);
+  });
+});
+
+describe("respreadScheduledProblems", () => {
+  const today = "2026-03-13";
+  const now = "2026-03-13T12:00:00.000Z";
+
+  function makeScheduled(id: string, nextReviewDate: string, overrides: Partial<Problem> = {}): Problem {
+    return makeProblem({
+      id,
+      leetcodeNumber: null,
+      lastReviewed: null,
+      nextReviewDate,
+      updatedAt: "2026-03-01T00:00:00.000Z",
+      ...overrides,
+    });
+  }
+
+  it("re-paces future-scheduled unreviewed problems at dailyGoal per day from today", () => {
+    const problems = [
+      makeScheduled("a", "2026-03-14"),
+      makeScheduled("b", "2026-03-14"),
+      makeScheduled("c", "2026-03-15"),
+      makeScheduled("d", "2026-03-15"),
+      makeScheduled("e", "2026-03-16"),
+      makeScheduled("f", "2026-03-16"),
+    ];
+    const { problems: result, changedCount } = respreadScheduledProblems(problems, {
+      dailyGoal: 4,
+      today,
+      now,
+    });
+    // 6 candidates at 4/day: first 4 pulled to today, remaining 2 to tomorrow
+    expect(result.map((p) => p.nextReviewDate)).toEqual([
+      "2026-03-13", "2026-03-13", "2026-03-13", "2026-03-13",
+      "2026-03-14", "2026-03-14",
+    ]);
+    expect(changedCount).toBe(6);
+  });
+
+  it("orders the re-spread by current nextReviewDate, not array position", () => {
+    const problems = [
+      makeScheduled("late", "2026-03-20"),
+      makeScheduled("soon", "2026-03-14"),
+    ];
+    const { problems: result } = respreadScheduledProblems(problems, { dailyGoal: 1, today, now });
+    const byId = new Map(result.map((p) => [p.id, p]));
+    expect(byId.get("soon")!.nextReviewDate).toBe("2026-03-13");
+    expect(byId.get("late")!.nextReviewDate).toBe("2026-03-14");
+  });
+
+  it("leaves reviewed, excluded, and already-due problems untouched", () => {
+    const reviewed = makeScheduled("reviewed", "2026-03-20", { lastReviewed: "2026-03-10" });
+    const excluded = makeScheduled("excluded", "2026-03-20", { excludeFromReview: true });
+    const dueToday = makeScheduled("due-today", "2026-03-13");
+    const overdue = makeScheduled("overdue", "2026-03-01");
+    const candidate = makeScheduled("candidate", "2026-03-20");
+    const { problems: result, changedCount } = respreadScheduledProblems(
+      [reviewed, excluded, dueToday, overdue, candidate],
+      { dailyGoal: 5, today, now },
+    );
+    expect(result[0]).toBe(reviewed);
+    expect(result[1]).toBe(excluded);
+    expect(result[2]).toBe(dueToday);
+    expect(result[3]).toBe(overdue);
+    expect(result[4].nextReviewDate).toBe("2026-03-13");
+    expect(changedCount).toBe(1);
+  });
+
+  it("stamps updatedAt only on changed rows and keeps unchanged rows identical", () => {
+    const x = makeScheduled("x", "2026-03-14");
+    const y = makeScheduled("y", "2026-03-14");
+    const { problems: result, changedCount } = respreadScheduledProblems([x, y], {
+      dailyGoal: 1,
+      today,
+      now,
+    });
+    expect(changedCount).toBe(1);
+    expect(result[0].nextReviewDate).toBe("2026-03-13");
+    expect(result[0].updatedAt).toBe(now);
+    // y's assigned slot equals its current date — no rewrite, no LWW churn
+    expect(result[1]).toBe(y);
+    expect(result[1].updatedAt).toBe("2026-03-01T00:00:00.000Z");
+  });
+
+  it("returns the input array unchanged when there are no candidates", () => {
+    const input = [
+      makeScheduled("r", "2026-03-20", { lastReviewed: "2026-03-12" }),
+      makeScheduled("d", "2026-03-13"),
+    ];
+    const { problems: result, changedCount } = respreadScheduledProblems(input, {
+      dailyGoal: 3,
+      today,
+      now,
+    });
+    expect(result).toBe(input);
+    expect(changedCount).toBe(0);
+  });
+
+  it("handles dailyGoal of 1 — one problem per day", () => {
+    const problems = [
+      makeScheduled("a", "2026-03-14"),
+      makeScheduled("b", "2026-03-15"),
+      makeScheduled("c", "2026-03-16"),
+    ];
+    const { problems: result } = respreadScheduledProblems(problems, { dailyGoal: 1, today, now });
+    expect(result.map((p) => p.nextReviewDate)).toEqual([
+      "2026-03-13", "2026-03-14", "2026-03-15",
+    ]);
+  });
+
+  it("re-paces a staggered import at a higher goal (goal 3 → 15 shape)", () => {
+    const problems = Array.from({ length: 30 }, (_, i) =>
+      makeScheduled(`p${i}`, addDays(today, Math.floor(i / 3) + 1)),
+    );
+    const { problems: result, changedCount } = respreadScheduledProblems(problems, {
+      dailyGoal: 15,
+      today,
+      now,
+    });
+    expect(result.filter((p) => p.nextReviewDate === "2026-03-13")).toHaveLength(15);
+    expect(result.filter((p) => p.nextReviewDate === "2026-03-14")).toHaveLength(15);
+    expect(changedCount).toBe(30);
+  });
+
+  it("does not mutate the input and preserves other fields on changed rows", () => {
+    const original = makeScheduled("a", "2026-03-20", { notes: "keep me", confidence: 2 as Confidence });
+    const copy = { ...original };
+    const { problems: result } = respreadScheduledProblems([original], { dailyGoal: 3, today, now });
+    expect(original).toEqual(copy);
+    expect(result[0]).toMatchObject({
+      id: "a",
+      notes: "keep me",
+      confidence: 2,
+      nextReviewDate: "2026-03-13",
+      updatedAt: now,
+    });
   });
 });
 
