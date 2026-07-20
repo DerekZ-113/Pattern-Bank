@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { User } from "@supabase/supabase-js";
-import { todayStr, addDays, timestampMs, reviewEventsMatch } from "@patternbank/core";
+import { todayStr, addDays, parseDateOnly, timestampMs, reviewEventsMatch } from "@patternbank/core";
 import { getIntervalDays, getReviewIntervalDays } from "@patternbank/core";
 import {
   loadProblems,
@@ -26,6 +26,7 @@ import {
   filterExistingProblems,
   interleaveByDifficulty,
   buildNewProblems,
+  respreadScheduledProblems,
   mergeImportedProblems,
   computeReviewProgress,
   buildReviewedProblem,
@@ -71,8 +72,17 @@ interface UseProblemsReturn {
   handleUpdatePreferences: (updates: Partial<Preferences>) => void;
   handleBulkAdd: (lcProblems: LeetCodeProblem[], patternMap?: Map<number, string[]> | null) => void;
   handleToggleExclude: (problemId: string) => void;
+  handleRespreadUpcoming: () => void;
   handleSetAllDue: () => void;
   handleClearAllData: () => Promise<void>;
+}
+
+function formatShortDate(dateStr: string): string {
+  const { year, month, day } = parseDateOnly(dateStr);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function dataResetTime(reset: DataReset | null | undefined): number {
@@ -387,11 +397,13 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
       return;
     }
 
+    const today = todayStr();
+    const dailyGoal = preferences.dailyReviewGoal;
     const interleaved = interleaveByDifficulty(newLc);
     const built = buildNewProblems(interleaved, {
-      today: todayStr(),
+      today,
       now: new Date().toISOString(),
-      dailyGoal: preferences.dailyReviewGoal,
+      dailyGoal,
       patternMap,
     });
 
@@ -401,9 +413,12 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
       pushProblemsToCloud(user.id, built);
     }
 
-    const msg = skippedCount > 0
-      ? `Added ${newLc.length} problems (${skippedCount} already existed)`
-      : `Added ${newLc.length} problems`;
+    // Surface the import stagger upfront so a spread-out schedule reads as
+    // planned pacing, not missing problems.
+    const endDate = addDays(today, Math.floor((newLc.length - 1) / dailyGoal));
+    const pacing = endDate !== today ? ` — ${dailyGoal}/day through ${formatShortDate(endDate)}` : "";
+    const base = `Added ${newLc.length} problem${newLc.length !== 1 ? "s" : ""}${pacing}`;
+    const msg = skippedCount > 0 ? `${base} (${skippedCount} already existed)` : base;
     posthog.capture("bulk_import", { count: newLc.length, had_pattern_map: !!patternMap, platform: "web" });
     showToast(msg);
   }, [problems, preferences.dailyReviewGoal, user, showToast]);
@@ -422,6 +437,28 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
       pushProblemToCloud(user.id, { ...problem, excludeFromReview: !problem.excludeFromReview, updatedAt: now });
     }
   }, [user]);
+
+  const handleRespreadUpcoming = useCallback(() => {
+    const before = problemsRef.current;
+    const { problems: respread, changedCount } = respreadScheduledProblems(before, {
+      dailyGoal: preferences.dailyReviewGoal,
+      today: todayStr(),
+      now: new Date().toISOString(),
+    });
+    if (changedCount === 0) return;
+    setProblems(respread);
+    if (user) {
+      pushProblemsToCloud(user.id, respread.filter((p, i) => p !== before[i]));
+    }
+    posthog.capture("respread_upcoming", {
+      changed: changedCount,
+      daily_goal: preferences.dailyReviewGoal,
+      platform: "web",
+    });
+    showToast(
+      `Rescheduled ${changedCount} upcoming problem${changedCount !== 1 ? "s" : ""} at ${preferences.dailyReviewGoal}/day`
+    );
+  }, [preferences.dailyReviewGoal, user, showToast]);
 
   const handleSetAllDue = useCallback(() => {
     const today = todayStr();
@@ -466,6 +503,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     handleUpdatePreferences,
     handleBulkAdd,
     handleToggleExclude,
+    handleRespreadUpcoming,
     handleSetAllDue,
     handleClearAllData,
   };

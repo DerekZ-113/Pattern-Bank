@@ -302,9 +302,13 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
         <div className="flex items-stretch max-lg:flex-col">
           <aside className="flex w-[280px] shrink-0 flex-col max-lg:w-full">
             <div className="pr-[18px] pb-[18px] max-lg:pr-0">
-              <div className="mb-3.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5e5e6e]">
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5e5e6e]">
                 INPUTS
               </div>
+              <p className="mb-3.5 text-[11px] leading-relaxed text-[#5e5e6e]">
+                Simulation inputs — daily pace defaults to your recent activity,
+                not your Settings goal.
+              </p>
               <div className="flex flex-col gap-4">
                 <SliderControl
                   id="projection-daily-reviews"
@@ -612,7 +616,7 @@ function SliderControl({
       />
       {isDefault && (
         <span className="mt-2 inline-flex rounded-full border border-[#7c6bf5]/30 bg-[#1c1838] px-2.5 py-1 text-[10px] font-semibold leading-none text-[#b6abff]">
-          your pace
+          your recent pace
         </span>
       )}
     </div>

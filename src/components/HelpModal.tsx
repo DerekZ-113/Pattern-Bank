@@ -22,7 +22,7 @@ export default function HelpModal({ isOpen, onClose }: Props) {
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-[360px] rounded-[14px] border border-pb-border bg-pb-surface">
+      <div className="max-h-[90vh] w-full max-w-[360px] overflow-y-auto rounded-[14px] border border-pb-border bg-pb-surface">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-pb-border px-6 py-4">
           <h2 className="text-base font-semibold text-pb-text">Help</h2>
@@ -76,6 +76,21 @@ export default function HelpModal({ isOpen, onClose }: Props) {
             <p className="text-[13px] leading-relaxed text-pb-text-muted">
               Reviews are ordered by confidence (lowest first), then by how overdue they are.
               A daily random tiebreaker ensures variety.
+            </p>
+          </div>
+
+          {/* How Scheduling Works */}
+          <div className="border-t border-pb-border pt-5">
+            <h3 className="mb-1 text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+              How Scheduling Works
+            </h3>
+            <p className="text-[13px] leading-relaxed text-pb-text-muted">
+              Imported lists are spread out at your daily goal rate, so day one
+              isn&apos;t 150 reviews. Problems appear once their scheduled date
+              arrives, and the goal caps what&apos;s shown each day. Raised your
+              goal? Reschedule upcoming problems from Settings. &ldquo;Set all
+              problems due today&rdquo; (Danger Zone) makes everything due at
+              once.
             </p>
           </div>
 
