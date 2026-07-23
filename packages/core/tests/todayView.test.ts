@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   buildDoneTodayFeedItems,
+  buildEarlierLeetCodeActivity,
   buildRemovedTodayLeetCodeItems,
   buildSolvedOnLeetCodeTodayIndex,
   buildTodayActivityFeedItems,
   buildTodayLeetCodeItemKey,
   buildTodayReviewState,
 } from "../src/todayView";
+import { addDays, utcToLocalDateStr } from "../src/dateHelpers";
 import type { LeetCodeSubmission, Problem, ReviewEvent, TodayLeetCodeItem } from "../src/types";
 
 function makeProblem(overrides: Partial<Problem> = {}): Problem {
@@ -423,5 +425,176 @@ describe("buildRemovedTodayLeetCodeItems", () => {
       key: buildTodayLeetCodeItemKey(removed),
       item: removed,
     }]);
+  });
+});
+
+describe("buildEarlierLeetCodeActivity", () => {
+  // TZ-robust anchors: derive local dates from timestamps instead of
+  // hardcoding pairs, so the suite passes in any timezone.
+  const yesterdayTs = "2026-05-13T15:30:00.000Z";
+  const yesterday = utcToLocalDateStr(yesterdayTs)!;
+  const today = addDays(yesterday, 1);
+
+  function build(overrides: {
+    submissions?: LeetCodeSubmission[];
+    problems?: Problem[];
+    reviewEvents?: ReviewEvent[];
+    days?: number;
+  } = {}) {
+    return buildEarlierLeetCodeActivity({
+      submissions: overrides.submissions ?? [],
+      problems: overrides.problems ?? [],
+      reviewEvents: overrides.reviewEvents ?? [],
+      today,
+      days: overrides.days,
+    });
+  }
+
+  it("returns an empty list for no submissions", () => {
+    expect(build()).toEqual([]);
+  });
+
+  it("excludes today's submissions and includes yesterday's", () => {
+    const todayTs = `${today}T12:00:00.000Z`;
+    const result = build({
+      submissions: [
+        makeSubmission({ id: "s-today", submittedAt: todayTs }),
+        makeSubmission({ id: "s-yesterday", submittedAt: yesterdayTs }),
+      ],
+      problems: [makeProblem()],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].date).toBe(yesterday);
+    expect(result[0].rows.map((r) => r.id)).toEqual(["s-yesterday"]);
+  });
+
+  it("applies the window edges: -days included, -days-1 excluded", () => {
+    const edgeDate = addDays(today, -7);
+    const outsideDate = addDays(today, -8);
+    const result = build({
+      submissions: [
+        makeSubmission({ id: "edge", submittedAt: `${edgeDate}T12:00:00.000Z` }),
+        makeSubmission({ id: "outside", titleSlug: "other", submittedAt: `${outsideDate}T12:00:00.000Z` }),
+      ],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].date).toBe(edgeDate);
+    expect(result[0].rows[0].id).toBe("edge");
+  });
+
+  it("collapses same-day duplicates of a slug, keeping the latest submission", () => {
+    const result = build({
+      submissions: [
+        makeSubmission({ id: "early", submittedAt: "2026-05-13T10:00:00.000Z" }),
+        makeSubmission({ id: "late", submittedAt: yesterdayTs }),
+      ],
+    });
+
+    expect(result[0].rows).toHaveLength(1);
+    expect(result[0].rows[0].id).toBe("late");
+    expect(result[0].rows[0].submittedAt).toBe(yesterdayTs);
+  });
+
+  it("keeps the same slug on different days as separate rows", () => {
+    const twoDaysAgoTs = "2026-05-12T15:30:00.000Z";
+    const twoDaysAgo = utcToLocalDateStr(twoDaysAgoTs)!;
+    const result = build({
+      submissions: [
+        makeSubmission({ id: "d1", submittedAt: yesterdayTs }),
+        makeSubmission({ id: "d2", submittedAt: twoDaysAgoTs }),
+      ],
+    });
+
+    expect(result.map((d) => d.date)).toEqual([yesterday, twoDaysAgo]);
+    expect(result[0].rows[0].id).toBe("d1");
+    expect(result[1].rows[0].id).toBe("d2");
+  });
+
+  it("joins review-event stars for the row's local day, latest event winning", () => {
+    const result = build({
+      submissions: [makeSubmission({ submittedAt: yesterdayTs })],
+      problems: [makeProblem()],
+      reviewEvents: [
+        makeReviewEvent({ date: yesterday, confidence: 2, timestamp: "2026-05-13T16:00:00.000Z" }),
+        makeReviewEvent({ date: yesterday, confidence: 5, timestamp: "2026-05-13T18:00:00.000Z" }),
+        makeReviewEvent({ date: today, confidence: 1, timestamp: `${today}T10:00:00.000Z` }),
+      ],
+    });
+
+    expect(result[0].rows[0].confidence).toBe(5);
+  });
+
+  it("coerces out-of-range confidences and ignores adjacent-day events", () => {
+    const result = build({
+      submissions: [makeSubmission({ submittedAt: yesterdayTs })],
+      problems: [makeProblem()],
+      reviewEvents: [
+        makeReviewEvent({ date: yesterday, confidence: 7 as ReviewEvent["confidence"], timestamp: "2026-05-13T16:00:00.000Z" }),
+      ],
+    });
+
+    // coerceConfidence falls back to 1 for out-of-range values (existing core semantic).
+    expect(result[0].rows[0].confidence).toBe(1);
+  });
+
+  it("matches problems by leetcodeNumber when problemId is missing", () => {
+    const result = build({
+      submissions: [makeSubmission({ submittedAt: yesterdayTs, problemId: null, leetcodeNumber: 1 })],
+      problems: [makeProblem({ id: "lib-1", title: "Library Title", difficulty: "Hard" })],
+      reviewEvents: [
+        makeReviewEvent({ problemId: "lib-1", date: yesterday, confidence: 4, timestamp: "2026-05-13T16:00:00.000Z" }),
+      ],
+    });
+
+    expect(result[0].rows[0].problemId).toBe("lib-1");
+    expect(result[0].rows[0].title).toBe("Library Title");
+    expect(result[0].rows[0].difficulty).toBe("Hard");
+    expect(result[0].rows[0].confidence).toBe(4);
+  });
+
+  it("falls back to submission fields for problems not in the library", () => {
+    const result = build({
+      submissions: [
+        makeSubmission({
+          submittedAt: yesterdayTs,
+          problemId: "deleted-id",
+          leetcodeNumber: null,
+          difficulty: null,
+          title: "Gone Problem",
+        }),
+      ],
+      problems: [],
+    });
+
+    const row = result[0].rows[0];
+    expect(row.problemId).toBeNull();
+    expect(row.confidence).toBeNull();
+    expect(row.title).toBe("Gone Problem");
+    expect(row.leetcodeNumber).toBeNull();
+    expect(row.difficulty).toBeNull();
+  });
+
+  it("excludes ignored submissions", () => {
+    const result = build({
+      submissions: [makeSubmission({ submittedAt: yesterdayTs, status: "ignored" })],
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it("orders days descending and rows within a day descending", () => {
+    const twoDaysAgoTs = "2026-05-12T15:30:00.000Z";
+    const result = build({
+      submissions: [
+        makeSubmission({ id: "old-day", titleSlug: "a", submittedAt: twoDaysAgoTs }),
+        makeSubmission({ id: "y-early", titleSlug: "b", submittedAt: "2026-05-13T10:00:00.000Z" }),
+        makeSubmission({ id: "y-late", titleSlug: "c", submittedAt: yesterdayTs }),
+      ],
+    });
+
+    expect(result.map((d) => d.date)).toEqual([yesterday, utcToLocalDateStr(twoDaysAgoTs)!]);
+    expect(result[0].rows.map((r) => r.id)).toEqual(["y-late", "y-early"]);
   });
 });

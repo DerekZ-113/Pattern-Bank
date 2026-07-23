@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { addDays, utcToLocalDateStr } from "@patternbank/core";
 import TodayView from "../src/components/TodayView";
 import type {
   Confidence,
@@ -117,6 +118,7 @@ function renderTodayView(overrides: {
   leetcodeIntroSignedIn?: boolean;
   onOpenLeetCodeSettings?: () => void;
   onDismissLeetCodeIntro?: () => void;
+  today?: string;
 } = {}) {
   return render(
     <TodayView
@@ -141,7 +143,7 @@ function renderTodayView(overrides: {
       leetcodeIntroSignedIn={overrides.leetcodeIntroSignedIn}
       onOpenLeetCodeSettings={overrides.onOpenLeetCodeSettings}
       onDismissLeetCodeIntro={overrides.onDismissLeetCodeIntro}
-      today="2026-05-14"
+      today={overrides.today ?? "2026-05-14"}
     />,
   );
 }
@@ -870,5 +872,58 @@ describe("TodayView", () => {
 
     expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 4);
     expect((rateButton as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe("TodayView earlier LeetCode activity", () => {
+  // Derive the local date from the timestamp so the suite is TZ-robust.
+  const yesterdayTs = "2026-05-13T15:30:00.000Z";
+  const yesterday = utcToLocalDateStr(yesterdayTs)!;
+  const todayProp = addDays(yesterday, 1);
+
+  it("does not render the section for today-only submissions", () => {
+    renderTodayView({ leetcodeSubmissions: [makeSubmission()] });
+
+    expect(screen.queryByText("Earlier LeetCode activity")).toBeNull();
+  });
+
+  it("renders a collapsed section for an earlier submission and expands it", () => {
+    renderTodayView({
+      today: todayProp,
+      problems: [makeProblem({ nextReviewDate: todayProp })],
+      leetcodeSubmissions: [makeSubmission({ submittedAt: yesterdayTs })],
+    });
+
+    expect(screen.getByText("Earlier LeetCode activity")).toBeTruthy();
+    const doneSection = screen.queryByText("Done today");
+    expect(doneSection).toBeNull();
+
+    const toggle = screen.getByRole("button", { name: "Show" });
+    fireEvent.click(toggle);
+    const panel = document.getElementById("today-earlier-leetcode-panel")!;
+    expect(within(panel as HTMLElement).getByText("Two Sum")).toBeTruthy();
+  });
+
+  it("shows stars when a review event exists for that local day", () => {
+    renderTodayView({
+      today: todayProp,
+      problems: [makeProblem({ nextReviewDate: todayProp })],
+      reviewEvents: [
+        makeReviewEvent({ date: yesterday, confidence: 4, timestamp: "2026-05-13T16:00:00.000Z" }),
+      ],
+      leetcodeSubmissions: [makeSubmission({ submittedAt: yesterdayTs })],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    expect(screen.getByText("4★")).toBeTruthy();
+  });
+
+  it("hides the section when the only earlier submissions are ignored", () => {
+    renderTodayView({
+      today: todayProp,
+      leetcodeSubmissions: [makeSubmission({ submittedAt: yesterdayTs, status: "ignored" })],
+    });
+
+    expect(screen.queryByText("Earlier LeetCode activity")).toBeNull();
   });
 });

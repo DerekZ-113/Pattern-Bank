@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import CollapsingListItem from "./CollapsingListItem";
 import TodayDoneFeed from "./TodayDoneFeed";
+import TodayEarlierLeetCodeActivity from "./TodayEarlierLeetCodeActivity";
 import TodayFirstRunLaunchpad from "./TodayFirstRunLaunchpad";
 import TodayLeetCodeIntroCard from "./TodayLeetCodeIntroCard";
 import TodayLeetCodeCard from "./TodayLeetCodeCard";
@@ -8,6 +9,7 @@ import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
 import { formatDisplayDate, todayStr, utcToLocalDateStr } from "@patternbank/core";
 import {
+  buildEarlierLeetCodeActivity,
   buildSolvedOnLeetCodeTodayIndex,
   buildTodayActivityFeedItems,
   buildTodayLeetCodeItemKey,
@@ -91,6 +93,12 @@ export default function TodayView({
     today,
   });
   const solvedOnLeetCodeToday = buildSolvedOnLeetCodeTodayIndex(leetcodeSubmissions, today);
+  const earlierLeetCodeDays = buildEarlierLeetCodeActivity({
+    submissions: leetcodeSubmissions,
+    problems,
+    reviewEvents,
+    today,
+  });
   const leetcodeSectionItems = useMemo<TodayLeetCodeItem[]>(
     () => todayLeetCodeItems ?? pendingLeetCodeImports.map((item) => ({
       ...item,
@@ -297,6 +305,8 @@ export default function TodayView({
               />
             </section>
           )}
+
+          <TodayEarlierLeetCodeActivity days={earlierLeetCodeDays} />
         </>
       )}
     </main>
