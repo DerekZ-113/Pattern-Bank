@@ -3,7 +3,13 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { addDays, utcToLocalDateStr } from "@patternbank/core";
+import posthog from "posthog-js";
 import TodayView from "../src/components/TodayView";
+import { WHATS_NEW } from "../src/utils/whatsNew";
+
+vi.mock("posthog-js", () => ({
+  default: { capture: vi.fn() },
+}));
 import type {
   Confidence,
   LeetCodeProblem,
@@ -114,10 +120,11 @@ function renderTodayView(overrides: {
     confidence: Confidence,
     source?: TodayLeetCodeItem,
   ) => void | Promise<void>;
-  showLeetCodeIntro?: boolean;
-  leetcodeIntroSignedIn?: boolean;
+  showWhatsNew?: boolean;
+  showWhatsNewLeetCodeCta?: boolean;
+  signedIn?: boolean;
   onOpenLeetCodeSettings?: () => void;
-  onDismissLeetCodeIntro?: () => void;
+  onDismissWhatsNew?: () => void;
   onEditProblem?: (problem: Problem) => void;
   today?: string;
 } = {}) {
@@ -140,10 +147,11 @@ function renderTodayView(overrides: {
       onIgnoreLeetCodeImport={overrides.onIgnoreLeetCodeImport ?? vi.fn()}
       leetcodeSubmissions={overrides.leetcodeSubmissions ?? []}
       onRateLeetCodeReview={overrides.onRateLeetCodeReview ?? vi.fn()}
-      showLeetCodeIntro={overrides.showLeetCodeIntro}
-      leetcodeIntroSignedIn={overrides.leetcodeIntroSignedIn}
+      showWhatsNew={overrides.showWhatsNew}
+      showWhatsNewLeetCodeCta={overrides.showWhatsNewLeetCodeCta ?? true}
+      signedIn={overrides.signedIn}
       onOpenLeetCodeSettings={overrides.onOpenLeetCodeSettings}
-      onDismissLeetCodeIntro={overrides.onDismissLeetCodeIntro}
+      onDismissWhatsNew={overrides.onDismissWhatsNew}
       onEditProblem={overrides.onEditProblem}
       today={overrides.today ?? "2026-05-14"}
     />,
@@ -165,39 +173,63 @@ describe("TodayView", () => {
     expect(screen.getByText("Thursday, May 14")).toBeTruthy();
   });
 
-  it("renders the V2 LeetCode intro card when requested", () => {
+  it("renders the What's New banner with the release title and every bullet", () => {
     const onOpen = vi.fn();
     const onDismiss = vi.fn();
+    vi.mocked(posthog.capture).mockClear();
     renderTodayView({
-      showLeetCodeIntro: true,
-      leetcodeIntroSignedIn: false,
+      showWhatsNew: true,
+      signedIn: false,
       onOpenLeetCodeSettings: onOpen,
-      onDismissLeetCodeIntro: onDismiss,
+      onDismissWhatsNew: onDismiss,
     });
 
-    expect(screen.getByText("New in V2: LeetCode Activity")).toBeTruthy();
-    expect(screen.getByText("Add your public LeetCode username to automatically track accepted solves and rate them in PatternBank.")).toBeTruthy();
+    expect(screen.getByText(WHATS_NEW.title)).toBeTruthy();
+    for (const bullet of WHATS_NEW.bullets) {
+      expect(screen.getByText(bullet)).toBeTruthy();
+    }
 
     fireEvent.click(screen.getByRole("button", { name: "Sign in to set up LeetCode" }));
     expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(posthog.capture).toHaveBeenCalledWith("whats_new_cta_clicked", {
+      release_id: WHATS_NEW.id,
+      signed_in: false,
+      platform: "web",
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: "Close V2 LeetCode Activity intro" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss what's new" }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(posthog.capture).toHaveBeenCalledWith("whats_new_dismissed", {
+      release_id: WHATS_NEW.id,
+      platform: "web",
+    });
   });
 
-  it("uses signed-in CTA copy for the V2 LeetCode intro", () => {
+  it("uses signed-in CTA copy for the What's New banner", () => {
     renderTodayView({
-      showLeetCodeIntro: true,
-      leetcodeIntroSignedIn: true,
+      showWhatsNew: true,
+      signedIn: true,
     });
 
     expect(screen.getByRole("button", { name: "Set up LeetCode Activity" })).toBeTruthy();
   });
 
-  it("hides the V2 LeetCode intro card when not requested", () => {
-    renderTodayView({ showLeetCodeIntro: false });
+  it("omits the LeetCode CTA for connected users", () => {
+    renderTodayView({
+      showWhatsNew: true,
+      showWhatsNewLeetCodeCta: false,
+      signedIn: true,
+    });
 
-    expect(screen.queryByText("New in V2: LeetCode Activity")).toBeNull();
+    expect(screen.getByText(WHATS_NEW.title)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Set up LeetCode Activity" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sign in to set up LeetCode" })).toBeNull();
+  });
+
+  it("hides the What's New banner when not requested", () => {
+    renderTodayView({ showWhatsNew: false });
+
+    expect(screen.queryByText(WHATS_NEW.title)).toBeNull();
   });
 
   it("renders real due problems in Reviews due", () => {
@@ -277,8 +309,8 @@ describe("TodayView", () => {
     const onAddClick = vi.fn();
     renderTodayView({
       problems: [],
-      showLeetCodeIntro: true,
-      leetcodeIntroSignedIn: false,
+      showWhatsNew: true,
+      signedIn: false,
       onOpenLeetCodeSettings: onOpen,
       onAddClick,
     });
@@ -292,7 +324,7 @@ describe("TodayView", () => {
     expect(screen.getByText("#1")).toBeTruthy();
     expect(screen.getByText("Rate confidence")).toBeTruthy();
     expect(screen.getByText("Select a list...")).toBeTruthy();
-    expect(screen.queryByText("New in V2: LeetCode Activity")).toBeNull();
+    expect(screen.queryByText(WHATS_NEW.title)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Sign in to set up LeetCode" }));
     expect(onOpen).toHaveBeenCalledTimes(1);
@@ -304,7 +336,7 @@ describe("TodayView", () => {
   it("uses signed-in CTA copy in the first-run launchpad", () => {
     renderTodayView({
       problems: [],
-      leetcodeIntroSignedIn: true,
+      signedIn: true,
     });
 
     expect(screen.getByRole("button", { name: "Set up LeetCode Activity" })).toBeTruthy();

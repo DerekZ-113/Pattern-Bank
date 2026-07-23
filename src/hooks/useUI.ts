@@ -3,10 +3,11 @@ import type { ActiveTab, Problem, ToastState } from "../types";
 import {
   DEFAULT_ALL_PROBLEMS_SORT,
   loadAllProblemsSort,
-  loadV2LeetCodeIntroDismissed,
+  loadWhatsNewDismissedId,
   saveAllProblemsSort,
-  saveV2LeetCodeIntroDismissed,
+  saveWhatsNewDismissedId,
 } from "../utils/uiState";
+import { WHATS_NEW } from "../utils/whatsNew";
 import type { AllProblemsSort } from "../utils/uiState";
 
 interface UseUIReturn {
@@ -21,7 +22,7 @@ interface UseUIReturn {
   problemsInitialPatternFilter: string;
   clearDataConfirm: boolean;
   respreadConfirm: boolean;
-  v2LeetCodeIntroDismissed: boolean;
+  whatsNewDismissed: boolean;
   setSettingsOpen: (open: boolean) => void;
   setHelpOpen: (open: boolean) => void;
   setDeleteTarget: (problem: Problem | null) => void;
@@ -38,7 +39,7 @@ interface UseUIReturn {
   openAddModal: () => void;
   closeModal: () => void;
   requestClearData: () => void;
-  dismissV2LeetCodeIntro: () => void;
+  dismissWhatsNew: () => void;
 }
 
 export default function useUI(): UseUIReturn {
@@ -53,7 +54,7 @@ export default function useUI(): UseUIReturn {
   const [problemsInitialPatternFilter, setProblemsInitialPatternFilter] = useState("all");
   const [clearDataConfirm, setClearDataConfirm] = useState(false);
   const [respreadConfirm, setRespreadConfirm] = useState(false);
-  const [v2LeetCodeIntroDismissed, setV2LeetCodeIntroDismissed] = useState(() => loadV2LeetCodeIntroDismissed());
+  const [whatsNewDismissedId, setWhatsNewDismissedId] = useState<string | null>(() => loadWhatsNewDismissedId());
 
   const showToast = useCallback(
     (msg: string, action?: ToastState["action"], variant: ToastState["variant"] = "success") =>
@@ -116,9 +117,9 @@ export default function useUI(): UseUIReturn {
     setClearDataConfirm(true);
   }, []);
 
-  const dismissV2LeetCodeIntro = useCallback(() => {
-    setV2LeetCodeIntroDismissed(true);
-    saveV2LeetCodeIntroDismissed(true);
+  const dismissWhatsNew = useCallback(() => {
+    setWhatsNewDismissedId(WHATS_NEW.id);
+    saveWhatsNewDismissedId(WHATS_NEW.id);
   }, []);
 
   return {
@@ -133,7 +134,7 @@ export default function useUI(): UseUIReturn {
     problemsInitialPatternFilter,
     clearDataConfirm,
     respreadConfirm,
-    v2LeetCodeIntroDismissed,
+    whatsNewDismissed: whatsNewDismissedId === WHATS_NEW.id,
     setSettingsOpen,
     setHelpOpen,
     setDeleteTarget,
@@ -150,6 +151,6 @@ export default function useUI(): UseUIReturn {
     openAddModal,
     closeModal,
     requestClearData,
-    dismissV2LeetCodeIntro,
+    dismissWhatsNew,
   };
 }

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { renderHook, act } from "@testing-library/react";
 import useUI from "../src/hooks/useUI";
+import { WHATS_NEW } from "../src/utils/whatsNew";
 import type { Problem } from "../src/types";
 
 const mockProblem: Problem = {
@@ -52,9 +53,9 @@ describe("useUI", () => {
       expect(result.current.problemsInitialPatternFilter).toBe("all");
     });
 
-    it("starts with the V2 LeetCode intro visible when not dismissed", () => {
+    it("starts with the What's New banner undismissed", () => {
       const { result } = renderHook(() => useUI());
-      expect(result.current.v2LeetCodeIntroDismissed).toBe(false);
+      expect(result.current.whatsNewDismissed).toBe(false);
     });
 
     it("loads a persisted problem sort", () => {
@@ -73,20 +74,28 @@ describe("useUI", () => {
       expect(result.current.problemsInitialSort).toBe("leetcodeNumber");
     });
 
-    it("loads a dismissed V2 LeetCode intro flag", () => {
+    it("treats a stored dismissal matching the current release as dismissed", () => {
+      localStorage.setItem("patternbank-whatsnew-dismissed", WHATS_NEW.id);
+
+      const { result } = renderHook(() => useUI());
+
+      expect(result.current.whatsNewDismissed).toBe(true);
+    });
+
+    it("re-shows the banner when the stored dismissal is from an older release", () => {
+      localStorage.setItem("patternbank-whatsnew-dismissed", "2020-01-01");
+
+      const { result } = renderHook(() => useUI());
+
+      expect(result.current.whatsNewDismissed).toBe(false);
+    });
+
+    it("shows the banner to users who only dismissed the legacy V2 intro", () => {
       localStorage.setItem("patternbank-v2-leetcode-intro-dismissed", "true");
 
       const { result } = renderHook(() => useUI());
 
-      expect(result.current.v2LeetCodeIntroDismissed).toBe(true);
-    });
-
-    it("treats invalid V2 LeetCode intro dismissal values as not dismissed", () => {
-      localStorage.setItem("patternbank-v2-leetcode-intro-dismissed", "yes");
-
-      const { result } = renderHook(() => useUI());
-
-      expect(result.current.v2LeetCodeIntroDismissed).toBe(false);
+      expect(result.current.whatsNewDismissed).toBe(false);
     });
   });
 
@@ -230,16 +239,18 @@ describe("useUI", () => {
     });
   });
 
-  describe("V2 LeetCode intro", () => {
-    it("dismissV2LeetCodeIntro persists dismissal", () => {
+  describe("What's New banner", () => {
+    it("dismissWhatsNew persists the release id and removes the legacy key", () => {
+      localStorage.setItem("patternbank-v2-leetcode-intro-dismissed", "true");
       const { result } = renderHook(() => useUI());
 
       act(() => {
-        result.current.dismissV2LeetCodeIntro();
+        result.current.dismissWhatsNew();
       });
 
-      expect(result.current.v2LeetCodeIntroDismissed).toBe(true);
-      expect(localStorage.getItem("patternbank-v2-leetcode-intro-dismissed")).toBe("true");
+      expect(result.current.whatsNewDismissed).toBe(true);
+      expect(localStorage.getItem("patternbank-whatsnew-dismissed")).toBe(WHATS_NEW.id);
+      expect(localStorage.getItem("patternbank-v2-leetcode-intro-dismissed")).toBeNull();
     });
   });
 });

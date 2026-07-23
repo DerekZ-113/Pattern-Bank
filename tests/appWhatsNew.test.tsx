@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import App from "../src/App";
 import useAuth from "../src/hooks/useAuth";
 import useLeetCodeActivity from "../src/hooks/useLeetCodeActivity";
 import useLeetCodePendingImports from "../src/hooks/useLeetCodePendingImports";
 import useProblems from "../src/hooks/useProblems";
-import type { ActiveTab } from "../src/types";
+import { WHATS_NEW } from "../src/utils/whatsNew";
+import type { User } from "@supabase/supabase-js";
+import type { LeetCodeConnection } from "../src/types";
 
-// useUI stays REAL so its activeTab state drives the view swap under test.
+// Real useUI drives the dismissed state; TodayView is a prop-capturing stub.
 vi.mock("../src/hooks/useAuth");
 vi.mock("../src/hooks/useProblems");
 vi.mock("../src/hooks/useLeetCodeActivity");
@@ -19,22 +21,43 @@ vi.mock("../src/utils/storage", () => ({
 }));
 vi.mock("../src/components/Header", () => ({ default: () => <div data-testid="header" /> }));
 vi.mock("../src/components/HelpModal", () => ({ default: () => null }));
+vi.mock("../src/components/NavBar", () => ({ default: () => <div data-testid="nav" /> }));
 vi.mock("../src/components/ProblemModal", () => ({ default: () => null }));
 vi.mock("../src/components/SettingsModal", () => ({ default: () => null }));
-vi.mock("../src/components/TodayView", () => ({ default: () => <div data-testid="today-view" /> }));
-vi.mock("../src/components/ProgressView", () => ({ default: () => <div data-testid="progress-view" /> }));
-vi.mock("../src/components/AllProblemsView", () => ({ default: () => <div data-testid="all-problems-view" /> }));
-vi.mock("../src/components/NavBar", () => ({
-  default: (props: { onTabChange: (tab: ActiveTab) => void }) => (
-    <button onClick={() => props.onTabChange("progress")}>go-progress</button>
+vi.mock("../src/components/ProgressView", () => ({ default: () => null }));
+vi.mock("../src/components/AllProblemsView", () => ({ default: () => null }));
+vi.mock("../src/components/TodayView", () => ({
+  default: (props: { showWhatsNew?: boolean; showWhatsNewLeetCodeCta?: boolean; signedIn?: boolean }) => (
+    <div data-testid="today-props">
+      {JSON.stringify({
+        showWhatsNew: props.showWhatsNew,
+        cta: props.showWhatsNewLeetCodeCta,
+        signedIn: props.signedIn,
+      })}
+    </div>
   ),
 }));
 
-function mockHooks() {
+const mockUser = { id: "user-123" } as User;
+
+function makeConnection(): LeetCodeConnection {
+  return {
+    userId: "user-123",
+    leetcodeUsername: "derek",
+    lastSyncedAt: "2026-07-20T00:00:00.000Z",
+    syncStatus: "synced",
+  };
+}
+
+function mockHooks({
+  user = null as User | null,
+  connection = null as LeetCodeConnection | null,
+  loading = false,
+} = {}) {
   vi.mocked(useAuth).mockReturnValue({
-    user: null,
+    user,
     loading: false,
-    isAuthenticated: false,
+    isAuthenticated: !!user,
     signInWithGoogle: vi.fn(),
     signInWithGitHub: vi.fn(),
     signInWithApple: vi.fn(),
@@ -60,10 +83,10 @@ function mockHooks() {
     handleClearAllData: vi.fn(),
   });
   vi.mocked(useLeetCodeActivity).mockReturnValue({
-    connection: null,
+    connection,
     submissions: [],
     ignoredImports: [],
-    loading: false,
+    loading,
     actionLoading: false,
     error: null,
     connect: vi.fn(),
@@ -82,25 +105,46 @@ function mockHooks() {
   });
 }
 
-describe("App tab scroll reset", () => {
+function todayProps() {
+  return JSON.parse(screen.getByTestId("today-props").textContent!);
+}
+
+describe("App What's New gating", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
   });
 
-  it("scrolls the window back to the top when the active tab changes", () => {
-    mockHooks();
-    const scrollSpy = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  it("hides the banner while the LeetCode connection is loading", () => {
+    mockHooks({ user: mockUser, loading: true });
 
     render(<App />);
-    expect(screen.getByTestId("today-view")).toBeTruthy();
-    scrollSpy.mockClear();
 
-    fireEvent.click(screen.getByRole("button", { name: "go-progress" }));
+    expect(todayProps().showWhatsNew).toBe(false);
+  });
 
-    expect(screen.getByTestId("progress-view")).toBeTruthy();
-    expect(scrollSpy).toHaveBeenCalledWith({ top: 0, left: 0, behavior: "instant" });
+  it("shows the banner with the LeetCode CTA for unconnected signed-out users", () => {
+    mockHooks();
 
-    scrollSpy.mockRestore();
+    render(<App />);
+
+    expect(todayProps()).toEqual({ showWhatsNew: true, cta: true, signedIn: false });
+  });
+
+  it("shows the banner without the CTA for connected users", () => {
+    mockHooks({ user: mockUser, connection: makeConnection() });
+
+    render(<App />);
+
+    expect(todayProps()).toEqual({ showWhatsNew: true, cta: false, signedIn: true });
+  });
+
+  it("hides the banner once the current release is dismissed", () => {
+    localStorage.setItem("patternbank-whatsnew-dismissed", WHATS_NEW.id);
+    mockHooks();
+
+    render(<App />);
+
+    expect(todayProps().showWhatsNew).toBe(false);
   });
 });
