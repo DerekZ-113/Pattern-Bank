@@ -12,6 +12,7 @@ interface Props {
   onReview: (id: string, confidence: Confidence) => void;
   onDismiss: (id: string) => void;
   onUpdateNotes: (id: string, notes: string) => void;
+  onOpenDetails?: (problem: Problem) => void;
 }
 
 export default function TodayReviewCard({
@@ -21,6 +22,7 @@ export default function TodayReviewCard({
   onReview,
   onDismiss,
   onUpdateNotes,
+  onOpenDetails,
 }: Props) {
   const [reviewing, setReviewing] = useState(false);
   const [newConfidence, setNewConfidence] = useState<Confidence>(problem.confidence);
@@ -53,7 +55,17 @@ export default function TodayReviewCard({
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-2">
             <h3 className="text-[15px] font-semibold leading-tight text-pb-text">
-              {problem.title}
+              {onOpenDetails ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenDetails(problem)}
+                  className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-tight text-pb-text transition-colors duration-150 hover:text-pb-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+                >
+                  {problem.title}
+                </button>
+              ) : (
+                problem.title
+              )}
             </h3>
             {problem.leetcodeNumber && (
               <span className="font-mono text-[13px] font-semibold leading-tight text-pb-text-dim">

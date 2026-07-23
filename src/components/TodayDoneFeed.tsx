@@ -6,6 +6,7 @@ import type { TodayActivityFeedItem } from "@patternbank/core";
 interface Props {
   items: TodayActivityFeedItem[];
   onRateLeetCodeReview?: (submissionDbId: string, problemId: string, confidence: Confidence) => void | Promise<void>;
+  onOpenProblemDetails?: (problemId: string) => void;
 }
 
 function formatReviewTime(timestamp: string): string {
@@ -25,7 +26,7 @@ function CompactStars({ confidence }: { confidence: number }) {
   );
 }
 
-export default function TodayDoneFeed({ items, onRateLeetCodeReview }: Props) {
+export default function TodayDoneFeed({ items, onRateLeetCodeReview, onOpenProblemDetails }: Props) {
   const [ratingRowId, setRatingRowId] = useState<string | null>(null);
   const [pendingRatingRowId, setPendingRatingRowId] = useState<string | null>(null);
 
@@ -81,7 +82,17 @@ export default function TodayDoneFeed({ items, onRateLeetCodeReview }: Props) {
             </span>
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="truncate text-sm font-medium text-pb-text">{item.title}</span>
+                {onOpenProblemDetails ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenProblemDetails(item.problemId)}
+                    className="cursor-pointer truncate border-none bg-transparent p-0 text-left text-sm font-medium text-pb-text transition-colors duration-150 hover:text-pb-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+                  >
+                    {item.title}
+                  </button>
+                ) : (
+                  <span className="truncate text-sm font-medium text-pb-text">{item.title}</span>
+                )}
                 {item.leetcodeNumber && (
                   <span className="font-mono text-[13px] text-pb-text-dim">
                     #{item.leetcodeNumber}

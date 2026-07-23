@@ -53,6 +53,7 @@ interface Props {
   leetcodeIntroSignedIn?: boolean;
   onOpenLeetCodeSettings?: () => void;
   onDismissLeetCodeIntro?: () => void;
+  onEditProblem?: (problem: Problem) => void;
   today?: string;
 }
 
@@ -78,6 +79,7 @@ export default function TodayView({
   leetcodeIntroSignedIn = false,
   onOpenLeetCodeSettings,
   onDismissLeetCodeIntro,
+  onEditProblem,
   today = todayStr(),
 }: Props) {
   const {
@@ -93,6 +95,12 @@ export default function TodayView({
     today,
   });
   const solvedOnLeetCodeToday = buildSolvedOnLeetCodeTodayIndex(leetcodeSubmissions, today);
+  const problemById = useMemo(() => new Map(problems.map((p) => [p.id, p])), [problems]);
+  const handleOpenProblemDetails = useCallback((problemId: string) => {
+    const problem = problemById.get(problemId);
+    if (problem) onEditProblem?.(problem);
+  }, [problemById, onEditProblem]);
+  const openDetailsById = onEditProblem ? handleOpenProblemDetails : undefined;
   const earlierLeetCodeDays = buildEarlierLeetCodeActivity({
     submissions: leetcodeSubmissions,
     problems,
@@ -208,6 +216,7 @@ export default function TodayView({
                       onConfirm={handleConfirmLeetCodeImport}
                       onIgnore={(pendingItem) => onIgnoreLeetCodeImport?.(pendingItem)}
                       onRateKnown={handleRateKnownLeetCodeItem}
+                      onOpenProblemDetails={openDetailsById}
                     />
                   ))}
                   {exitingLeetCodeItems.map(({ key, item }) => (
@@ -275,6 +284,7 @@ export default function TodayView({
                     onReview={onReview}
                     onDismiss={onDismiss}
                     onUpdateNotes={onUpdateNotes}
+                    onOpenDetails={onEditProblem}
                   />
                 ))}
               </div>
@@ -302,11 +312,12 @@ export default function TodayView({
               <TodayDoneFeed
                 items={doneTodayItems}
                 onRateLeetCodeReview={onRateLeetCodeReview}
+                onOpenProblemDetails={openDetailsById}
               />
             </section>
           )}
 
-          <TodayEarlierLeetCodeActivity days={earlierLeetCodeDays} />
+          <TodayEarlierLeetCodeActivity days={earlierLeetCodeDays} onOpenProblemDetails={openDetailsById} />
         </>
       )}
     </main>
