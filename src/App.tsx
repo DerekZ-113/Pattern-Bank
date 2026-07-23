@@ -251,6 +251,7 @@ export default function App() {
           leetcodeIntroSignedIn={Boolean(user)}
           onOpenLeetCodeSettings={() => ui.setSettingsOpen(true)}
           onDismissLeetCodeIntro={ui.dismissV2LeetCodeIntro}
+          onEditProblem={ui.handleEdit}
         />
       )}
       {ui.activeTab === "progress" && (
