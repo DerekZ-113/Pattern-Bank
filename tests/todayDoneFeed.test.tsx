@@ -117,3 +117,53 @@ describe("TodayDoneFeed rating lock (F-21)", () => {
     }
   });
 });
+
+describe("TodayDoneFeed title click-through", () => {
+  it("renders titles as buttons that report the problemId when the callback is provided", () => {
+    const onOpenProblemDetails = vi.fn();
+    render(
+      <TodayDoneFeed
+        items={twoItems()}
+        onRateLeetCodeReview={vi.fn()}
+        onOpenProblemDetails={onOpenProblemDetails}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Two Sum" }));
+    expect(onOpenProblemDetails).toHaveBeenCalledTimes(1);
+    expect(onOpenProblemDetails).toHaveBeenCalledWith("p1");
+  });
+
+  it("renders plain text titles without the callback", () => {
+    render(<TodayDoneFeed items={twoItems()} onRateLeetCodeReview={vi.fn()} />);
+
+    expect(screen.getByText("Two Sum")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Two Sum" })).toBeNull();
+  });
+
+  it("keeps title clicks working independently of an in-flight rating", async () => {
+    const gate = deferred<void>();
+    const onRate = vi.fn(() => gate.promise);
+    const onOpenProblemDetails = vi.fn();
+    render(
+      <TodayDoneFeed
+        items={twoItems()}
+        onRateLeetCodeReview={onRate}
+        onOpenProblemDetails={onOpenProblemDetails}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+    expect(onRate).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Two Numbers" }));
+    expect(onOpenProblemDetails).toHaveBeenCalledWith("p2");
+    expect(onRate).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      gate.resolve();
+      await gate.promise;
+    });
+  });
+});

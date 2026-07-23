@@ -118,6 +118,7 @@ function renderTodayView(overrides: {
   leetcodeIntroSignedIn?: boolean;
   onOpenLeetCodeSettings?: () => void;
   onDismissLeetCodeIntro?: () => void;
+  onEditProblem?: (problem: Problem) => void;
   today?: string;
 } = {}) {
   return render(
@@ -143,6 +144,7 @@ function renderTodayView(overrides: {
       leetcodeIntroSignedIn={overrides.leetcodeIntroSignedIn}
       onOpenLeetCodeSettings={overrides.onOpenLeetCodeSettings}
       onDismissLeetCodeIntro={overrides.onDismissLeetCodeIntro}
+      onEditProblem={overrides.onEditProblem}
       today={overrides.today ?? "2026-05-14"}
     />,
   );
@@ -925,5 +927,85 @@ describe("TodayView earlier LeetCode activity", () => {
     });
 
     expect(screen.queryByText("Earlier LeetCode activity")).toBeNull();
+  });
+});
+
+describe("TodayView opens Problem Details from Today surfaces", () => {
+  const yesterdayTs = "2026-05-13T15:30:00.000Z";
+  const yesterday = utcToLocalDateStr(yesterdayTs)!;
+  const todayProp = addDays(yesterday, 1);
+
+  it("review card title click passes the full problem", () => {
+    const onEditProblem = vi.fn();
+    renderTodayView({ onEditProblem });
+
+    fireEvent.click(screen.getByRole("button", { name: "Two Sum" }));
+    expect(onEditProblem).toHaveBeenCalledWith(expect.objectContaining({ id: "p1", title: "Two Sum" }));
+  });
+
+  it("done feed pb_review row title click resolves the problem by id", () => {
+    const onEditProblem = vi.fn();
+    renderTodayView({
+      onEditProblem,
+      problems: [makeProblem({ id: "p1", title: "Two Sum", nextReviewDate: "2026-06-01" })],
+      reviewEvents: [makeReviewEvent({ problemId: "p1" })],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Two Sum" }));
+    expect(onEditProblem).toHaveBeenCalledWith(expect.objectContaining({ id: "p1" }));
+  });
+
+  it("known From LeetCode card title click resolves via matchedProblemId", () => {
+    const onEditProblem = vi.fn();
+    renderTodayView({
+      onEditProblem,
+      problems: [makeProblem({ id: "p1", nextReviewDate: "2026-06-01" })],
+      todayLeetCodeItems: [makeTodayLeetCodeItem({ matchedProblemId: "p1" })],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Two Sum" }));
+    expect(onEditProblem).toHaveBeenCalledWith(expect.objectContaining({ id: "p1" }));
+  });
+
+  it("pending import titles stay static", () => {
+    const onEditProblem = vi.fn();
+    renderTodayView({
+      onEditProblem,
+      problems: [makeProblem({ id: "p1", nextReviewDate: "2026-06-01" })],
+      pendingLeetCodeImports: [makePendingImport()],
+    });
+
+    expect(screen.getByText("Number of Islands")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Number of Islands" })).toBeNull();
+  });
+
+  it("keeps the title-before-number order with the nested button", () => {
+    const onEditProblem = vi.fn();
+    renderTodayView({ onEditProblem, problems: [makeProblem({ title: "Two Sum", leetcodeNumber: 1 })] });
+
+    const reviewsSection = screen.getByRole("region", { name: "Reviews due" });
+    const titleRow = within(reviewsSection).getByText("#1").parentElement;
+    const rowText = titleRow?.textContent ?? "";
+    expect(rowText.indexOf("Two Sum")).toBeLessThan(rowText.indexOf("#1"));
+  });
+
+  it("renders no title buttons when the callback is absent", () => {
+    renderTodayView({ reviewEvents: [makeReviewEvent()] });
+
+    expect(screen.queryByRole("button", { name: "Two Sum" })).toBeNull();
+  });
+
+  it("earlier activity row title click resolves the problem", () => {
+    const onEditProblem = vi.fn();
+    renderTodayView({
+      onEditProblem,
+      today: todayProp,
+      problems: [makeProblem({ nextReviewDate: addDays(todayProp, 5) })],
+      leetcodeSubmissions: [makeSubmission({ submittedAt: yesterdayTs })],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Show" }));
+    fireEvent.click(screen.getByRole("button", { name: "Two Sum" }));
+    expect(onEditProblem).toHaveBeenCalledWith(expect.objectContaining({ id: "p1" }));
   });
 });

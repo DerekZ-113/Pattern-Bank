@@ -8,6 +8,7 @@ interface Props {
   onConfirm: (item: PendingLeetCodeImport, confidence: Confidence) => void;
   onIgnore: (item: PendingLeetCodeImport) => void;
   onRateKnown?: (item: TodayLeetCodeItem, confidence: Confidence) => void | Promise<void>;
+  onOpenProblemDetails?: (problemId: string) => void;
 }
 
 const STAR_VALUES: Confidence[] = [1, 2, 3, 4, 5];
@@ -32,8 +33,12 @@ function EmptyConfidenceStars({ title }: { title: string }) {
   );
 }
 
-export default function TodayLeetCodeCard({ item, onConfirm, onIgnore, onRateKnown }: Props) {
+export default function TodayLeetCodeCard({ item, onConfirm, onIgnore, onRateKnown, onOpenProblemDetails }: Props) {
   const isPending = item.kind === "pending_import";
+  // Pending imports have no library Problem yet — their titles stay static.
+  const detailsProblemId = !isPending && item.matchedProblemId && onOpenProblemDetails
+    ? item.matchedProblemId
+    : null;
   const [pendingKnownRating, setPendingKnownRating] = useState(false);
   const [selectedKnownConfidence, setSelectedKnownConfidence] = useState<Confidence | null>(null);
   const [previewConfidence, setPreviewConfidence] = useState<Confidence | null>(null);
@@ -68,7 +73,19 @@ export default function TodayLeetCodeCard({ item, onConfirm, onIgnore, onRateKno
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-2">
-            <h3 className="text-[15px] font-semibold leading-tight text-pb-text">{item.title}</h3>
+            <h3 className="text-[15px] font-semibold leading-tight text-pb-text">
+              {detailsProblemId ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenProblemDetails!(detailsProblemId)}
+                  className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-tight text-pb-text transition-colors duration-150 hover:text-pb-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+                >
+                  {item.title}
+                </button>
+              ) : (
+                item.title
+              )}
+            </h3>
             {item.leetcodeNumber && (
               <span className="font-mono text-[13px] font-semibold leading-tight text-pb-text-dim">
                 #{item.leetcodeNumber}
