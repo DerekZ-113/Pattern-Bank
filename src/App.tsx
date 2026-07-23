@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
 import { rateLeetCodeReviewLocallyFirst, respreadScheduledProblems, todayStr, type LeetCodeCompletionIdentity } from "@patternbank/core";
 
@@ -43,6 +43,12 @@ export default function App() {
     handleClearAllData,
   } = useProblems({ user, showToast: ui.showToast });
   const leetcodeActivity = useLeetCodeActivity({ user, showToast: ui.showToast });
+
+  // Views swap in place on tab change; reset the shared window scroll so each
+  // tab opens at the top. "instant" overrides the global smooth scroll-behavior.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [ui.activeTab]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const reviewLog = useMemo(() => loadReviewLog(), [reviewCount]);
   // eslint-disable-next-line react-hooks/exhaustive-deps

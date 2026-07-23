@@ -166,6 +166,7 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   const handleSaveProblem = useCallback((problem: Problem, confidenceChanged?: boolean) => {
     type SaveAction = "updated" | "added" | "duplicate";
     let action = "added" as SaveAction;
+    const original = problemsRef.current.find((p) => p.id === problem.id);
 
     setProblems((prev) => {
       const idx = prev.findIndex((p) => p.id === problem.id);
@@ -198,6 +199,20 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
     }
     if (confidenceChanged) {
       logReviewToday();
+      // A confidence edit is a review: log the event (replacing any earlier
+      // same-day event for this problem so re-rates don't double-count).
+      const reviewTimestamp = new Date().toISOString();
+      logOrReplaceReviewEvent(problem.id, problem.confidence, problem.patterns, reviewTimestamp);
+      if (user) {
+        replaceReviewInCloud(
+          user.id,
+          problem.id,
+          original?.confidence ?? problem.confidence,
+          problem.confidence,
+          problem.patterns,
+          reviewTimestamp
+        );
+      }
       setReviewCount((c) => c + 1);
     }
     if (user) pushProblemToCloud(user.id, problem);
