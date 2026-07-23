@@ -120,10 +120,10 @@ export default function App() {
     Boolean(leetcodeActivity.connection) ||
     leetcodeActivity.submissions.length > 0 ||
     leetcodeActivity.ignoredImports.length > 0;
-  const showLeetCodeIntro =
-    !ui.v2LeetCodeIntroDismissed &&
-    !leetcodeActivity.loading &&
-    !leetcodeActivity.connection;
+  // Once per release for everyone; the loading gate only delays signed-in
+  // users briefly so the CTA variant is decided before first paint.
+  const showWhatsNew = !ui.whatsNewDismissed && !leetcodeActivity.loading;
+  const showWhatsNewLeetCodeCta = !leetcodeActivity.connection;
 
   const handleConfirmClearAllData = useCallback(async () => {
     if (user && hasLeetCodeActivityState) {
@@ -247,10 +247,11 @@ export default function App() {
           onIgnoreLeetCodeImport={leetcodePendingImports.ignoreImport}
           leetcodeSubmissions={leetcodePendingImports.leetcodeSubmissionsForTodayFeed}
           onRateLeetCodeReview={handleRateLeetCodeReview}
-          showLeetCodeIntro={showLeetCodeIntro}
-          leetcodeIntroSignedIn={Boolean(user)}
+          showWhatsNew={showWhatsNew}
+          showWhatsNewLeetCodeCta={showWhatsNewLeetCodeCta}
+          signedIn={Boolean(user)}
           onOpenLeetCodeSettings={() => ui.setSettingsOpen(true)}
-          onDismissLeetCodeIntro={ui.dismissV2LeetCodeIntro}
+          onDismissWhatsNew={ui.dismissWhatsNew}
           onEditProblem={ui.handleEdit}
         />
       )}

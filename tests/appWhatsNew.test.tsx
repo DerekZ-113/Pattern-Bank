@@ -1,17 +1,16 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import App from "../src/App";
 import useAuth from "../src/hooks/useAuth";
 import useLeetCodeActivity from "../src/hooks/useLeetCodeActivity";
 import useLeetCodePendingImports from "../src/hooks/useLeetCodePendingImports";
 import useProblems from "../src/hooks/useProblems";
-import useUI from "../src/hooks/useUI";
+import { WHATS_NEW } from "../src/utils/whatsNew";
 import type { User } from "@supabase/supabase-js";
 import type { LeetCodeConnection } from "../src/types";
 
-// Real Header under test; everything else stubbed like appRespread.
+// Real useUI drives the dismissed state; TodayView is a prop-capturing stub.
 vi.mock("../src/hooks/useAuth");
-vi.mock("../src/hooks/useUI");
 vi.mock("../src/hooks/useProblems");
 vi.mock("../src/hooks/useLeetCodeActivity");
 vi.mock("../src/hooks/useLeetCodePendingImports");
@@ -20,31 +19,40 @@ vi.mock("../src/utils/storage", () => ({
   loadReviewEvents: vi.fn(() => []),
   loadReviewLog: vi.fn(() => []),
 }));
+vi.mock("../src/components/Header", () => ({ default: () => <div data-testid="header" /> }));
 vi.mock("../src/components/HelpModal", () => ({ default: () => null }));
 vi.mock("../src/components/NavBar", () => ({ default: () => <div data-testid="nav" /> }));
 vi.mock("../src/components/ProblemModal", () => ({ default: () => null }));
 vi.mock("../src/components/SettingsModal", () => ({ default: () => null }));
-vi.mock("../src/components/TodayView", () => ({ default: () => <div data-testid="today-view" /> }));
 vi.mock("../src/components/ProgressView", () => ({ default: () => null }));
 vi.mock("../src/components/AllProblemsView", () => ({ default: () => null }));
+vi.mock("../src/components/TodayView", () => ({
+  default: (props: { showWhatsNew?: boolean; showWhatsNewLeetCodeCta?: boolean; signedIn?: boolean }) => (
+    <div data-testid="today-props">
+      {JSON.stringify({
+        showWhatsNew: props.showWhatsNew,
+        cta: props.showWhatsNewLeetCodeCta,
+        signedIn: props.signedIn,
+      })}
+    </div>
+  ),
+}));
 
-const showToast = vi.fn();
-const syncNow = vi.fn();
 const mockUser = { id: "user-123" } as User;
 
-function makeConnection(overrides: Partial<LeetCodeConnection> = {}): LeetCodeConnection {
+function makeConnection(): LeetCodeConnection {
   return {
     userId: "user-123",
     leetcodeUsername: "derek",
     lastSyncedAt: "2026-07-20T00:00:00.000Z",
     syncStatus: "synced",
-    ...overrides,
   };
 }
 
 function mockHooks({
   user = null as User | null,
   connection = null as LeetCodeConnection | null,
+  loading = false,
 } = {}) {
   vi.mocked(useAuth).mockReturnValue({
     user,
@@ -54,37 +62,6 @@ function mockHooks({
     signInWithGitHub: vi.fn(),
     signInWithApple: vi.fn(),
     signOut: vi.fn(),
-  });
-  vi.mocked(useUI).mockReturnValue({
-    activeTab: "dashboard",
-    modalOpen: false,
-    editingProblem: null,
-    toast: { visible: false, message: "" },
-    deleteTarget: null,
-    settingsOpen: false,
-    helpOpen: false,
-    problemsInitialSort: "dateAdded",
-    problemsInitialPatternFilter: "all",
-    clearDataConfirm: false,
-    respreadConfirm: false,
-    whatsNewDismissed: true,
-    setSettingsOpen: vi.fn(),
-    setHelpOpen: vi.fn(),
-    setDeleteTarget: vi.fn(),
-    setClearDataConfirm: vi.fn(),
-    setRespreadConfirm: vi.fn(),
-    showToast,
-    hideToast: vi.fn(),
-    handleEdit: vi.fn(),
-    handleDeleteRequest: vi.fn(),
-    handleViewAllDue: vi.fn(),
-    handlePatternClick: vi.fn(),
-    handleProblemsSortChange: vi.fn(),
-    handleTabChange: vi.fn(),
-    openAddModal: vi.fn(),
-    closeModal: vi.fn(),
-    requestClearData: vi.fn(),
-    dismissWhatsNew: vi.fn(),
   });
   vi.mocked(useProblems).mockReturnValue({
     problems: [],
@@ -109,11 +86,11 @@ function mockHooks({
     connection,
     submissions: [],
     ignoredImports: [],
-    loading: false,
+    loading,
     actionLoading: false,
     error: null,
     connect: vi.fn(),
-    syncNow,
+    syncNow: vi.fn(),
     disconnect: vi.fn(),
     markRated: vi.fn(),
     refresh: vi.fn(),
@@ -128,54 +105,46 @@ function mockHooks({
   });
 }
 
-describe("App header LeetCode sync glue", () => {
+function todayProps() {
+  return JSON.parse(screen.getByTestId("today-props").textContent!);
+}
+
+describe("App What's New gating", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
-  it("hides the button when signed out", () => {
+  it("hides the banner while the LeetCode connection is loading", () => {
+    mockHooks({ user: mockUser, loading: true });
+
+    render(<App />);
+
+    expect(todayProps().showWhatsNew).toBe(false);
+  });
+
+  it("shows the banner with the LeetCode CTA for unconnected signed-out users", () => {
     mockHooks();
 
     render(<App />);
 
-    expect(screen.queryByRole("button", { name: "Sync LeetCode activity" })).toBeNull();
+    expect(todayProps()).toEqual({ showWhatsNew: true, cta: true, signedIn: false });
   });
 
-  it("hides the button when signed in without a connection", () => {
-    mockHooks({ user: mockUser, connection: null });
-
-    render(<App />);
-
-    expect(screen.queryByRole("button", { name: "Sync LeetCode activity" })).toBeNull();
-  });
-
-  it("syncs on click when connected", async () => {
+  it("shows the banner without the CTA for connected users", () => {
     mockHooks({ user: mockUser, connection: makeConnection() });
-    syncNow.mockResolvedValue({ data: { connection: makeConnection() }, error: null });
 
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sync LeetCode activity" }));
-    await waitFor(() => expect(syncNow).toHaveBeenCalledTimes(1));
-    expect(showToast).not.toHaveBeenCalled();
+    expect(todayProps()).toEqual({ showWhatsNew: true, cta: false, signedIn: true });
   });
 
-  it("toasts the sanitized error when the sync fails", async () => {
-    mockHooks({ user: mockUser, connection: makeConnection() });
-    syncNow.mockResolvedValue({
-      data: null,
-      error: "LeetCode rate limited the request. Try again later.",
-    });
+  it("hides the banner once the current release is dismissed", () => {
+    localStorage.setItem("patternbank-whatsnew-dismissed", WHATS_NEW.id);
+    mockHooks();
 
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sync LeetCode activity" }));
-    await waitFor(() =>
-      expect(showToast).toHaveBeenCalledWith(
-        "LeetCode rate limited the request. Try again later.",
-        undefined,
-        "error"
-      )
-    );
+    expect(todayProps().showWhatsNew).toBe(false);
   });
 });

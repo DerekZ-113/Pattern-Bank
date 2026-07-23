@@ -3,7 +3,7 @@ import CollapsingListItem from "./CollapsingListItem";
 import TodayDoneFeed from "./TodayDoneFeed";
 import TodayEarlierLeetCodeActivity from "./TodayEarlierLeetCodeActivity";
 import TodayFirstRunLaunchpad from "./TodayFirstRunLaunchpad";
-import TodayLeetCodeIntroCard from "./TodayLeetCodeIntroCard";
+import WhatsNewBanner from "./WhatsNewBanner";
 import TodayLeetCodeCard from "./TodayLeetCodeCard";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
@@ -49,10 +49,11 @@ interface Props {
     confidence: Confidence,
     source?: TodayLeetCodeItem,
   ) => void | Promise<void>;
-  showLeetCodeIntro?: boolean;
-  leetcodeIntroSignedIn?: boolean;
+  showWhatsNew?: boolean;
+  showWhatsNewLeetCodeCta?: boolean;
+  signedIn?: boolean;
   onOpenLeetCodeSettings?: () => void;
-  onDismissLeetCodeIntro?: () => void;
+  onDismissWhatsNew?: () => void;
   onEditProblem?: (problem: Problem) => void;
   today?: string;
 }
@@ -75,10 +76,11 @@ export default function TodayView({
   onIgnoreLeetCodeImport,
   leetcodeSubmissions = [],
   onRateLeetCodeReview,
-  showLeetCodeIntro = false,
-  leetcodeIntroSignedIn = false,
+  showWhatsNew = false,
+  showWhatsNewLeetCodeCta = false,
+  signedIn = false,
   onOpenLeetCodeSettings,
-  onDismissLeetCodeIntro,
+  onDismissWhatsNew,
   onEditProblem,
   today = todayStr(),
 }: Props) {
@@ -180,17 +182,18 @@ export default function TodayView({
         <p className="mt-1 text-sm text-pb-text-muted">{formatDisplayDate(today)}</p>
       </header>
 
-      {showLeetCodeIntro && !shouldShowFirstRunLaunchpad && (
-        <TodayLeetCodeIntroCard
-          signedIn={leetcodeIntroSignedIn}
+      {showWhatsNew && !shouldShowFirstRunLaunchpad && (
+        <WhatsNewBanner
+          signedIn={signedIn}
+          showLeetCodeCta={showWhatsNewLeetCodeCta}
           onOpenSettings={onOpenLeetCodeSettings}
-          onDismiss={onDismissLeetCodeIntro}
+          onDismiss={onDismissWhatsNew}
         />
       )}
 
       {shouldShowFirstRunLaunchpad ? (
         <TodayFirstRunLaunchpad
-          signedIn={leetcodeIntroSignedIn}
+          signedIn={signedIn}
           onOpenLeetCodeSettings={onOpenLeetCodeSettings}
           onAddClick={onAddClick}
           onBulkAdd={onBulkAdd}
