@@ -1,4 +1,5 @@
 import type { SyncStatus } from "../types";
+import { formatLastSynced } from "../utils/format";
 
 interface DotInfo {
   color: string;
@@ -11,9 +12,15 @@ interface Props {
   onSettingsClick: () => void;
   onHelpClick: () => void;
   syncStatus: SyncStatus;
+  // Present only when signed in with a LeetCode connection.
+  leetcodeSync?: {
+    syncing: boolean;
+    lastSyncedAt: string | null;
+    onSyncNow: () => void;
+  };
 }
 
-export default function Header({ onSettingsClick, onHelpClick, syncStatus }: Props) {
+export default function Header({ onSettingsClick, onHelpClick, syncStatus, leetcodeSync }: Props) {
   const dot: Partial<Record<SyncStatus, DotInfo>> = {
     syncing: { color: "#d29922", title: "Syncing...", label: "Syncing", animation: "sync-pulse 1.5s ease-in-out infinite" },
     synced: { color: "#3fb950", title: "Cloud synced", label: "Cloud synced", animation: "none" },
@@ -51,6 +58,19 @@ export default function Header({ onSettingsClick, onHelpClick, syncStatus }: Pro
             />
             <span>{statusInfo.label}</span>
           </span>
+        )}
+        {leetcodeSync && (
+          <button
+            onClick={leetcodeSync.onSyncNow}
+            disabled={leetcodeSync.syncing}
+            title={formatLastSynced(leetcodeSync.lastSyncedAt)}
+            aria-label="Sync LeetCode activity"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-pb-border bg-transparent text-[17px] text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span aria-hidden="true" className={leetcodeSync.syncing ? "animate-spin" : undefined}>
+              ↻
+            </span>
+          </button>
         )}
         <button
           onClick={onHelpClick}

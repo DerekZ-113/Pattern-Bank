@@ -110,6 +110,12 @@ export default function App() {
     });
   }, [handleReview, leetcodeActivity, leetcodePendingImports.recordRatedCompletion]);
 
+  // Settings surfaces sync errors inline; the header button reports via toast.
+  const handleHeaderLeetCodeSync = useCallback(async () => {
+    const result = await leetcodeActivity.syncNow();
+    if (result.error) ui.showToast(result.error, undefined, "error");
+  }, [leetcodeActivity, ui]);
+
   const hasLeetCodeActivityState =
     Boolean(leetcodeActivity.connection) ||
     leetcodeActivity.submissions.length > 0 ||
@@ -211,6 +217,15 @@ export default function App() {
         onSettingsClick={() => ui.setSettingsOpen(true)}
         onHelpClick={() => ui.setHelpOpen(true)}
         syncStatus={syncStatus}
+        leetcodeSync={
+          user && leetcodeActivity.connection
+            ? {
+                syncing: leetcodeActivity.actionLoading,
+                lastSyncedAt: leetcodeActivity.connection.lastSyncedAt ?? null,
+                onSyncNow: () => { void handleHeaderLeetCodeSync(); },
+              }
+            : undefined
+        }
       />
 
       {ui.activeTab === "dashboard" && (
