@@ -25,6 +25,8 @@
   --color-pb-heatmap-empty: rgba(48,54,61,0.4);
 
   /* Pattern colors — text */
+  --color-pattern-array-text: #7ee2e8;
+  --color-pattern-math-text: #ab7ee8;
   --color-pattern-two-pointers-text: #7ee8c7;
   --color-pattern-hash-table-text: #e8a87e;
   --color-pattern-sliding-window-text: #7ecbe8;
@@ -51,6 +53,8 @@
   --color-pattern-ood-text: #c89078;
 
   /* Pattern colors — background */
+  --color-pattern-array-bg: rgba(126,226,232,0.12);
+  --color-pattern-math-bg: rgba(171,126,232,0.12);
   --color-pattern-two-pointers-bg: rgba(126,232,199,0.12);
   --color-pattern-hash-table-bg: rgba(232,168,126,0.12);
   --color-pattern-sliding-window-bg: rgba(126,203,232,0.12);
@@ -151,6 +155,8 @@ html.light {
   --color-pb-heatmap-empty: rgba(200,205,215,0.25);
 
   /* Pattern colors — text (darker for white bg contrast) */
+  --color-pattern-array-text: #148490;
+  --color-pattern-math-text: #6b3ac0;
   --color-pattern-two-pointers-text: #0f7b6f;
   --color-pattern-hash-table-text: #a85d2a;
   --color-pattern-sliding-window-text: #1a7a9e;
@@ -177,6 +183,8 @@ html.light {
   --color-pattern-ood-text: #8a5a3a;
 
   /* Pattern colors — background (higher alpha for white bg) */
+  --color-pattern-array-bg: rgba(20,132,144,0.08);
+  --color-pattern-math-bg: rgba(107,58,192,0.08);
   --color-pattern-two-pointers-bg: rgba(15,123,111,0.08);
   --color-pattern-hash-table-bg: rgba(168,93,42,0.08);
   --color-pattern-sliding-window-bg: rgba(26,122,158,0.08);

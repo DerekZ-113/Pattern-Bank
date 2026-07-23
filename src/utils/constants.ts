@@ -7,6 +7,8 @@ export {
   DIFFICULTIES,
   EXTRA_PATTERNS,
   getVisiblePatterns,
+  groupPatternsByCategory,
+  PATTERN_CATEGORIES,
   PREFERENCES_KEY,
   PROBLEM_TOMBSTONES_KEY,
   REVIEW_EVENTS_KEY,
@@ -19,6 +21,7 @@ import type { PatternColor } from "../types";
 
 // Web renders pattern chips with CSS variables (mobile uses hex values).
 export const PATTERN_COLORS: Record<string, PatternColor> = {
+  "Array":              { text: "var(--color-pattern-array-text)", bg: "var(--color-pattern-array-bg)" },
   "Two Pointers":       { text: "var(--color-pattern-two-pointers-text)", bg: "var(--color-pattern-two-pointers-bg)" },
   "Hash Table":         { text: "var(--color-pattern-hash-table-text)", bg: "var(--color-pattern-hash-table-bg)" },
   "Sliding Window":     { text: "var(--color-pattern-sliding-window-text)", bg: "var(--color-pattern-sliding-window-bg)" },
@@ -37,6 +40,7 @@ export const PATTERN_COLORS: Record<string, PatternColor> = {
   "Union Find":         { text: "var(--color-pattern-union-find-text)", bg: "var(--color-pattern-union-find-bg)" },
   "Trie":               { text: "var(--color-pattern-trie-text)", bg: "var(--color-pattern-trie-bg)" },
   "DP":                  { text: "var(--color-pattern-dp-text)", bg: "var(--color-pattern-dp-bg)" },
+  "Math":               { text: "var(--color-pattern-math-text)", bg: "var(--color-pattern-math-bg)" },
   "Intervals":          { text: "var(--color-pattern-intervals-text)", bg: "var(--color-pattern-intervals-bg)" },
   "Mono Stack":         { text: "var(--color-pattern-mono-stack-text)", bg: "var(--color-pattern-mono-stack-bg)" },
   "Prefix Sum":         { text: "var(--color-pattern-prefix-sum-text)", bg: "var(--color-pattern-prefix-sum-bg)" },

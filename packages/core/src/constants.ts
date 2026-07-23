@@ -1,18 +1,54 @@
 import type { CorePreferences, Difficulty } from "./types";
 
 export const CORE_PATTERNS = [
-  "Two Pointers", "Hash Table", "Sliding Window",
-  "Binary Search", "Sorting", "Linked List",
-  "Stack", "Queue", "Tree",
-  "BFS", "DFS", "Heap",
-  "Greedy", "Backtracking", "Graph",
-  "Union Find", "Trie", "DP",
+  "Array", "Two Pointers", "Hash Table",
+  "Sliding Window", "Binary Search", "Sorting",
+  "Linked List", "Stack", "Queue",
+  "Tree", "BFS", "DFS",
+  "Heap", "Greedy", "Backtracking",
+  "Graph", "Union Find", "Trie",
+  "DP", "Math",
 ] as const;
 
 export const EXTRA_PATTERNS = [
   "Intervals", "Mono Stack", "Prefix Sum",
   "Bit", "System Design", "OOD",
 ] as const;
+
+// Category membership for display grouping (picker sections, pill ordering).
+// Membership only — display order still comes from CORE/EXTRA/stored order.
+// Every CORE_PATTERNS and EXTRA_PATTERNS entry must appear in exactly one
+// category (enforced by tests).
+export const PATTERN_CATEGORIES = {
+  structures: [
+    "Array", "Hash Table", "Linked List", "Stack", "Queue",
+    "Tree", "Heap", "Graph", "Trie", "Union Find",
+  ],
+  strategies: [
+    "Two Pointers", "Sliding Window", "Binary Search", "Sorting",
+    "BFS", "DFS", "Greedy", "Backtracking", "DP", "Math",
+    "Intervals", "Mono Stack", "Prefix Sum", "Bit", "System Design", "OOD",
+  ],
+} as const;
+
+const STRUCTURE_SET: ReadonlySet<string> = new Set(PATTERN_CATEGORIES.structures);
+const STRATEGY_SET: ReadonlySet<string> = new Set(PATTERN_CATEGORIES.strategies);
+
+export interface GroupedPatterns {
+  structures: string[];
+  strategies: string[];
+  custom: string[];
+}
+
+export function groupPatternsByCategory(patterns: string[]): GroupedPatterns {
+  const groups: GroupedPatterns = { structures: [], strategies: [], custom: [] };
+  for (const pattern of patterns) {
+    if (STRUCTURE_SET.has(pattern)) groups.structures.push(pattern);
+    else if (STRATEGY_SET.has(pattern)) groups.strategies.push(pattern);
+    else groups.custom.push(pattern);
+  }
+  return groups;
+}
 
 export function getVisiblePatterns(enabledExtras: string[]): string[] {
   return [

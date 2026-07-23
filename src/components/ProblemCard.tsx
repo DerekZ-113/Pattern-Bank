@@ -1,6 +1,6 @@
 import StarRating from "./StarRating";
 import DifficultyBadge from "./DifficultyBadge";
-import PatternTag from "./PatternTag";
+import PatternTagList from "./PatternTagList";
 import { todayStr, formatRelativeDate } from "@patternbank/core";
 import type { Problem } from "../types";
 
@@ -96,10 +96,8 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
       </div>
 
       {/* Pattern tags */}
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {problem.patterns.map((p) => (
-          <PatternTag key={p} name={p} />
-        ))}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <PatternTagList patterns={problem.patterns} />
       </div>
 
       {/* Confidence and review date */}
