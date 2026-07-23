@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
 import { rateLeetCodeReviewLocallyFirst, respreadScheduledProblems, todayStr, type LeetCodeCompletionIdentity } from "@patternbank/core";
 
 import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";
+import type { ActiveTab } from "./types";
 import useProblems from "./hooks/useProblems";
 import useLeetCodeActivity from "./hooks/useLeetCodeActivity";
 import useLeetCodePendingImports from "./hooks/useLeetCodePendingImports";
@@ -44,11 +45,46 @@ export default function App() {
   } = useProblems({ user, showToast: ui.showToast });
   const leetcodeActivity = useLeetCodeActivity({ user, showToast: ui.showToast });
 
-  // Views swap in place on tab change; reset the shared window scroll so each
-  // tab opens at the top. "instant" overrides the global smooth scroll-behavior.
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  }, [ui.activeTab]);
+  // Views swap in place and share the window scroll, so each tab remembers
+  // its own position: save on leave (in the handlers — the outgoing view is
+  // unmounted before any effect runs), restore before paint on arrive.
+  // "instant" overrides the global smooth scroll-behavior.
+  const scrollPositionsRef = useRef<Record<ActiveTab, number>>({
+    dashboard: 0,
+    progress: 0,
+    problems: 0,
+  });
+  const {
+    activeTab,
+    handleTabChange: uiHandleTabChange,
+    handleViewAllDue: uiHandleViewAllDue,
+    handlePatternClick: uiHandlePatternClick,
+  } = ui;
+  const handleTabChange = useCallback((tab: ActiveTab) => {
+    if (tab === activeTab) {
+      // Tapping the active tab is an intentional jump-to-top; same-value
+      // setState bails out, so the restore effect never re-fires for it.
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      return;
+    }
+    scrollPositionsRef.current[activeTab] = window.scrollY;
+    uiHandleTabChange(tab);
+  }, [activeTab, uiHandleTabChange]);
+  // Deep links into Problems re-scope the list (filter/sort), so they land at
+  // the top; the departed tab still restores later.
+  const handleViewAllDue = useCallback(() => {
+    scrollPositionsRef.current[activeTab] = window.scrollY;
+    scrollPositionsRef.current.problems = 0;
+    uiHandleViewAllDue();
+  }, [activeTab, uiHandleViewAllDue]);
+  const handlePatternClick = useCallback((pattern: string) => {
+    scrollPositionsRef.current[activeTab] = window.scrollY;
+    scrollPositionsRef.current.problems = 0;
+    uiHandlePatternClick(pattern);
+  }, [activeTab, uiHandlePatternClick]);
+  useLayoutEffect(() => {
+    window.scrollTo({ top: scrollPositionsRef.current[activeTab], left: 0, behavior: "instant" });
+  }, [activeTab]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const reviewLog = useMemo(() => loadReviewLog(), [reviewCount]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -237,7 +273,7 @@ export default function App() {
           onReview={handleReview}
           onDismiss={handleDismiss}
           onUpdateNotes={handleUpdateNotes}
-          onViewAllDue={ui.handleViewAllDue}
+          onViewAllDue={handleViewAllDue}
           onAddClick={ui.openAddModal}
           onBulkAdd={handleBulkAdd}
           existingProblemNumbers={existingProblemNumbers}
@@ -261,7 +297,7 @@ export default function App() {
           reviewLog={reviewLog}
           reviewEvents={reviewEvents}
           enabledExtraPatterns={preferences.enabledExtraPatterns}
-          onPatternClick={ui.handlePatternClick}
+          onPatternClick={handlePatternClick}
         />
       )}
       {ui.activeTab === "problems" && (
@@ -280,7 +316,7 @@ export default function App() {
 
       <NavBar
         activeTab={ui.activeTab}
-        onTabChange={ui.handleTabChange}
+        onTabChange={handleTabChange}
       />
       <ProblemModal
         isOpen={ui.modalOpen}
