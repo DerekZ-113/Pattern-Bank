@@ -1,4 +1,4 @@
-import { todayStr, utcToLocalDateStr } from "./dateHelpers";
+import { addDays, todayStr, utcToLocalDateStr } from "./dateHelpers";
 import { prioritizeProblems } from "./spacedRepetition";
 import { buildLeetCodeCompletionKey } from "./leetcode/todayCompletions";
 import type { Confidence, Difficulty, LeetCodeSubmission, Problem, ReviewEvent, TodayLeetCodeItem } from "./types";
@@ -243,4 +243,95 @@ export function buildTodayActivityFeedItems({
   return [...pbItems, ...leetcodeByProblemId.values()].sort((a, b) =>
     activityTimestamp(b).localeCompare(activityTimestamp(a)),
   );
+}
+
+export interface EarlierLeetCodeActivityRow {
+  id: string;
+  titleSlug: string;
+  title: string;
+  leetcodeNumber: number | null;
+  difficulty: Difficulty | null;
+  submittedAt: string;
+  problemId: string | null;
+  confidence: Confidence | null;
+}
+
+export interface EarlierLeetCodeActivityDay {
+  date: string;
+  rows: EarlierLeetCodeActivityRow[];
+}
+
+// Accepted LeetCode solves from the last `days` local days before (and
+// excluding) today, one row per problem per day. Rows carry the confidence of
+// that day's latest review event when the solve was also rated in PatternBank.
+export function buildEarlierLeetCodeActivity({
+  submissions,
+  problems,
+  reviewEvents,
+  today = todayStr(),
+  days = 7,
+}: {
+  submissions: LeetCodeSubmission[];
+  problems: Problem[];
+  reviewEvents: ReviewEvent[];
+  today?: string;
+  days?: number;
+}): EarlierLeetCodeActivityDay[] {
+  const windowStart = addDays(today, -days);
+  const problemById = new Map(problems.map((problem) => [problem.id, problem]));
+  const problemByNumber = new Map(
+    problems
+      .filter((problem): problem is Problem & { leetcodeNumber: number } => typeof problem.leetcodeNumber === "number")
+      .map((problem) => [problem.leetcodeNumber, problem]),
+  );
+
+  // Latest review event per (problemId, local date).
+  const latestEventByProblemDay = new Map<string, ReviewEvent>();
+  for (const event of reviewEvents) {
+    const key = `${event.problemId}|${event.date}`;
+    const current = latestEventByProblemDay.get(key);
+    if (!current || event.timestamp > current.timestamp) {
+      latestEventByProblemDay.set(key, event);
+    }
+  }
+
+  // One representative (latest) submission per (date, titleSlug).
+  const rowBySlugDay = new Map<string, { date: string; submission: LeetCodeSubmission }>();
+  for (const submission of submissions) {
+    if (submission.status === "ignored") continue;
+    const date = utcToLocalDateStr(submission.submittedAt);
+    if (!date || date < windowStart || date >= today) continue;
+    const key = `${date}|${submission.titleSlug}`;
+    const current = rowBySlugDay.get(key);
+    if (!current || submission.submittedAt > current.submission.submittedAt) {
+      rowBySlugDay.set(key, { date, submission });
+    }
+  }
+
+  const rowsByDate = new Map<string, EarlierLeetCodeActivityRow[]>();
+  for (const { date, submission } of rowBySlugDay.values()) {
+    const problem = (submission.problemId ? problemById.get(submission.problemId) : undefined)
+      ?? (typeof submission.leetcodeNumber === "number" ? problemByNumber.get(submission.leetcodeNumber) : undefined);
+    const event = problem ? latestEventByProblemDay.get(`${problem.id}|${date}`) : undefined;
+    const row: EarlierLeetCodeActivityRow = {
+      id: submission.id,
+      titleSlug: submission.titleSlug,
+      title: problem?.title ?? submission.title,
+      leetcodeNumber: problem?.leetcodeNumber ?? submission.leetcodeNumber ?? null,
+      difficulty: problem?.difficulty ?? submission.difficulty ?? null,
+      submittedAt: submission.submittedAt,
+      problemId: problem?.id ?? null,
+      confidence: event ? coerceConfidence(event.confidence) : null,
+    };
+    const rows = rowsByDate.get(date);
+    if (rows) rows.push(row);
+    else rowsByDate.set(date, [row]);
+  }
+
+  return [...rowsByDate.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([date, rows]) => ({
+      date,
+      rows: rows.sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)),
+    }));
 }
