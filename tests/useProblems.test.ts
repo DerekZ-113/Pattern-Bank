@@ -393,6 +393,112 @@ describe("useProblems", () => {
 
       expect(mockShowToast).toHaveBeenCalledWith("Problem updated");
     });
+
+    it("logs a same-day-replacing review event when confidence changed", () => {
+      const existing = makeProblem({ id: "edit-conf-1", confidence: 2 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([existing]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleSaveProblem(
+          makeProblem({ id: "edit-conf-1", confidence: 4, patterns: ["Hash Table", "Two Pointers"] }),
+          true
+        );
+      });
+
+      expect(logOrReplaceReviewEvent).toHaveBeenCalledWith(
+        "edit-conf-1",
+        4,
+        ["Hash Table", "Two Pointers"],
+        expect.any(String),
+      );
+      expect(logReviewEvent).not.toHaveBeenCalled();
+      expect(logReviewToday).toHaveBeenCalled();
+    });
+
+    it("replaces the cloud review with old and new confidence when authenticated", () => {
+      const existing = makeProblem({ id: "edit-conf-2", confidence: 2 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([existing]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleSaveProblem(
+          makeProblem({ id: "edit-conf-2", confidence: 4 }),
+          true
+        );
+      });
+
+      expect(mockReplaceReviewInCloud).toHaveBeenCalledWith(
+        "user-123",
+        "edit-conf-2",
+        2,
+        4,
+        ["Hash Table"],
+        expect.any(String),
+      );
+      const localTimestamp = (logOrReplaceReviewEvent as ReturnType<typeof vi.fn>).mock.calls[0][3];
+      const cloudTimestamp = mockReplaceReviewInCloud.mock.calls[0][5];
+      expect(cloudTimestamp).toBe(localTimestamp);
+    });
+
+    it("does not push review to cloud when signed out", () => {
+      const existing = makeProblem({ id: "edit-conf-3", confidence: 2 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([existing]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleSaveProblem(makeProblem({ id: "edit-conf-3", confidence: 5 }), true);
+      });
+
+      expect(logOrReplaceReviewEvent).toHaveBeenCalled();
+      expect(mockReplaceReviewInCloud).not.toHaveBeenCalled();
+      expect(mockPushReviewToCloud).not.toHaveBeenCalled();
+    });
+
+    it("does not log any review event when confidence unchanged", () => {
+      const existing = makeProblem({ id: "edit-conf-4" });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([existing]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: mockUser, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleSaveProblem(makeProblem({ id: "edit-conf-4", title: "Renamed" }));
+      });
+
+      expect(logOrReplaceReviewEvent).not.toHaveBeenCalled();
+      expect(logReviewEvent).not.toHaveBeenCalled();
+      expect(mockReplaceReviewInCloud).not.toHaveBeenCalled();
+    });
+
+    it("does not log a review event on the duplicate-add early return", () => {
+      const existing = makeProblem({ id: "dup-1", leetcodeNumber: 42 });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([existing]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleSaveProblem(
+          makeProblem({ id: "dup-new", leetcodeNumber: 42, confidence: 5 }),
+          true
+        );
+      });
+
+      expect(logOrReplaceReviewEvent).not.toHaveBeenCalled();
+      expect(logReviewToday).not.toHaveBeenCalled();
+    });
   });
 
   // ── handleDeleteConfirm ────────────────────────────────────────────────────
