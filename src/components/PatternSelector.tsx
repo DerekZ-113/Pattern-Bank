@@ -1,4 +1,4 @@
-import { CORE_PATTERNS, EXTRA_PATTERNS, PATTERN_COLORS, getVisiblePatterns } from "../utils/constants";
+import { groupPatternsByCategory, PATTERN_COLORS, getVisiblePatterns } from "../utils/constants";
 import InlineError from "./InlineError";
 
 interface Props {
@@ -18,14 +18,10 @@ export default function PatternSelector({ selected, onChange, error, enabledExtr
   };
 
   const visiblePatterns = getVisiblePatterns(enabledExtraPatterns ?? []);
-  const visibleExtras = visiblePatterns.filter(
-    (p) => !(CORE_PATTERNS as readonly string[]).includes(p)
-  );
-  // Also include any extras already selected on the problem (edit case where user disabled pattern later)
-  const extraFromSelection = selected.filter(
-    (s) => !(CORE_PATTERNS as readonly string[]).includes(s) && !visibleExtras.includes(s)
-  );
-  const allExtras = [...visibleExtras, ...extraFromSelection];
+  // Also include any patterns already selected on the problem (edit case where
+  // the user disabled the extra later, or a custom pattern).
+  const selectedNotVisible = selected.filter((s) => !visiblePatterns.includes(s));
+  const groups = groupPatternsByCategory([...visiblePatterns, ...selectedNotVisible]);
 
   const renderButton = (p: string) => {
     const active = selected.includes(p);
@@ -50,22 +46,26 @@ export default function PatternSelector({ selected, onChange, error, enabledExtr
     );
   };
 
+  const renderSection = (title: string, patterns: string[], separated: boolean) => (
+    <div>
+      {separated && <div className="my-2 border-t border-pb-border" />}
+      <div className="mb-1 mt-2 text-[11px] font-semibold uppercase tracking-wide text-pb-text-dim first:mt-0">
+        {title}
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+        {patterns.map((p) => renderButton(p))}
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
         Patterns * (select at least one)
       </label>
-      <div className="grid grid-cols-3 gap-1.5">
-        {CORE_PATTERNS.map((p) => renderButton(p))}
-      </div>
-      {allExtras.length > 0 && (
-        <>
-          <div className="my-2 border-t border-pb-border" />
-          <div className="grid grid-cols-3 gap-1.5">
-            {allExtras.map((p) => renderButton(p))}
-          </div>
-        </>
-      )}
+      {renderSection("Data Structures", groups.structures, false)}
+      {renderSection("Strategies", groups.strategies, true)}
+      {groups.custom.length > 0 && renderSection("Your Patterns", groups.custom, true)}
       <InlineError message={error} />
     </div>
   );

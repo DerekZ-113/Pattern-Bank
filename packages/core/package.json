@@ -1,6 +1,6 @@
 {
   "name": "@patternbank/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Shared domain logic for PatternBank (web + mobile): spaced repetition, sync merge, LeetCode import",
   "license": "GPL-3.0",
   "repository": {

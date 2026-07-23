@@ -1,7 +1,7 @@
 import { useState } from "react";
 import StarRating from "./StarRating";
 import DifficultyBadge from "./DifficultyBadge";
-import PatternTag from "./PatternTag";
+import PatternTagList from "./PatternTagList";
 import { formatRelativeDate } from "@patternbank/core";
 import type { Problem, Confidence } from "../types";
 
@@ -65,10 +65,8 @@ export default function ReviewCard({ problem, hidePatterns, onReview, onDismiss,
               Reveal patterns
             </button>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {problem.patterns.map((p) => (
-                <PatternTag key={p} name={p} />
-              ))}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <PatternTagList patterns={problem.patterns} />
             </div>
           )}
         </div>

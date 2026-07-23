@@ -1,6 +1,6 @@
 import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
-import PatternTag from "./PatternTag";
+import PatternTagList from "./PatternTagList";
 import type { Confidence, PendingLeetCodeImport, TodayLeetCodeItem } from "../types";
 
 interface Props {
@@ -77,9 +77,7 @@ export default function TodayLeetCodeCard({ item, onConfirm, onIgnore, onRateKno
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <DifficultyBadge difficulty={item.difficulty ?? "Medium"} />
-            {item.suggestedPatterns.map((pattern) => (
-              <PatternTag key={pattern} name={pattern} />
-            ))}
+            <PatternTagList patterns={item.suggestedPatterns} />
           </div>
         </div>
         {isPending && (

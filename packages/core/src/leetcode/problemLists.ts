@@ -1,6 +1,8 @@
 // Curated problem lists for PatternBank
 // Verified against leetcodeProblems.js (3,846 problems) on March 2, 2026
-// Pattern assignments use PatternBank's 18 patterns from constants.js
+// Pattern assignments use the original 18 core patterns; the Array and Math
+// patterns added later are not yet assigned here (re-categorizing curated
+// entries is a deliberate follow-up).
 
 import { getProblemByNumber } from "./problems";
 import type { LeetCodeProblem, ListSummary, ProblemList } from "../types";

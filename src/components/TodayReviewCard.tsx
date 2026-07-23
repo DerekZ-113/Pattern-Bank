@@ -1,6 +1,6 @@
 import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
-import PatternTag from "./PatternTag";
+import PatternTagList from "./PatternTagList";
 import StarRating from "./StarRating";
 import { formatRelativeDate } from "@patternbank/core";
 import type { Confidence, Problem } from "../types";
@@ -77,9 +77,7 @@ export default function TodayReviewCard({
                 Reveal patterns
               </button>
             ) : (
-              problem.patterns.map((pattern) => (
-                <PatternTag key={pattern} name={pattern} />
-              ))
+              <PatternTagList patterns={problem.patterns} />
             )}
           </div>
         </div>
