@@ -40,5 +40,5 @@ React app for tracking LeetCode problems with spaced repetition. localStorage-fi
 - Don't change the localStorage-first architecture; don't make cloud sync blocking
 - Don't modify `packages/core/src/leetcode/problems.js` (3,846-entry static database, stays JS with `.d.ts` companion)
 - Never `vi.mock("@patternbank/core")` (the barrel doesn't intercept core-internal imports) — mock the core FILE or the web shim path instead (`tests/useLeetCodePendingImports.test.tsx` shows the pattern)
-- `packages/core/tests/fixtures/crossPlatformReviewParity.json` is byte-shared with mobile — never hardcode new dates; the suite date-shifts at runtime
+- The parity fixtures `packages/core/tests/fixtures/crossPlatformReviewParity.json` (v1, bytes FROZEN) and `crossPlatformSyncParity.json` (v2) are byte-shared with the mobile repo AND digest-guarded by PatternBankKit's Swift suite — fixture changes land in all three places in lockstep; never hardcode new dates (the suites date-shift at runtime)
 - Core shim paths in `src/utils/` are stable mock targets for tests — keep the paths even when internals change
