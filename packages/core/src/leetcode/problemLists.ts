@@ -13,7 +13,8 @@ import type { LeetCodeProblem, ListSummary, ProblemList } from "../types";
 // One source of truth — shared across all lists
 // ============================================================
 
-const PATTERN_MAP: Record<number, string> = {
+// Exported for PatternBankKit's data codegen (generate-leetcode-data.mjs).
+export const PATTERN_MAP: Record<number, string> = {
   // Hash Table
   1: "Hash Table",     // Two Sum
   7: "Hash Table",     // Reverse Integer
@@ -357,7 +358,8 @@ const PATTERN_MAP: Record<number, string> = {
 // LIST DEFINITIONS
 // ============================================================
 
-const PROBLEM_LISTS: ProblemList[] = [
+// Exported for PatternBankKit's data codegen (generate-leetcode-data.mjs).
+export const PROBLEM_LISTS: ProblemList[] = [
   {
     id: "neetcode75",
     name: "NeetCode 75",

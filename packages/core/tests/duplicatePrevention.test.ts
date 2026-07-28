@@ -60,6 +60,40 @@ describe("deduplicateProblems", () => {
     expect(removedIds).toEqual(["old-id"]);
   });
 
+  it("keeps the valid entry when the earlier duplicate's updatedAt is malformed (F-17)", () => {
+    const malformedFirst = makeProblem({
+      id: "bad-ts",
+      leetcodeNumber: 1,
+      updatedAt: "not-a-date",
+    });
+    const validSecond = makeProblem({
+      id: "good-ts",
+      leetcodeNumber: 1,
+      updatedAt: "2026-03-10T00:00:00.000Z",
+    });
+    const { problems: result, removedIds } = deduplicateProblems([malformedFirst, validSecond]);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("good-ts");
+    expect(removedIds).toEqual(["bad-ts"]);
+  });
+
+  it("keeps the valid entry when the later duplicate's updatedAt is malformed (F-17)", () => {
+    const validFirst = makeProblem({
+      id: "good-ts",
+      leetcodeNumber: 1,
+      updatedAt: "2026-03-10T00:00:00.000Z",
+    });
+    const malformedSecond = makeProblem({
+      id: "bad-ts",
+      leetcodeNumber: 1,
+      updatedAt: "not-a-date",
+    });
+    const { problems: result, removedIds } = deduplicateProblems([validFirst, malformedSecond]);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("good-ts");
+    expect(removedIds).toEqual(["bad-ts"]);
+  });
+
   it("keeps older when newer comes first in array (order doesn't matter, updatedAt does)", () => {
     const newer = makeProblem({
       id: "new-id",

@@ -1,4 +1,4 @@
-import { todayStr, addDays, generateId } from "./dateHelpers";
+import { todayStr, addDays, generateId, timestampMs } from "./dateHelpers";
 import { getIntervalDays, getNextFiveStarStreak, getReviewIntervalDays } from "./spacedRepetition";
 import { countReviewedToday } from "./storage/logic";
 import { buildLeetCodeUrl } from "./leetcode/problems";
@@ -145,8 +145,10 @@ export function deduplicateProblems(
       seen.set(problem.leetcodeNumber, problem);
       kept.push(problem);
     } else {
-      const existingTime = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
-      const currentTime = problem.updatedAt ? new Date(problem.updatedAt).getTime() : 0;
+      // F-17: timestampMs collapses malformed timestamps to the epoch so a
+      // valid entry always beats one whose updatedAt no longer parses.
+      const existingTime = timestampMs(existing.updatedAt);
+      const currentTime = timestampMs(problem.updatedAt);
       if (currentTime > existingTime) {
         const idx = kept.indexOf(existing);
         kept[idx] = problem;
@@ -158,12 +160,6 @@ export function deduplicateProblems(
     }
   }
   return { problems: kept, removedIds };
-}
-
-function timestampMs(value: string | null | undefined): number {
-  if (!value) return 0;
-  const ms = new Date(value).getTime();
-  return Number.isFinite(ms) ? ms : 0;
 }
 
 /**

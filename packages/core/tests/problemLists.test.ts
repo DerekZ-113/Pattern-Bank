@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { getListSummaries, getListProblems } from "../src/leetcode/problemLists";
+import {
+  getListSummaries,
+  getListProblems,
+  PATTERN_MAP,
+  PROBLEM_LISTS,
+} from "../src/leetcode/problemLists";
 
 describe("getListSummaries", () => {
   it("returns all 6 curated lists", () => {
@@ -71,5 +76,24 @@ describe("getListProblems", () => {
     const { patternMap } = getListProblems("neetcode75", new Set());
     // Problem 1 (Two Sum) should map to Hash Table
     expect(patternMap.get(1)).toEqual(["Hash Table"]);
+  });
+});
+
+describe("raw data exports (consumed by PatternBankKit codegen)", () => {
+  it("PROBLEM_LISTS exposes the 6 curated lists with source URLs", () => {
+    expect(PROBLEM_LISTS).toHaveLength(6);
+    for (const list of PROBLEM_LISTS) {
+      expect(list.source).toMatch(/^https:\/\//);
+      expect(list.numbers.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("PATTERN_MAP holds 303 in-range problem→pattern assignments", () => {
+    const keys = Object.keys(PATTERN_MAP);
+    expect(keys).toHaveLength(303);
+    for (const key of keys) {
+      const n = Number(key);
+      expect(Number.isInteger(n) && n >= 1 && n <= 3846).toBe(true);
+    }
   });
 });
