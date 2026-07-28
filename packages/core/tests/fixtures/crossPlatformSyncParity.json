@@ -1,0 +1,172 @@
+{
+  "version": 2,
+  "today": "2026-07-01",
+  "notes": "Cross-platform SYNC parity contract (fixture v2). Byte-identical copies live in the web repo (packages/core/tests/fixtures/) and the mobile repo (src/__tests__/fixtures/); the Swift suite reads the mobile copy via #filePath. Dates are never edited — consumers date-shift (web core, PatternBankKit) or pin today (mobile jest). Assertions are scalars and ordered ID/key arrays only.",
+  "mergeProblems": {
+    "local": [
+      { "id": "shared-newer-local", "notes": "local", "updatedAt": "2026-06-10T00:00:00.000Z" },
+      { "id": "shared-newer-cloud", "notes": "local", "updatedAt": "2026-06-01T00:00:00.000Z" },
+      { "id": "shared-tie", "notes": "local", "updatedAt": "2026-06-05T00:00:00.000Z" },
+      { "id": "local-only", "notes": "local", "updatedAt": "2026-06-05T00:00:00.000Z" },
+      { "id": "shared-malformed-local", "notes": "local", "updatedAt": "not-a-date" }
+    ],
+    "cloud": [
+      { "id": "shared-newer-local", "notes": "cloud", "updatedAt": "2026-06-05T00:00:00.000Z" },
+      { "id": "shared-newer-cloud", "notes": "cloud", "updatedAt": "2026-06-08T00:00:00.000Z" },
+      { "id": "shared-tie", "notes": "cloud", "updatedAt": "2026-06-05T00:00:00.000Z" },
+      { "id": "cloud-only", "notes": "cloud", "updatedAt": "2026-06-05T00:00:00.000Z" },
+      { "id": "shared-malformed-local", "notes": "cloud", "updatedAt": "2026-06-02T00:00:00.000Z" }
+    ],
+    "expected": {
+      "orderedIds": [
+        "shared-newer-local",
+        "shared-newer-cloud",
+        "shared-tie",
+        "local-only",
+        "shared-malformed-local",
+        "cloud-only"
+      ],
+      "notesById": {
+        "shared-newer-local": "local",
+        "shared-newer-cloud": "cloud",
+        "shared-tie": "local",
+        "local-only": "local",
+        "shared-malformed-local": "cloud",
+        "cloud-only": "cloud"
+      },
+      "cloudAdded": 1,
+      "cloudWon": 2
+    }
+  },
+  "mergeReviewEvents": {
+    "prunedBefore": "2026-05-01T00:00:00.000Z",
+    "local": [
+      { "problemId": "p1", "date": "2026-06-10", "confidence": 3, "timestamp": "2026-06-10T12:00:00.000Z" },
+      { "problemId": "p2", "date": "2026-06-11", "confidence": 4, "timestamp": "2026-06-11T09:00:00.000Z" },
+      { "problemId": "p3", "date": "2026-06-14", "confidence": 3, "timestamp": "2026-06-14T23:59:58.000Z" }
+    ],
+    "cloud": [
+      { "problemId": "p1", "date": "2026-06-10", "confidence": 3, "timestamp": "2026-06-10T12:00:03.000Z" },
+      { "problemId": "p1", "date": "2026-06-10", "confidence": 5, "timestamp": "2026-06-10T12:00:04.000Z" },
+      { "problemId": "p3", "date": "2026-06-15", "confidence": 3, "timestamp": "2026-06-15T00:00:01.000Z" },
+      { "problemId": "p-old", "date": "2026-04-20", "confidence": 3, "timestamp": "2026-04-20T10:00:00.000Z" }
+    ],
+    "expected": {
+      "orderedEvents": [
+        { "problemId": "p1", "timestamp": "2026-06-10T12:00:00.000Z" },
+        { "problemId": "p1", "timestamp": "2026-06-10T12:00:04.000Z" },
+        { "problemId": "p2", "timestamp": "2026-06-11T09:00:00.000Z" },
+        { "problemId": "p3", "timestamp": "2026-06-14T23:59:58.000Z" },
+        { "problemId": "p3", "timestamp": "2026-06-15T00:00:01.000Z" }
+      ],
+      "addedFromCloud": 2,
+      "localOnlyEvents": [
+        { "problemId": "p2", "timestamp": "2026-06-11T09:00:00.000Z" },
+        { "problemId": "p3", "timestamp": "2026-06-14T23:59:58.000Z" }
+      ]
+    }
+  },
+  "tombstones": {
+    "problems": [
+      { "id": "restored", "updatedAt": "2026-06-15T12:00:00.000Z" },
+      { "id": "stale", "updatedAt": "2026-06-13T12:00:00.000Z" },
+      { "id": "tie", "updatedAt": "2026-06-14T12:00:00.000Z" },
+      { "id": "untouched", "updatedAt": "2026-06-01T00:00:00.000Z" }
+    ],
+    "localTombstones": [
+      { "problemId": "restored", "deletedAt": "2026-06-14T12:00:00.000Z" },
+      { "problemId": "stale", "deletedAt": "2026-06-12T12:00:00.000Z" }
+    ],
+    "cloudTombstones": [
+      { "problemId": "stale", "deletedAt": "2026-06-14T12:00:00.000Z" },
+      { "problemId": "tie", "deletedAt": "2026-06-14T12:00:00.000Z" }
+    ],
+    "expected": {
+      "orderedTombstoneProblemIds": ["restored", "stale", "tie"],
+      "winningDeletedAtById": { "stale": "2026-06-14T12:00:00.000Z" },
+      "addedFromCloud": 2,
+      "survivingProblemIds": ["restored", "untouched"]
+    }
+  },
+  "dataResetFilters": {
+    "reset": { "resetAt": "2026-06-15T12:00:00.000Z" },
+    "problems": [
+      { "id": "pre-reset", "updatedAt": "2026-06-15T11:59:59.000Z" },
+      { "id": "boundary", "updatedAt": "2026-06-15T12:00:00.000Z" },
+      { "id": "post-reset", "updatedAt": "2026-06-15T12:00:01.000Z" }
+    ],
+    "events": [
+      { "problemId": "e-pre", "date": "2026-06-01", "confidence": 3, "timestamp": "2026-06-01T10:00:00.000Z" },
+      { "problemId": "e-post", "date": "2026-06-20", "confidence": 3, "timestamp": "2026-06-20T10:00:00.000Z" }
+    ],
+    "tombstones": [
+      { "problemId": "t-pre", "deletedAt": "2026-06-15T12:00:00.000Z" },
+      { "problemId": "t-post", "deletedAt": "2026-06-15T12:00:01.000Z" }
+    ],
+    "log": [{ "date": "2026-06-01" }, { "date": "2026-06-20" }],
+    "expected": {
+      "keptProblemIds": ["post-reset"],
+      "removedProblemIds": ["pre-reset", "boundary"],
+      "keptEventProblemIds": ["e-post"],
+      "keptTombstoneProblemIds": ["t-post"],
+      "keptLogDates": ["2026-06-20"]
+    }
+  },
+  "respreadIdempotency": {
+    "dailyGoal": 3,
+    "now": "2026-07-01T12:00:00.000Z",
+    "problems": [
+      { "id": "due-1", "nextReviewDate": "2026-07-01" },
+      { "id": "c1", "nextReviewDate": "2026-07-05" },
+      { "id": "c2", "nextReviewDate": "2026-07-06" },
+      { "id": "c3", "nextReviewDate": "2026-07-06" },
+      { "id": "c4", "nextReviewDate": "2026-07-09" },
+      { "id": "excluded", "nextReviewDate": "2026-07-09", "excludeFromReview": true },
+      { "id": "reviewed", "nextReviewDate": "2026-07-09", "lastReviewed": "2026-06-30" }
+    ],
+    "expected": {
+      "firstChangedCount": 4,
+      "secondChangedCount": 0,
+      "dateById": {
+        "due-1": "2026-07-01",
+        "c1": "2026-07-01",
+        "c2": "2026-07-01",
+        "c3": "2026-07-02",
+        "c4": "2026-07-02",
+        "excluded": "2026-07-09",
+        "reviewed": "2026-07-09"
+      }
+    }
+  },
+  "mappingRoundTrip": {
+    "problems": [
+      {
+        "id": "map-full",
+        "title": "Wildcard Matching",
+        "leetcodeNumber": 44,
+        "url": "https://leetcode.com/problems/wildcard-matching",
+        "difficulty": "Hard",
+        "patterns": ["Dynamic Programming", "Greedy"],
+        "confidence": 2,
+        "notes": "Tricky DP transition",
+        "excludeFromReview": true,
+        "dateAdded": "2026-05-20",
+        "lastReviewed": "2026-06-01",
+        "nextReviewDate": "2026-06-25",
+        "fiveStarStreak": 2,
+        "updatedAt": "2026-06-01T12:00:00.000Z"
+      },
+      {
+        "id": "map-sparse",
+        "confidence": 5,
+        "updatedAt": "2026-06-02T12:00:00.000Z"
+      }
+    ],
+    "expected": {
+      "fiveStarStreakById": { "map-full": 2, "map-sparse": 1 },
+      "notesById": { "map-full": "Tricky DP transition", "map-sparse": "" },
+      "excludeFromReviewById": { "map-full": true, "map-sparse": false },
+      "confidenceById": { "map-full": 2, "map-sparse": 5 }
+    }
+  }
+}
