@@ -81,6 +81,15 @@ Core is platform-free. Each app injects four things:
 - **Date-aware, confidence-aware event matching** — see above.
 - Dual **ESM + CJS** builds with split type entries; `sideEffects: false`; Node ≥ 18.
 
+## Cross-platform parity fixtures
+
+Two JSON fixtures under `tests/fixtures/` are the executable cross-platform contract, byte-identical with the copies in the iOS repo (`src/__tests__/fixtures/`) and consumed by **three runners**: this package's vitest suites (date-shifted), the React Native jest suites (pinned-today), and PatternBankKit's Swift Testing suites (date-shifted, digest-guarded):
+
+- `crossPlatformReviewParity.json` (v1, bytes FROZEN) — intervals, five-star graduation, Today due-state, Done-Today feed, LeetCode completion identity.
+- `crossPlatformSyncParity.json` (v2) — mergeProblems newest-wins (incl. malformed-timestamp losers), review-event merge (5s drift window, date+confidence gates, prune watermark), tombstone LWW, data-reset filters, respread idempotency, mapping round-trips. This closed the sync-parity gap: the full sync engine is now proven behavior-identical across TS and Swift.
+
+**Fixture changes must land in all three places** (this repo, the iOS repo's fixtures dir, and a Swift digest update) in lockstep — the Swift suite byte-guards both files. Never hardcode new dates; the date-shift layers keep the suites green forever.
+
 ## Versioning
 
 Semver from `0.1.0`. Releases are tagged `core-v*` in the [Pattern-Bank repo](https://github.com/DerekZ-113/Pattern-Bank); the package directory is `packages/core`. Notable: `0.1.1` fixed same-day re-rates being collapsed by the 5-second drift window.
