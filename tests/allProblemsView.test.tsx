@@ -204,6 +204,8 @@ describe("AllProblemsView", () => {
     expect(within(dueRow).getByRole("radiogroup", { name: "Rate Number of Islands confidence" })).toBeTruthy();
     fireEvent.click(within(dueRow).getByText("Rate your confidence:"));
     expect(onEdit).not.toHaveBeenCalled();
+    // Opening the panel hands keyboard focus to the rating group.
+    expect(document.activeElement).toBe(within(dueRow).getByRole("radiogroup"));
 
     fireEvent.click(within(dueRow).getByRole("radio", { name: "4 stars" }));
     fireEvent.click(within(dueRow).getByRole("button", { name: "Done" }));
@@ -211,6 +213,8 @@ describe("AllProblemsView", () => {
     expect(onReview).toHaveBeenCalledWith("problem-2", 4);
     expect(onEdit).not.toHaveBeenCalled();
     expect(within(dueRow).queryByRole("radiogroup")).toBeNull();
+    // Done closes the panel and parks focus on the card, not <body>.
+    expect(document.activeElement).toBe(dueRow);
   });
 
   it("closes the review panel on Back without reviewing", () => {
@@ -224,6 +228,7 @@ describe("AllProblemsView", () => {
     expect(onEdit).not.toHaveBeenCalled();
     expect(within(dueRow).queryByRole("radiogroup")).toBeNull();
     expect(within(dueRow).getByRole("button", { name: "Review" })).toBeTruthy();
+    expect(document.activeElement).toBe(within(dueRow).getByRole("button", { name: "Review" }));
   });
 
   it("hides Review entirely when no onReview handler is provided", () => {

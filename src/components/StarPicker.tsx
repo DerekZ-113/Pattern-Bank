@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { Confidence } from "../types";
 
@@ -34,6 +34,8 @@ interface InteractiveProps extends CommonProps {
   label?: string;
   getStarLabel?: (star: Confidence) => string;
   disabled?: boolean;
+  /** Focus the group on mount (after it replaces a trigger button) so keyboard users are not dropped to <body>. */
+  autoFocus?: boolean;
 }
 
 /** Controlled selection — a Save/Done button elsewhere commits it. */
@@ -93,6 +95,7 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
   const [pendingStar, setPendingStar] = useState<Confidence | null>(null);
   const [busy, setBusy] = useState(false);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const group = useRef<HTMLDivElement>(null);
 
   const size = SIZE_CLASSES[props.size ?? "lg"];
   const recorded: Confidence | null = props.mode === "select" ? props.value : (props.value ?? null);
@@ -100,7 +103,14 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
   const disabled = !!props.disabled || busy;
   const getStarLabel = props.getStarLabel ?? defaultStarLabel;
 
+  const autoFocus = props.autoFocus;
+  useEffect(() => {
+    if (autoFocus) group.current?.focus();
+  }, [autoFocus]);
+
   const handleActivate = (star: Confidence) => {
+    // aria-disabled (not native disabled) keeps the focused star focusable.
+    if (disabled) return;
     if (props.mode === "select") {
       props.onChange(star);
       return;
@@ -135,8 +145,11 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
 
   return (
     <div
+      ref={group}
       role="radiogroup"
       aria-label={props.label ?? "Confidence"}
+      aria-busy={busy || undefined}
+      tabIndex={autoFocus ? -1 : undefined}
       className={`flex items-center ${size.gap} ${props.className ?? ""}`}
       onMouseLeave={() => setPreview(null)}
     >
@@ -153,22 +166,24 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
             role="radio"
             aria-checked={star === recorded}
             aria-label={getStarLabel(star)}
-            disabled={disabled}
+            aria-disabled={disabled}
             onMouseEnter={() => setPreview(star)}
             onFocus={() => setPreview(star)}
             onBlur={() => setPreview(null)}
             onClick={() => handleActivate(star)}
             onKeyDown={(event) => handleKeyDown(event, index)}
-            className={`inline-flex ${size.box} cursor-pointer items-center justify-center rounded border p-0 ${size.glyph} leading-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent disabled:cursor-not-allowed disabled:opacity-70 ${
-              filled ? "text-pb-star" : "text-pb-text-dim hover:text-pb-star"
+            className={`inline-flex ${size.box} cursor-pointer items-center justify-center rounded border p-0 ${size.glyph} leading-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-70 ${
+              filled ? "text-pb-star" : "text-pb-text-muted hover:text-pb-star"
             } ${
               active
                 ? "border-pb-star/60 bg-pb-star/10"
                 : "border-transparent hover:border-pb-star/40 hover:bg-pb-star/5"
             }`}
           >
+            {/* Outline vs filled glyph: state survives colour-vision loss and the
+                near-identical luminance of the light-theme yellow and grey. */}
             <span aria-hidden="true" className="block leading-none">
-              ★
+              {filled ? "★" : "☆"}
             </span>
           </button>
         );

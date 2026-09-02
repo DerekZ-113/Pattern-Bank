@@ -112,7 +112,7 @@ describe("StarPicker commit mode", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: "4 stars" }));
     expect(onCommit).toHaveBeenCalledWith(4);
-    expect(radios().every((el) => el.disabled)).toBe(true);
+    expect(radios().every((el) => el.getAttribute("aria-disabled") === "true")).toBe(true);
     // The pending star stays lit so the user sees what they picked.
     expect(filledFlags()).toEqual([true, true, true, true, false]);
 
@@ -123,7 +123,7 @@ describe("StarPicker commit mode", () => {
       pending.resolve();
       await pending.promise;
     });
-    expect(radios().every((el) => !el.disabled)).toBe(true);
+    expect(radios().every((el) => el.getAttribute("aria-disabled") !== "true")).toBe(true);
     // Nothing recorded and no hover: the fill drops back to empty after the commit.
     expect(filledFlags()).toEqual([false, false, false, false, false]);
   });
@@ -134,14 +134,14 @@ describe("StarPicker commit mode", () => {
     render(<StarPicker mode="commit" value={null} onCommit={() => pending.promise} />);
 
     fireEvent.click(screen.getByRole("radio", { name: "2 stars" }));
-    expect(radios().every((el) => el.disabled)).toBe(true);
+    expect(radios().every((el) => el.getAttribute("aria-disabled") === "true")).toBe(true);
 
     await act(async () => {
       pending.reject(new Error("offline"));
       await pending.promise.catch(() => undefined);
     });
     expect(warn).toHaveBeenCalledWith("Rating failed:", expect.any(Error));
-    expect(radios().every((el) => !el.disabled)).toBe(true);
+    expect(radios().every((el) => el.getAttribute("aria-disabled") !== "true")).toBe(true);
     warn.mockRestore();
   });
 
@@ -180,7 +180,21 @@ describe("StarPicker commit mode", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: "4 stars" }));
     expect(onCommit).not.toHaveBeenCalled();
-    expect(radios().every((el) => el.disabled)).toBe(true);
+    expect(radios().every((el) => el.getAttribute("aria-disabled") === "true")).toBe(true);
+  });
+
+  it("uses the outline glyph for empty stars so state is not colour-only", () => {
+    render(<StarPicker mode="commit" value={2} onCommit={vi.fn()} />);
+
+    expect(radios().map((el) => el.textContent?.trim())).toEqual(["★", "★", "☆", "☆", "☆"]);
+  });
+
+  it("moves focus onto the group when autoFocus is set", () => {
+    render(<StarPicker mode="commit" value={null} onCommit={vi.fn()} autoFocus />);
+
+    expect(document.activeElement).toBe(screen.getByRole("radiogroup"));
+    // Focusing the group (not a star) keeps every star empty until the user acts.
+    expect(filledFlags()).toEqual([false, false, false, false, false]);
   });
 
   it("keeps the pinned lg geometry classes", () => {

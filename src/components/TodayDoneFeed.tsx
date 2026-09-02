@@ -21,7 +21,7 @@ function formatReviewTime(timestamp: string): string {
 
 function CompactStars({ confidence }: { confidence: number }) {
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-pb-text-muted" aria-label={`${confidence} out of 5 stars`}>
+    <span role="img" className="inline-flex items-center gap-1 text-xs text-pb-text-muted" aria-label={`${confidence} out of 5 stars`}>
       <span className="font-semibold text-pb-star">{confidence}★</span>
     </span>
   );
@@ -113,8 +113,9 @@ export default function TodayDoneFeed({ items, onRateLeetCodeReview, onOpenProbl
                         {ratingRowId === item.id ? (
                           <StarPicker
                             mode="commit"
-                            size="sm"
+                            size="lg"
                             value={null}
+                            autoFocus
                             disabled={otherRowPending}
                             label={`Rate ${item.title} confidence`}
                             getStarLabel={(star) => `Rate ${item.title} with ${star}-star confidence`}

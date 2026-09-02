@@ -93,7 +93,7 @@ describe("TodayDoneFeed rating lock (F-21)", () => {
     // First rating still pending: the second row's stars must not fire.
     fireEvent.click(screen.getByRole("button", { name: "Rate Add Two Numbers" }));
     const otherStar = screen.getByRole("radio", { name: "Rate Add Two Numbers with 4-star confidence" });
-    expect((otherStar as HTMLButtonElement).disabled).toBe(true);
+    expect(otherStar.getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(otherStar);
     expect(onRate).toHaveBeenCalledTimes(1);
 

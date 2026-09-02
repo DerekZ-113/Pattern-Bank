@@ -25,6 +25,7 @@ export default function ReviewRatePanel({ problem, onDone, onBack }: Props) {
           value={confidence}
           onChange={setConfidence}
           label={`Rate ${problem.title} confidence`}
+          autoFocus
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 max-sm:w-full max-sm:[&>*]:flex-1">

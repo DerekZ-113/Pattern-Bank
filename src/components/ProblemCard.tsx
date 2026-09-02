@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StarPicker from "./StarPicker";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTagList from "./PatternTagList";
@@ -19,6 +19,18 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
   const isDue = !isExcluded && problem.nextReviewDate <= todayStr();
   const [reviewing, setReviewing] = useState(false);
   const canReview = isDue && !!onReview;
+  const articleRef = useRef<HTMLElement>(null);
+  const reviewButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusTo = useRef<"button" | "card" | null>(null);
+
+  // The panel replaces the Review button, so closing it must hand focus
+  // somewhere deliberate instead of dropping keyboard users to <body>.
+  useEffect(() => {
+    if (reviewing || !restoreFocusTo.current) return;
+    if (restoreFocusTo.current === "button") reviewButtonRef.current?.focus();
+    else articleRef.current?.focus();
+    restoreFocusTo.current = null;
+  }, [reviewing]);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -36,7 +48,13 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
   };
 
   const handleReviewDone = (confidence: Confidence) => {
+    restoreFocusTo.current = "card";
     onReview?.(problem.id, confidence);
+    setReviewing(false);
+  };
+
+  const handleReviewBack = () => {
+    restoreFocusTo.current = "button";
     setReviewing(false);
   };
 
@@ -48,6 +66,8 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
 
   return (
     <article
+      ref={articleRef}
+      tabIndex={-1}
       onClick={() => onEdit(problem)}
       className={`cursor-pointer rounded-[10px] border bg-pb-surface px-4 py-3.5 transition-[border-color,background,opacity] duration-150 hover:border-pb-border-strong hover:bg-pb-surface-2 ${
         isDue ? "border-pb-accent/35" : "border-pb-border"
@@ -117,7 +137,7 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
 
       {/* Confidence and review date */}
       <div
-        className="mt-2.5 flex items-center justify-between gap-3"
+        className="mt-2.5 flex flex-wrap items-center justify-between gap-3"
       >
         <StarPicker mode="display" size="md" value={problem.confidence} />
         <div className="flex items-center gap-2.5">
@@ -140,6 +160,7 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
           </span>
           {canReview && !reviewing && (
             <button
+              ref={reviewButtonRef}
               type="button"
               onClick={handleStartReview}
               className="h-7 cursor-pointer rounded-lg border border-pb-accent/35 bg-pb-accent-subtle px-3 text-xs font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
@@ -157,7 +178,7 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
           <ReviewRatePanel
             problem={problem}
             onDone={handleReviewDone}
-            onBack={() => setReviewing(false)}
+            onBack={handleReviewBack}
           />
         </div>
       )}
