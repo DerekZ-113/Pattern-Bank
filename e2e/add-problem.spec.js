@@ -29,8 +29,8 @@ test.describe("Add Problem", () => {
     // Select a pattern
     await page.getByRole("button", { name: "Hash Table" }).click();
 
-    // Set confidence to 3 stars (click the 3rd star in the radiogroup)
-    await page.getByRole("radiogroup").locator("span").nth(2).click();
+    // Set confidence to 3 stars
+    await page.getByRole("radio", { name: "3 stars" }).click();
 
     // Save
     await page.getByRole("button", { name: "Save Problem" }).click();

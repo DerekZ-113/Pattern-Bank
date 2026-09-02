@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { INTERVALS } from "@patternbank/core";
+import StarPicker from "./StarPicker";
 import type { Confidence } from "../types";
 
 interface Props {
@@ -54,11 +55,7 @@ export default function HelpModal({ isOpen, onClose }: Props) {
                 const color = stars <= 2 ? "text-pb-hard" : stars === 3 ? "text-pb-medium" : "text-pb-easy";
                 return (
                   <div key={stars} className="flex items-center justify-between">
-                    <span className="text-sm tracking-wide">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <span key={i} style={{ color: i <= stars ? "var(--color-pb-star)" : "var(--color-pb-star-empty)" }}>★</span>
-                      ))}
-                    </span>
+                    <StarPicker mode="display" size="sm" value={stars} />
                     <span className={`font-mono text-[13px] tabular-nums ${color}`}>
                       <span className="inline-block w-[18px] text-right">{days}</span> day{days !== 1 ? "s" : ""}
                     </span>

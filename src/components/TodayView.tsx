@@ -40,7 +40,7 @@ interface Props {
   existingProblemNumbers: Set<number>;
   pendingLeetCodeImports?: PendingLeetCodeImport[];
   todayLeetCodeItems?: TodayLeetCodeItem[];
-  onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void;
+  onConfirmLeetCodeImport?: (item: PendingLeetCodeImport, confidence: Confidence) => void | Promise<void>;
   onIgnoreLeetCodeImport?: (item: PendingLeetCodeImport) => void;
   leetcodeSubmissions?: LeetCodeSubmission[];
   onRateLeetCodeReview?: (
@@ -165,8 +165,10 @@ export default function TodayView({
     && exitingLeetCodeItems.length === 0
     && !hasLeetCodeSolveToday
     && doneTodayItems.length === 0;
+  // Returns the promise so the star picker stays disabled for the whole
+  // import — the only double-click guard the pending-import stars have.
   const handleConfirmLeetCodeImport = useCallback((item: PendingLeetCodeImport, confidence: Confidence) => {
-    onConfirmLeetCodeImport?.(item, confidence);
+    return onConfirmLeetCodeImport?.(item, confidence);
   }, [onConfirmLeetCodeImport]);
   const handleRateKnownLeetCodeItem = useCallback((item: TodayLeetCodeItem, confidence: Confidence) => {
     if (!item.matchedProblemId) return undefined;

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTagList from "./PatternTagList";
-import StarRating from "./StarRating";
+import StarPicker from "./StarPicker";
 import { formatRelativeDate } from "@patternbank/core";
 import type { Confidence, Problem } from "../types";
 
@@ -97,7 +97,7 @@ export default function TodayReviewCard({
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <span className="text-xs text-pb-text-muted">Confidence</span>
-        <StarRating value={problem.confidence} size={16} />
+        <StarPicker mode="display" size="md" value={problem.confidence} />
         <span className="text-xs text-pb-text-dim">· {lastReviewedText}</span>
       </div>
 
@@ -132,7 +132,13 @@ export default function TodayReviewCard({
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-pb-bg px-4 py-3.5">
           <div>
             <div className="mb-1.5 text-xs text-pb-text-muted">Rate your confidence:</div>
-            <StarRating value={newConfidence} onChange={(value) => setNewConfidence(value as Confidence)} size={22} />
+            <StarPicker
+              mode="select"
+              size="xl"
+              value={newConfidence}
+              onChange={setNewConfidence}
+              label={`Rate ${problem.title} confidence`}
+            />
           </div>
           <div className="flex flex-wrap items-center gap-2 max-sm:w-full max-sm:[&>*]:flex-1">
             {problem.url && (

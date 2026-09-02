@@ -3,7 +3,7 @@ import { DIFFICULTIES } from "../utils/constants";
 import { todayStr, generateId } from "@patternbank/core";
 import { computeNextReviewDate } from "@patternbank/core";
 import { getDefaultFiveStarStreak } from "@patternbank/core";
-import StarRating from "./StarRating";
+import StarPicker from "./StarPicker";
 import InlineError from "./InlineError";
 import LeetCodeSearch from "./LeetCodeSearch";
 import ReviewHistory from "./ReviewHistory";
@@ -320,10 +320,12 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
               Confidence
               <span className="ml-[15px]"><ConfidenceInfo /></span>
             </label>
-            <StarRating
+            <StarPicker
+              mode="select"
+              size="xl"
               value={form.confidence}
-              onChange={(v) => updateForm({ confidence: v as Confidence })}
-              size={24}
+              onChange={(confidence) => updateForm({ confidence })}
+              label="Confidence"
             />
           </div>
 

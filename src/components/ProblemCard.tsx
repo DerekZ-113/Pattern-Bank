@@ -1,4 +1,4 @@
-import StarRating from "./StarRating";
+import StarPicker from "./StarPicker";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTagList from "./PatternTagList";
 import { todayStr, formatRelativeDate } from "@patternbank/core";
@@ -104,7 +104,7 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
       <div
         className="mt-2.5 flex items-center justify-between gap-3"
       >
-        <StarRating value={problem.confidence} size={16} />
+        <StarPicker mode="display" size="md" value={problem.confidence} />
         <span
           className={`inline-flex items-center gap-1.5 text-xs ${
             isExcluded
