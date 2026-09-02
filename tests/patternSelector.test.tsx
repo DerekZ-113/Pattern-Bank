@@ -29,6 +29,18 @@ describe("PatternSelector", () => {
     expect(within(section("Strategies")).getByRole("button", { name: "Intervals" })).toBeTruthy();
   });
 
+  it("renders Database under Strategies when enabled", () => {
+    render(<PatternSelector selected={[]} onChange={vi.fn()} enabledExtraPatterns={["Database"]} />);
+
+    expect(within(section("Strategies")).getByRole("button", { name: "Database" })).toBeTruthy();
+  });
+
+  it("hides Database until it is enabled", () => {
+    render(<PatternSelector selected={[]} onChange={vi.fn()} enabledExtraPatterns={[]} />);
+
+    expect(screen.queryByRole("button", { name: "Database" })).toBeNull();
+  });
+
   it("still renders a selected extra that is no longer enabled (edit case)", () => {
     render(<PatternSelector selected={["Mono Stack"]} onChange={vi.fn()} enabledExtraPatterns={[]} />);
 

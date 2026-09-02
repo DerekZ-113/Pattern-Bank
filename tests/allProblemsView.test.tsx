@@ -106,6 +106,37 @@ describe("AllProblemsView", () => {
     expect((screen.getByLabelText("Sort") as HTMLSelectElement).value).toBe("confidence");
   });
 
+  it("lists Database in the pattern filter when enabled or in use", () => {
+    const { unmount } = render(
+      <AllProblemsView
+        problems={problems}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleExclude={vi.fn()}
+        onAddClick={vi.fn()}
+        enabledExtraPatterns={["Database"]}
+      />
+    );
+    expect(within(screen.getByLabelText("Pattern")).getByRole("option", { name: "Database" })).toBeTruthy();
+    unmount();
+
+    const { unmount: unmountInUse } = render(
+      <AllProblemsView
+        problems={[makeProblem({ id: "db-1", title: "Combine Two Tables", patterns: ["Database"] })]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleExclude={vi.fn()}
+        onAddClick={vi.fn()}
+        enabledExtraPatterns={[]}
+      />
+    );
+    expect(within(screen.getByLabelText("Pattern")).getByRole("option", { name: "Database" })).toBeTruthy();
+    unmountInUse();
+
+    renderAllProblems();
+    expect(within(screen.getByLabelText("Pattern")).queryByRole("option", { name: "Database" })).toBeNull();
+  });
+
   it("shows Sort first and defaults its first option to Problem Index", () => {
     renderAllProblems();
 

@@ -47,4 +47,5 @@ export const PATTERN_COLORS: Record<string, PatternColor> = {
   "Bit":                { text: "var(--color-pattern-bit-text)", bg: "var(--color-pattern-bit-bg)" },
   "System Design":      { text: "var(--color-pattern-system-design-text)", bg: "var(--color-pattern-system-design-bg)" },
   "OOD":                { text: "var(--color-pattern-ood-text)", bg: "var(--color-pattern-ood-bg)" },
+  "Database":           { text: "var(--color-pattern-database-text)", bg: "var(--color-pattern-database-bg)" },
 };

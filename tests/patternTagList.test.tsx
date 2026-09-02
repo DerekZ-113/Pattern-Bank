@@ -56,6 +56,16 @@ describe("PatternTagList", () => {
     expect(patterns).toEqual(["Trie", "Math", "Array"]);
   });
 
+  it("files the opt-in Database pattern under strategies", () => {
+    const { container } = render(
+      <div>
+        <PatternTagList patterns={["Database", "Array"]} />
+      </div>
+    );
+
+    expect(renderedLabels(container)).toEqual(["Array", "|", "Database"]);
+  });
+
   it("renders nothing for an empty pattern list", () => {
     const { container } = render(
       <div data-testid="wrap">
@@ -71,5 +81,9 @@ describe("PATTERN_COLORS", () => {
   it("has entries for the new Array and Math patterns", () => {
     expect(PATTERN_COLORS["Array"]).toBeDefined();
     expect(PATTERN_COLORS["Math"]).toBeDefined();
+  });
+
+  it("has an entry for the opt-in Database pattern", () => {
+    expect(PATTERN_COLORS["Database"]).toBeDefined();
   });
 });
