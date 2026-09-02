@@ -44,7 +44,8 @@ test.describe("Review Flow", () => {
     await seedProblems(page, [problem]);
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Dismiss" }).click();
+    // exact: the What's New banner also has a "Dismiss what's new" button.
+    await page.getByRole("button", { name: "Dismiss", exact: true }).click();
 
     // Problem should disappear from today's reviews
     const stored = await getStoredProblems(page);

@@ -66,7 +66,8 @@ test.describe("Today", () => {
     ]);
     await page.goto("/");
 
-    await expect(page.getByText("Done today")).toBeVisible();
+    // Heading role: the What's New banner copy can also mention "Done today".
+    await expect(page.getByRole("heading", { name: "Done today" })).toBeVisible();
     await expect(page.getByText("Reviewed Today Problem")).toBeVisible();
     await expect(page.getByText("4★")).toBeVisible();
   });

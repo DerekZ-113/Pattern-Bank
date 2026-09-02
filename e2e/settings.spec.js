@@ -12,20 +12,20 @@ test.describe("Settings", () => {
     await page.getByRole("button", { name: "Settings" }).click();
     await expect(page.getByText("Settings")).toBeVisible();
 
-    // Find the goal display — should default to 5
-    const goalDisplay = page.locator("span.text-2xl");
-    await expect(goalDisplay).toHaveText("5");
+    // The goal is an editable number input — should default to 5
+    const goalInput = page.getByRole("spinbutton", { name: "Daily Review Goal" });
+    await expect(goalInput).toHaveValue("5");
 
     // Click + twice (use exact match to avoid hitting "+" in Bulk Add and Add Problem buttons)
     const plusButton = page.getByRole("button", { name: "+", exact: true });
     await plusButton.click();
     await plusButton.click();
-    await expect(goalDisplay).toHaveText("7");
+    await expect(goalInput).toHaveValue("7");
 
     // Click - once
     const minusButton = page.getByRole("button", { name: "−", exact: true });
     await minusButton.click();
-    await expect(goalDisplay).toHaveText("6");
+    await expect(goalInput).toHaveValue("6");
   });
 
   test("shows signed-out LeetCode Activity copy", async ({ page }) => {
