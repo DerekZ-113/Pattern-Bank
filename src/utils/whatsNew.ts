@@ -8,12 +8,11 @@ export interface WhatsNewContent {
 }
 
 export const WHATS_NEW: WhatsNewContent = {
-  id: "2026-07-22",
-  title: "New: smarter patterns & LeetCode history",
+  id: "2026-09-01",
+  title: "New: review from All Problems & a Database tag",
   bullets: [
-    "Array & Math pattern tags, with the picker organized into Data Structures and Strategies",
-    "Tap any problem title to open its details",
-    "Sync LeetCode any time with the ↻ button in the header",
-    "Earlier LeetCode activity — expand it below Done today",
+    "Review due problems right from All Problems — every rating counts toward your goal, streak, and Done today",
+    "Database is now an opt-in pattern — enable it under Settings › Additional Patterns",
+    "Star pickers preview as you hover, and start empty when nothing has been rated yet",
   ],
 };

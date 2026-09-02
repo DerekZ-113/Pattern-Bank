@@ -36,7 +36,7 @@ The gap isn't tracking. It's retention. PatternBank fills that gap with spaced r
 - **Bulk add + curated lists** — paste problem numbers or import NeetCode 75/150/250, Grind 75/169, LeetCode Hot 100
 
 **Insight**
-- **Confidence heatmap** — average confidence across 24 algorithmic patterns (18 core + 6 opt-in advanced); click any cell to filter
+- **Confidence heatmap** — average confidence across 27 algorithmic patterns (20 core + 7 opt-in, including System Design, OOD, and Database); click any cell to filter
 - **Progress analytics** — review activity, confidence trend, 30-day projection, confidence spread, top patterns
 - **Review history** — per-problem timeline with confidence progression
 

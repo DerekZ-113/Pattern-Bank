@@ -3,6 +3,7 @@ import {
   CORE_PATTERNS,
   EXTRA_PATTERNS,
   PATTERN_CATEGORIES,
+  getVisiblePatterns,
   groupPatternsByCategory,
 } from "../src/constants";
 
@@ -11,6 +12,12 @@ describe("pattern constants", () => {
     expect(CORE_PATTERNS).toContain("Array");
     expect(CORE_PATTERNS).toContain("Math");
     expect(CORE_PATTERNS).toHaveLength(20);
+  });
+
+  it("includes Database as an opt-in extra, not a core pattern", () => {
+    expect(EXTRA_PATTERNS).toContain("Database");
+    expect(EXTRA_PATTERNS).toHaveLength(7);
+    expect(CORE_PATTERNS).not.toContain("Database");
   });
 
   it("categorizes exactly the agreed structures and strategies", () => {
@@ -22,6 +29,7 @@ describe("pattern constants", () => {
       "Two Pointers", "Sliding Window", "Binary Search", "Sorting",
       "BFS", "DFS", "Greedy", "Backtracking", "DP", "Math",
       "Intervals", "Mono Stack", "Prefix Sum", "Bit", "System Design", "OOD",
+      "Database",
     ]);
   });
 
@@ -57,6 +65,14 @@ describe("groupPatternsByCategory", () => {
     expect(strategies).toEqual(["Math", "Greedy"]);
   });
 
+  it("files Database under strategies alongside System Design and OOD", () => {
+    expect(groupPatternsByCategory(["Database", "Array"])).toEqual({
+      structures: ["Array"],
+      strategies: ["Database"],
+      custom: [],
+    });
+  });
+
   it("routes unknown names to custom in input order", () => {
     expect(groupPatternsByCategory(["My Pattern", "Array", "Another One"])).toEqual({
       structures: ["Array"],
@@ -77,5 +93,19 @@ describe("groupPatternsByCategory", () => {
     const input = Object.freeze(["DP", "Array", "Custom X"]) as unknown as string[];
     expect(() => groupPatternsByCategory(input)).not.toThrow();
     expect(input).toEqual(["DP", "Array", "Custom X"]);
+  });
+});
+
+describe("getVisiblePatterns", () => {
+  it("hides Database until it is enabled", () => {
+    const visible = getVisiblePatterns([]);
+    expect(visible).not.toContain("Database");
+    expect(visible).toHaveLength(CORE_PATTERNS.length);
+  });
+
+  it("appends an enabled Database after the core patterns", () => {
+    const visible = getVisiblePatterns(["Database"]);
+    expect(visible).toHaveLength(CORE_PATTERNS.length + 1);
+    expect(visible[visible.length - 1]).toBe("Database");
   });
 });

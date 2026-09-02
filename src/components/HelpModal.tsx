@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { INTERVALS } from "@patternbank/core";
+import { EXTRA_PATTERNS } from "../utils/constants";
+import StarPicker from "./StarPicker";
 import type { Confidence } from "../types";
 
 interface Props {
@@ -54,11 +56,7 @@ export default function HelpModal({ isOpen, onClose }: Props) {
                 const color = stars <= 2 ? "text-pb-hard" : stars === 3 ? "text-pb-medium" : "text-pb-easy";
                 return (
                   <div key={stars} className="flex items-center justify-between">
-                    <span className="text-sm tracking-wide">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <span key={i} style={{ color: i <= stars ? "var(--color-pb-star)" : "var(--color-pb-star-empty)" }}>★</span>
-                      ))}
-                    </span>
+                    <StarPicker mode="display" size="sm" value={stars} />
                     <span className={`font-mono text-[13px] tabular-nums ${color}`}>
                       <span className="inline-block w-[18px] text-right">{days}</span> day{days !== 1 ? "s" : ""}
                     </span>
@@ -101,7 +99,8 @@ export default function HelpModal({ isOpen, onClose }: Props) {
             </h3>
             <ul className="m-0 flex list-inside list-disc flex-col gap-2 pl-0 text-[13px] text-pb-text-muted">
               <li>Tap ◎ on any problem to exclude it from reviews</li>
-              <li>Enable 6 advanced patterns in Settings</li>
+              <li>Due problems can also be reviewed from All Problems</li>
+              <li>Enable {EXTRA_PATTERNS.length} additional patterns in Settings</li>
             </ul>
           </div>
 

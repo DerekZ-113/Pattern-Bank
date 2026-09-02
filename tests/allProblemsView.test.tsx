@@ -54,6 +54,7 @@ function renderAllProblems(overrides: Partial<ComponentProps<typeof AllProblemsV
     onEdit: vi.fn(),
     onDelete: vi.fn(),
     onToggleExclude: vi.fn(),
+    onReview: vi.fn(),
     onAddClick: vi.fn(),
     enabledExtraPatterns: [],
     ...overrides,
@@ -106,6 +107,37 @@ describe("AllProblemsView", () => {
     expect((screen.getByLabelText("Sort") as HTMLSelectElement).value).toBe("confidence");
   });
 
+  it("lists Database in the pattern filter when enabled or in use", () => {
+    const { unmount } = render(
+      <AllProblemsView
+        problems={problems}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleExclude={vi.fn()}
+        onAddClick={vi.fn()}
+        enabledExtraPatterns={["Database"]}
+      />
+    );
+    expect(within(screen.getByLabelText("Pattern")).getByRole("option", { name: "Database" })).toBeTruthy();
+    unmount();
+
+    const { unmount: unmountInUse } = render(
+      <AllProblemsView
+        problems={[makeProblem({ id: "db-1", title: "Combine Two Tables", patterns: ["Database"] })]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleExclude={vi.fn()}
+        onAddClick={vi.fn()}
+        enabledExtraPatterns={[]}
+      />
+    );
+    expect(within(screen.getByLabelText("Pattern")).getByRole("option", { name: "Database" })).toBeTruthy();
+    unmountInUse();
+
+    renderAllProblems();
+    expect(within(screen.getByLabelText("Pattern")).queryByRole("option", { name: "Database" })).toBeNull();
+  });
+
   it("shows Sort first and defaults its first option to Problem Index", () => {
     renderAllProblems();
 
@@ -149,5 +181,59 @@ describe("AllProblemsView", () => {
     fireEvent.click(within(twoSumRow).getByRole("button", { name: "Delete problem" }));
     expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: "problem-1" }));
     expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Review only on due, non-excluded cards", () => {
+    renderAllProblems();
+
+    const twoSumRow = screen.getByText("Two Sum").closest("article")!;
+    const dueRow = screen.getByText("Number of Islands").closest("article")!;
+    const excludedRow = screen.getByText("Word Ladder").closest("article")!;
+
+    expect(within(twoSumRow).queryByRole("button", { name: "Review" })).toBeNull();
+    expect(within(dueRow).getByRole("button", { name: "Review" })).toBeTruthy();
+    expect(within(excludedRow).queryByRole("button", { name: "Review" })).toBeNull();
+  });
+
+  it("reviews a due card inline without opening the editor", () => {
+    const { onEdit, onReview } = renderAllProblems();
+    const dueRow = screen.getByText("Number of Islands").closest("article")!;
+
+    fireEvent.click(within(dueRow).getByRole("button", { name: "Review" }));
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(within(dueRow).getByRole("radiogroup", { name: "Rate Number of Islands confidence" })).toBeTruthy();
+    fireEvent.click(within(dueRow).getByText("Rate your confidence:"));
+    expect(onEdit).not.toHaveBeenCalled();
+    // Opening the panel hands keyboard focus to the rating group.
+    expect(document.activeElement).toBe(within(dueRow).getByRole("radiogroup"));
+
+    fireEvent.click(within(dueRow).getByRole("radio", { name: "4 stars" }));
+    fireEvent.click(within(dueRow).getByRole("button", { name: "Done" }));
+
+    expect(onReview).toHaveBeenCalledWith("problem-2", 4);
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(within(dueRow).queryByRole("radiogroup")).toBeNull();
+    // Done closes the panel and parks focus on the card, not <body>.
+    expect(document.activeElement).toBe(dueRow);
+  });
+
+  it("closes the review panel on Back without reviewing", () => {
+    const { onEdit, onReview } = renderAllProblems();
+    const dueRow = screen.getByText("Number of Islands").closest("article")!;
+
+    fireEvent.click(within(dueRow).getByRole("button", { name: "Review" }));
+    fireEvent.click(within(dueRow).getByRole("button", { name: "Back" }));
+
+    expect(onReview).not.toHaveBeenCalled();
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(within(dueRow).queryByRole("radiogroup")).toBeNull();
+    expect(within(dueRow).getByRole("button", { name: "Review" })).toBeTruthy();
+    expect(document.activeElement).toBe(within(dueRow).getByRole("button", { name: "Review" }));
+  });
+
+  it("hides Review entirely when no onReview handler is provided", () => {
+    renderAllProblems({ onReview: undefined });
+
+    expect(screen.queryByRole("button", { name: "Review" })).toBeNull();
   });
 });

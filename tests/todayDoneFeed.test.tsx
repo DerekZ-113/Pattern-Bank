@@ -38,13 +38,23 @@ const twoItems = () => [
 ];
 
 describe("TodayDoneFeed rating lock (F-21)", () => {
+  it("opens the rater with every star empty until one is chosen", () => {
+    render(<TodayDoneFeed items={[makeSolveItem()]} onRateLeetCodeReview={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
+    const stars = screen.getAllByRole("radio");
+    expect(stars).toHaveLength(5);
+    expect(stars.every((el) => !el.classList.contains("text-pb-star"))).toBe(true);
+    expect(stars.every((el) => el.getAttribute("aria-checked") === "false")).toBe(true);
+  });
+
   it("rates a review-due row with the chosen confidence", async () => {
     const onRate = vi.fn().mockResolvedValue(undefined);
     render(<TodayDoneFeed items={[makeSolveItem()]} onRateLeetCodeReview={onRate} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Rate Two Sum with 4-star confidence" }));
     });
 
     expect(onRate).toHaveBeenCalledTimes(1);
@@ -57,7 +67,7 @@ describe("TodayDoneFeed rating lock (F-21)", () => {
     render(<TodayDoneFeed items={twoItems()} onRateLeetCodeReview={onRate} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
-    fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Rate Two Sum with 4-star confidence" }));
     await act(async () => {
       first.resolve();
       await first.promise;
@@ -65,7 +75,7 @@ describe("TodayDoneFeed rating lock (F-21)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Rate Add Two Numbers" }));
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Rate Add Two Numbers with 5-star confidence" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Rate Add Two Numbers with 5-star confidence" }));
     });
 
     expect(onRate).toHaveBeenCalledTimes(2);
@@ -78,11 +88,13 @@ describe("TodayDoneFeed rating lock (F-21)", () => {
     render(<TodayDoneFeed items={twoItems()} onRateLeetCodeReview={onRate} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
-    fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum with 3-star confidence" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Rate Two Sum with 3-star confidence" }));
 
     // First rating still pending: the second row's stars must not fire.
     fireEvent.click(screen.getByRole("button", { name: "Rate Add Two Numbers" }));
-    fireEvent.click(screen.getByRole("button", { name: "Rate Add Two Numbers with 4-star confidence" }));
+    const otherStar = screen.getByRole("radio", { name: "Rate Add Two Numbers with 4-star confidence" });
+    expect(otherStar.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(otherStar);
     expect(onRate).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -100,14 +112,14 @@ describe("TodayDoneFeed rating lock (F-21)", () => {
       render(<TodayDoneFeed items={[makeSolveItem()]} onRateLeetCodeReview={onRate} />);
 
       fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
-      fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum with 2-star confidence" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Rate Two Sum with 2-star confidence" }));
       await act(async () => {
         first.reject(new Error("rating failed"));
         await first.promise.catch(() => undefined);
       });
 
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+        fireEvent.click(screen.getByRole("radio", { name: "Rate Two Sum with 4-star confidence" }));
       });
 
       expect(onRate).toHaveBeenCalledTimes(2);
@@ -154,7 +166,7 @@ describe("TodayDoneFeed title click-through", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
-    fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Rate Two Sum with 4-star confidence" }));
     expect(onRate).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Add Two Numbers" }));

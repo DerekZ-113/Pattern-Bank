@@ -92,7 +92,7 @@ Two JSON fixtures under `tests/fixtures/` are the executable cross-platform cont
 
 ## Versioning
 
-Semver from `0.1.0`. Releases are tagged `core-v*` in the [Pattern-Bank repo](https://github.com/DerekZ-113/Pattern-Bank); the package directory is `packages/core`. Notable: `0.1.1` fixed same-day re-rates being collapsed by the 5-second drift window.
+Semver from `0.1.0`. Releases are tagged `core-v*` in the [Pattern-Bank repo](https://github.com/DerekZ-113/Pattern-Bank); the package directory is `packages/core`. Notable: `0.1.1` fixed same-day re-rates being collapsed by the 5-second drift window; `0.4.0` added `Database` to `EXTRA_PATTERNS` (opt-in, filed under strategies).
 
 ## License
 

@@ -381,16 +381,17 @@ describe("TodayView", () => {
     expect(within(leetcodeSection).getByText("Easy").className).toContain("border");
     expect(within(leetcodeSection).queryByText("LEETCODE")).toBeNull();
     expect(within(leetcodeSection).queryByText("Review due")).toBeNull();
-    expect(within(leetcodeSection).queryByRole("button", { name: "Import Two Sum with 4-star confidence" })).toBeNull();
+    expect(within(leetcodeSection).queryByRole("radio", { name: "Import Two Sum with 4-star confidence" })).toBeNull();
     expect(within(leetcodeSection).queryByRole("button", { name: "Ignore Two Sum" })).toBeNull();
     expect(within(leetcodeSection).queryByText(/^Solved \d{1,2}:/)).toBeNull();
     expect(within(leetcodeSection).getByText("Rate confidence")).toBeTruthy();
-    expect(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 1-star confidence" }).getAttribute("aria-pressed")).toBe("true");
-    expect(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 2-star confidence" }).getAttribute("aria-pressed")).toBe("true");
-    expect(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 3-star confidence" }).getAttribute("aria-pressed")).toBe("true");
-    expect(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" }).getAttribute("aria-pressed")).toBe("false");
+    // Radiogroup semantics: only the recorded confidence is checked.
+    expect(within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 1-star confidence" }).getAttribute("aria-checked")).toBe("false");
+    expect(within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 2-star confidence" }).getAttribute("aria-checked")).toBe("false");
+    expect(within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 3-star confidence" }).getAttribute("aria-checked")).toBe("true");
+    expect(within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 4-star confidence" }).getAttribute("aria-checked")).toBe("false");
 
-    const rateButton = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
+    const rateButton = within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 4-star confidence" });
     fireEvent.click(rateButton);
     expect(onRate).toHaveBeenCalledWith(
       "sub-db-1",
@@ -406,8 +407,8 @@ describe("TodayView", () => {
     });
 
     const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
-    const thirdStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 3-star confidence" });
-    const fourthStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
+    const thirdStar = within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 3-star confidence" });
+    const fourthStar = within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 4-star confidence" });
 
     fireEvent.mouseEnter(fourthStar);
 
@@ -427,7 +428,7 @@ describe("TodayView", () => {
     });
 
     const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
-    const thirdStar = within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 3-star confidence" });
+    const thirdStar = within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 3-star confidence" });
 
     fireEvent.click(thirdStar);
     expect(onRate).toHaveBeenCalledWith(
@@ -515,9 +516,13 @@ describe("TodayView", () => {
 
     expect(screen.getByText("From LeetCode")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Import Number of Islands with 4-star confidence" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Import Number of Islands with 4-star confidence" }));
 
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }), 4);
+    // Busy until the import promise settles — the only double-click guard these stars have.
+    expect(
+      screen.getAllByRole("radio", { name: /Import Number of Islands with/ }).every((el) => el.getAttribute("aria-disabled") === "true"),
+    ).toBe(true);
     expect(screen.getByText("From LeetCode")).toBeTruthy();
     expect(screen.queryByText("Start tracking your practice")).toBeNull();
   });
@@ -563,7 +568,7 @@ describe("TodayView", () => {
       render(<StatefulToday />);
 
       const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
-      fireEvent.click(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+      fireEvent.click(within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 4-star confidence" }));
 
       expect(screen.getByText("From LeetCode")).toBeTruthy();
 
@@ -619,7 +624,7 @@ describe("TodayView", () => {
       render(<StatefulToday />);
 
       const leetcodeSection = screen.getByRole("region", { name: "From LeetCode" });
-      fireEvent.click(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+      fireEvent.click(within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 4-star confidence" }));
 
       expect(screen.getByRole("region", { name: "From LeetCode" })).toBeTruthy();
       expect(within(screen.getByRole("region", { name: "From LeetCode" })).getByText("Two Sum")).toBeTruthy();
@@ -689,7 +694,7 @@ describe("TodayView", () => {
       render(<StatefulToday />);
 
       const leetcodeSection = screen.getByRole("region", { name: "From LeetCode" });
-      fireEvent.click(within(leetcodeSection).getByRole("button", { name: "Rate Two Sum with 4-star confidence" }));
+      fireEvent.click(within(leetcodeSection).getByRole("radio", { name: "Rate Two Sum with 4-star confidence" }));
 
       expect(within(screen.getByRole("region", { name: "From LeetCode" })).getByText("1")).toBeTruthy();
       expect(within(screen.getByRole("region", { name: "From LeetCode" })).getByText("Two Sum")).toBeTruthy();
@@ -764,7 +769,7 @@ describe("TodayView", () => {
 
       render(<StatefulToday />);
 
-      fireEvent.click(screen.getByRole("button", { name: "Import Number of Islands with 4-star confidence" }));
+      fireEvent.click(screen.getByRole("radio", { name: "Import Number of Islands with 4-star confidence" }));
 
       expect(screen.getByText("From LeetCode")).toBeTruthy();
 
@@ -804,7 +809,7 @@ describe("TodayView", () => {
     const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
     expect(within(leetcodeSection).getByText("No confidence recorded")).toBeTruthy();
     expect(within(leetcodeSection).getByLabelText("No confidence recorded for Two Sum")).toBeTruthy();
-    expect(within(leetcodeSection).queryByRole("button", { name: "Rate Two Sum with 3-star confidence" })).toBeNull();
+    expect(within(leetcodeSection).queryByRole("radio", { name: "Rate Two Sum with 3-star confidence" })).toBeNull();
   });
 
   it("hides Quick Start when today's LeetCode section has linked activity", () => {
@@ -901,11 +906,11 @@ describe("TodayView", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
-    const rateButton = screen.getByRole("button", { name: "Rate Two Sum with 4-star confidence" });
+    const rateButton = screen.getByRole("radio", { name: "Rate Two Sum with 4-star confidence" });
     fireEvent.click(rateButton);
 
     expect(onRate).toHaveBeenCalledWith("sub-db-1", "p1", 4);
-    expect((rateButton as HTMLButtonElement).disabled).toBe(true);
+    expect(rateButton.getAttribute("aria-disabled")).toBe("true");
   });
 });
 

@@ -20,8 +20,8 @@ test.describe("Review Flow", () => {
     // Click "Review Now"
     await page.getByRole("button", { name: "Review Now" }).click();
 
-    // Rate confidence: click 4th star in the interactive rating
-    await page.getByRole("radiogroup").locator("span").nth(3).click();
+    // Rate confidence: pick the 4th star in the interactive rating
+    await page.getByRole("radio", { name: "4 stars" }).click();
 
     // Click Done
     await page.getByRole("button", { name: "Done" }).click();
@@ -44,7 +44,8 @@ test.describe("Review Flow", () => {
     await seedProblems(page, [problem]);
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Dismiss" }).click();
+    // exact: the What's New banner also has a "Dismiss what's new" button.
+    await page.getByRole("button", { name: "Dismiss", exact: true }).click();
 
     // Problem should disappear from today's reviews
     const stored = await getStoredProblems(page);

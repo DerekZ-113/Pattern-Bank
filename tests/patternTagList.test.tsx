@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import PatternTagList from "../src/components/PatternTagList";
-import { PATTERN_COLORS } from "../src/utils/constants";
+import { CORE_PATTERNS, EXTRA_PATTERNS, PATTERN_COLORS } from "../src/utils/constants";
 
 function renderedLabels(container: HTMLElement): string[] {
   // Pills and dividers in DOM order; dividers render as "|" placeholders.
@@ -56,6 +56,16 @@ describe("PatternTagList", () => {
     expect(patterns).toEqual(["Trie", "Math", "Array"]);
   });
 
+  it("files the opt-in Database pattern under strategies", () => {
+    const { container } = render(
+      <div>
+        <PatternTagList patterns={["Database", "Array"]} />
+      </div>
+    );
+
+    expect(renderedLabels(container)).toEqual(["Array", "|", "Database"]);
+  });
+
   it("renders nothing for an empty pattern list", () => {
     const { container } = render(
       <div data-testid="wrap">
@@ -71,5 +81,15 @@ describe("PATTERN_COLORS", () => {
   it("has entries for the new Array and Math patterns", () => {
     expect(PATTERN_COLORS["Array"]).toBeDefined();
     expect(PATTERN_COLORS["Math"]).toBeDefined();
+  });
+
+  it("has an entry for the opt-in Database pattern", () => {
+    expect(PATTERN_COLORS["Database"]).toBeDefined();
+  });
+
+  it("has a colour row for every core and extra pattern", () => {
+    for (const pattern of [...CORE_PATTERNS, ...EXTRA_PATTERNS]) {
+      expect(PATTERN_COLORS[pattern], pattern).toBeDefined();
+    }
   });
 });

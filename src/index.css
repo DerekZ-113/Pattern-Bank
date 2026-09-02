@@ -51,6 +51,7 @@
   --color-pattern-bit-text: #d8e87e;
   --color-pattern-system-design-text: #78b8a8;
   --color-pattern-ood-text: #c89078;
+  --color-pattern-database-text: #a3b8cc;
 
   /* Pattern colors — background */
   --color-pattern-array-bg: rgba(126,226,232,0.12);
@@ -79,6 +80,7 @@
   --color-pattern-bit-bg: rgba(216,232,126,0.12);
   --color-pattern-system-design-bg: rgba(120,184,168,0.12);
   --color-pattern-ood-bg: rgba(200,144,120,0.12);
+  --color-pattern-database-bg: rgba(163,184,204,0.12);
 }
 
 @keyframes toast-slide-in {
@@ -181,6 +183,7 @@ html.light {
   --color-pattern-bit-text: #7a8a1a;
   --color-pattern-system-design-text: #2a7a68;
   --color-pattern-ood-text: #8a5a3a;
+  --color-pattern-database-text: #4b6377;
 
   /* Pattern colors — background (higher alpha for white bg) */
   --color-pattern-array-bg: rgba(20,132,144,0.08);
@@ -209,4 +212,5 @@ html.light {
   --color-pattern-bit-bg: rgba(122,138,26,0.08);
   --color-pattern-system-design-bg: rgba(42,122,104,0.08);
   --color-pattern-ood-bg: rgba(138,90,58,0.08);
+  --color-pattern-database-bg: rgba(75,99,119,0.08);
 }

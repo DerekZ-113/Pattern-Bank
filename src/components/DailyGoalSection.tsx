@@ -91,9 +91,9 @@ export default function DailyGoalSection({
         </button>
       </div>
       <p className="mt-2 text-xs leading-relaxed text-pb-text-dim">
-        Caps how many reviews appear each day, and sets the pace for bulk
-        imports — new lists are spread at this rate. You can always see more
-        from All Problems.
+        Caps how many reviews appear on Today each day, and sets the pace for
+        bulk imports — new lists are spread at this rate. You can always
+        review more from All Problems.
       </p>
       {showRespread && (
         <div className="mt-3 rounded-lg border border-pb-border bg-pb-bg px-3 py-2.5">

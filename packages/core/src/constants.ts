@@ -12,7 +12,7 @@ export const CORE_PATTERNS = [
 
 export const EXTRA_PATTERNS = [
   "Intervals", "Mono Stack", "Prefix Sum",
-  "Bit", "System Design", "OOD",
+  "Bit", "System Design", "OOD", "Database",
 ] as const;
 
 // Category membership for display grouping (picker sections, pill ordering).
@@ -28,6 +28,7 @@ export const PATTERN_CATEGORIES = {
     "Two Pointers", "Sliding Window", "Binary Search", "Sorting",
     "BFS", "DFS", "Greedy", "Backtracking", "DP", "Math",
     "Intervals", "Mono Stack", "Prefix Sum", "Bit", "System Design", "OOD",
+    "Database",
   ],
 } as const;
 

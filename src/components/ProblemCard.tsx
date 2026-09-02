@@ -1,19 +1,36 @@
-import StarRating from "./StarRating";
+import { useEffect, useRef, useState } from "react";
+import StarPicker from "./StarPicker";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTagList from "./PatternTagList";
+import ReviewRatePanel from "./ReviewRatePanel";
 import { todayStr, formatRelativeDate } from "@patternbank/core";
-import type { Problem } from "../types";
+import type { Confidence, Problem } from "../types";
 
 interface Props {
   problem: Problem;
   onEdit: (problem: Problem) => void;
   onDelete: (problem: Problem) => void;
   onToggleExclude?: (id: string) => void;
+  onReview?: (id: string, confidence: Confidence) => void;
 }
 
-export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude }: Props) {
+export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude, onReview }: Props) {
   const isExcluded = problem.excludeFromReview;
   const isDue = !isExcluded && problem.nextReviewDate <= todayStr();
+  const [reviewing, setReviewing] = useState(false);
+  const canReview = isDue && !!onReview;
+  const articleRef = useRef<HTMLElement>(null);
+  const reviewButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusTo = useRef<"button" | "card" | null>(null);
+
+  // The panel replaces the Review button, so closing it must hand focus
+  // somewhere deliberate instead of dropping keyboard users to <body>.
+  useEffect(() => {
+    if (reviewing || !restoreFocusTo.current) return;
+    if (restoreFocusTo.current === "button") reviewButtonRef.current?.focus();
+    else articleRef.current?.focus();
+    restoreFocusTo.current = null;
+  }, [reviewing]);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -25,6 +42,22 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
     onToggleExclude?.(problem.id);
   };
 
+  const handleStartReview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setReviewing(true);
+  };
+
+  const handleReviewDone = (confidence: Confidence) => {
+    restoreFocusTo.current = "card";
+    onReview?.(problem.id, confidence);
+    setReviewing(false);
+  };
+
+  const handleReviewBack = () => {
+    restoreFocusTo.current = "button";
+    setReviewing(false);
+  };
+
   const getReviewStatusText = () => {
     if (isExcluded) return "Excluded from reviews";
     if (isDue) return "Due for review";
@@ -33,6 +66,8 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
 
   return (
     <article
+      ref={articleRef}
+      tabIndex={-1}
       onClick={() => onEdit(problem)}
       className={`cursor-pointer rounded-[10px] border bg-pb-surface px-4 py-3.5 transition-[border-color,background,opacity] duration-150 hover:border-pb-border-strong hover:bg-pb-surface-2 ${
         isDue ? "border-pb-accent/35" : "border-pb-border"
@@ -102,27 +137,51 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
 
       {/* Confidence and review date */}
       <div
-        className="mt-2.5 flex items-center justify-between gap-3"
+        className="mt-2.5 flex flex-wrap items-center justify-between gap-3"
       >
-        <StarRating value={problem.confidence} size={16} />
-        <span
-          className={`inline-flex items-center gap-1.5 text-xs ${
-            isExcluded
-              ? "text-pb-medium"
-              : isDue
-                ? "font-semibold text-pb-accent"
-                : "text-pb-text-muted"
-          }`}
-        >
-          {isDue && (
-            <span
-              aria-hidden="true"
-              className="h-1.5 w-1.5 rounded-full bg-pb-accent shadow-[0_0_0_3px_rgba(124,107,245,0.18)]"
-            />
+        <StarPicker mode="display" size="md" value={problem.confidence} />
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`inline-flex items-center gap-1.5 text-xs ${
+              isExcluded
+                ? "text-pb-medium"
+                : isDue
+                  ? "font-semibold text-pb-accent"
+                  : "text-pb-text-muted"
+            }`}
+          >
+            {isDue && (
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full bg-pb-accent shadow-[0_0_0_3px_rgba(124,107,245,0.18)]"
+              />
+            )}
+            {getReviewStatusText()}
+          </span>
+          {canReview && !reviewing && (
+            <button
+              ref={reviewButtonRef}
+              type="button"
+              onClick={handleStartReview}
+              className="h-7 cursor-pointer rounded-lg border border-pb-accent/35 bg-pb-accent-subtle px-3 text-xs font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+            >
+              Review
+            </button>
           )}
-          {getReviewStatusText()}
-        </span>
+        </div>
       </div>
+
+      {/* The card itself opens the editor on click; the panel swallows its
+          own clicks so rating, Back, Done, and Open never trigger that. */}
+      {reviewing && canReview && (
+        <div className="mt-3 cursor-default" onClick={(e) => e.stopPropagation()}>
+          <ReviewRatePanel
+            problem={problem}
+            onDone={handleReviewDone}
+            onBack={handleReviewBack}
+          />
+        </div>
+      )}
     </article>
   );
 }

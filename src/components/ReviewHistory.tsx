@@ -2,23 +2,12 @@ import { useState, useEffect } from "react";
 import useAuth from "../hooks/useAuth";
 import { fetchProblemReviewHistory } from "../utils/supabaseData";
 import { formatRelativeDate, utcToLocalDateStr } from "@patternbank/core";
+import StarPicker from "./StarPicker";
 import type { ReviewHistoryEntry } from "../types";
 
 interface Props {
   problemId: string;
   isOpen: boolean;
-}
-
-function MiniStars({ count }: { count: number }) {
-  return (
-    <span className="text-xs tracking-wide">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} style={{ color: i <= count ? "#e3b341" : "#30363d" }}>
-          ★
-        </span>
-      ))}
-    </span>
-  );
 }
 
 export default function ReviewHistory({ problemId, isOpen }: Props) {
@@ -118,7 +107,7 @@ export default function ReviewHistory({ problemId, isOpen }: Props) {
               {formatRelativeDate(utcToLocalDateStr(entry.createdAt) || entry.reviewDate)}
             </span>
             <span className="ml-auto">
-              <MiniStars count={entry.newConfidence} />
+              <StarPicker mode="display" size="xs" value={entry.newConfidence} />
             </span>
           </div>
         ))}

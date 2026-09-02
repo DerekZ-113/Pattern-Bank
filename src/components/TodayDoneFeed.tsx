@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
+import StarPicker from "./StarPicker";
 import type { Confidence } from "../types";
 import type { TodayActivityFeedItem } from "@patternbank/core";
 
@@ -20,7 +21,7 @@ function formatReviewTime(timestamp: string): string {
 
 function CompactStars({ confidence }: { confidence: number }) {
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-pb-text-muted" aria-label={`${confidence} out of 5 stars`}>
+    <span role="img" className="inline-flex items-center gap-1 text-xs text-pb-text-muted" aria-label={`${confidence} out of 5 stars`}>
       <span className="font-semibold text-pb-star">{confidence}★</span>
     </span>
   );
@@ -32,18 +33,16 @@ export default function TodayDoneFeed({ items, onRateLeetCodeReview, onOpenProbl
 
   if (items.length === 0) return null;
 
+  // One rating in flight at a time across the whole feed — the rate chain is
+  // not concurrency-safe. Rejections propagate to StarPicker, which warns.
   const handleRate = async (
     item: Extract<TodayActivityFeedItem, { type: "leetcode_solve" }>,
     confidence: Confidence,
-    onRateLeetCodeReview?: Props["onRateLeetCodeReview"],
   ) => {
     if (pendingRatingRowId) return;
     setPendingRatingRowId(item.id);
     try {
       await onRateLeetCodeReview?.(item.submissionDbId, item.problemId, confidence);
-    } catch (err) {
-      // The onClick fires this via `void handleRate(...)` — a throw must not leak.
-      console.warn("Rating failed:", err);
     } finally {
       setPendingRatingRowId(null);
     }
@@ -63,7 +62,7 @@ export default function TodayDoneFeed({ items, onRateLeetCodeReview, onOpenProbl
                 ? "solved on LC · rated"
                 : "solved on LC"
           : null;
-        const rowPending = pendingRatingRowId === item.id;
+        const otherRowPending = pendingRatingRowId !== null && pendingRatingRowId !== item.id;
 
         return (
           <div
@@ -112,20 +111,16 @@ export default function TodayDoneFeed({ items, onRateLeetCodeReview, onOpenProbl
                     {item.canRate && onRateLeetCodeReview && (
                       <>
                         {ratingRowId === item.id ? (
-                          <span className="inline-flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((confidence) => (
-                              <button
-                                key={confidence}
-                                type="button"
-                                disabled={rowPending}
-                                aria-label={`Rate ${item.title} with ${confidence}-star confidence`}
-                                onClick={() => void handleRate(item, confidence as Confidence, onRateLeetCodeReview)}
-                                className="cursor-pointer rounded border border-transparent px-1 text-sm font-semibold text-pb-star transition-colors hover:border-pb-star/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                ★
-                              </button>
-                            ))}
-                          </span>
+                          <StarPicker
+                            mode="commit"
+                            size="lg"
+                            value={null}
+                            autoFocus
+                            disabled={otherRowPending}
+                            label={`Rate ${item.title} confidence`}
+                            getStarLabel={(star) => `Rate ${item.title} with ${star}-star confidence`}
+                            onCommit={(star) => handleRate(item, star)}
+                          />
                         ) : (
                           <button
                             type="button"

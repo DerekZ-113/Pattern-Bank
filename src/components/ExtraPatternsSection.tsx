@@ -22,7 +22,7 @@ export default function ExtraPatternsSection({ enabledExtraPatterns, onToggle, h
       <div className="flex flex-col gap-1.5">
         {EXTRA_PATTERNS.map((pattern) => {
           const enabled = enabledExtraPatterns.includes(pattern);
-          const pc = PATTERN_COLORS[pattern];
+          const pc = PATTERN_COLORS[pattern] ?? { text: "#8b949e", bg: "transparent" };
           return (
             <button
               key={pattern}

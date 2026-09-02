@@ -84,6 +84,7 @@ vi.mock("../src/utils/sync", () => ({
 vi.mock("posthog-js", () => ({
   default: { capture: vi.fn() },
 }));
+import posthog from "posthog-js";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -594,6 +595,56 @@ describe("useProblems", () => {
       expect(updated.lastReviewed).not.toBeNull();
       // confidence 4 → 7 day interval
       expect(updated.nextReviewDate).not.toBe("2025-01-01");
+    });
+
+    it("counts a same-confidence re-rate as a review (All Problems re-confirm)", () => {
+      const p = makeProblem({
+        id: "review-same",
+        confidence: 3,
+        nextReviewDate: "2025-01-01",
+        lastReviewed: null,
+      });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-same", 3 as Confidence);
+      });
+
+      const updated = result.current.problems[0];
+      expect(updated.confidence).toBe(3);
+      expect(updated.lastReviewed).not.toBeNull();
+      expect(updated.nextReviewDate).not.toBe("2025-01-01");
+      expect(logReviewToday).toHaveBeenCalled();
+      expect(logReviewEvent).toHaveBeenCalledWith("review-same", 3, p.patterns, expect.any(String));
+    });
+
+    it("tags the analytics event with the review source (defaults to today)", () => {
+      const p = makeProblem({ id: "review-source" });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-source", 4 as Confidence, { source: "all_problems" });
+      });
+      expect(posthog.capture).toHaveBeenLastCalledWith(
+        "problem_reviewed",
+        expect.objectContaining({ source: "all_problems", new_confidence: 4 }),
+      );
+
+      act(() => {
+        result.current.handleReview("review-source", 5 as Confidence);
+      });
+      expect(posthog.capture).toHaveBeenLastCalledWith(
+        "problem_reviewed",
+        expect.objectContaining({ source: "today", new_confidence: 5 }),
+      );
     });
 
     it("logs review to localStorage", () => {
