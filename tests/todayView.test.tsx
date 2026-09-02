@@ -519,6 +519,10 @@ describe("TodayView", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Import Number of Islands with 4-star confidence" }));
 
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ title: "Number of Islands" }), 4);
+    // Busy until the import promise settles — the only double-click guard these stars have.
+    expect(
+      screen.getAllByRole("radio", { name: /Import Number of Islands with/ }).every((el) => (el as HTMLButtonElement).disabled),
+    ).toBe(true);
     expect(screen.getByText("From LeetCode")).toBeTruthy();
     expect(screen.queryByText("Start tracking your practice")).toBeNull();
   });

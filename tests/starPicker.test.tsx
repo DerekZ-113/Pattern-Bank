@@ -124,6 +124,8 @@ describe("StarPicker commit mode", () => {
       await pending.promise;
     });
     expect(radios().every((el) => !el.disabled)).toBe(true);
+    // Nothing recorded and no hover: the fill drops back to empty after the commit.
+    expect(filledFlags()).toEqual([false, false, false, false, false]);
   });
 
   it("re-enables and warns when the commit rejects", async () => {
@@ -164,6 +166,11 @@ describe("StarPicker commit mode", () => {
 
     fireEvent.keyDown(document.activeElement!, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(second);
+
+    fireEvent.keyDown(document.activeElement!, { key: "End" });
+    expect(document.activeElement).toBe(screen.getByRole("radio", { name: "5 stars" }));
+    fireEvent.keyDown(document.activeElement!, { key: "Home" });
+    expect(document.activeElement).toBe(screen.getByRole("radio", { name: "1 star" }));
     expect(onCommit).not.toHaveBeenCalled();
   });
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
 import PatternTagList from "../src/components/PatternTagList";
-import { PATTERN_COLORS } from "../src/utils/constants";
+import { CORE_PATTERNS, EXTRA_PATTERNS, PATTERN_COLORS } from "../src/utils/constants";
 
 function renderedLabels(container: HTMLElement): string[] {
   // Pills and dividers in DOM order; dividers render as "|" placeholders.
@@ -85,5 +85,11 @@ describe("PATTERN_COLORS", () => {
 
   it("has an entry for the opt-in Database pattern", () => {
     expect(PATTERN_COLORS["Database"]).toBeDefined();
+  });
+
+  it("has a colour row for every core and extra pattern", () => {
+    for (const pattern of [...CORE_PATTERNS, ...EXTRA_PATTERNS]) {
+      expect(PATTERN_COLORS[pattern], pattern).toBeDefined();
+    }
   });
 });

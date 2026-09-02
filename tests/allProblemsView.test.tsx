@@ -202,6 +202,8 @@ describe("AllProblemsView", () => {
     fireEvent.click(within(dueRow).getByRole("button", { name: "Review" }));
     expect(onEdit).not.toHaveBeenCalled();
     expect(within(dueRow).getByRole("radiogroup", { name: "Rate Number of Islands confidence" })).toBeTruthy();
+    fireEvent.click(within(dueRow).getByText("Rate your confidence:"));
+    expect(onEdit).not.toHaveBeenCalled();
 
     fireEvent.click(within(dueRow).getByRole("radio", { name: "4 stars" }));
     fireEvent.click(within(dueRow).getByRole("button", { name: "Done" }));

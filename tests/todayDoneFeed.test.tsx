@@ -38,6 +38,16 @@ const twoItems = () => [
 ];
 
 describe("TodayDoneFeed rating lock (F-21)", () => {
+  it("opens the rater with every star empty until one is chosen", () => {
+    render(<TodayDoneFeed items={[makeSolveItem()]} onRateLeetCodeReview={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Rate Two Sum" }));
+    const stars = screen.getAllByRole("radio");
+    expect(stars).toHaveLength(5);
+    expect(stars.every((el) => !el.classList.contains("text-pb-star"))).toBe(true);
+    expect(stars.every((el) => el.getAttribute("aria-checked") === "false")).toBe(true);
+  });
+
   it("rates a review-due row with the chosen confidence", async () => {
     const onRate = vi.fn().mockResolvedValue(undefined);
     render(<TodayDoneFeed items={[makeSolveItem()]} onRateLeetCodeReview={onRate} />);
@@ -82,7 +92,9 @@ describe("TodayDoneFeed rating lock (F-21)", () => {
 
     // First rating still pending: the second row's stars must not fire.
     fireEvent.click(screen.getByRole("button", { name: "Rate Add Two Numbers" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Rate Add Two Numbers with 4-star confidence" }));
+    const otherStar = screen.getByRole("radio", { name: "Rate Add Two Numbers with 4-star confidence" });
+    expect((otherStar as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(otherStar);
     expect(onRate).toHaveBeenCalledTimes(1);
 
     await act(async () => {

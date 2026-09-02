@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { INTERVALS } from "@patternbank/core";
+import { EXTRA_PATTERNS } from "../utils/constants";
 import StarPicker from "./StarPicker";
 import type { Confidence } from "../types";
 
@@ -99,7 +100,7 @@ export default function HelpModal({ isOpen, onClose }: Props) {
             <ul className="m-0 flex list-inside list-disc flex-col gap-2 pl-0 text-[13px] text-pb-text-muted">
               <li>Tap ◎ on any problem to exclude it from reviews</li>
               <li>Due problems can also be reviewed from All Problems</li>
-              <li>Enable 7 additional patterns in Settings</li>
+              <li>Enable {EXTRA_PATTERNS.length} additional patterns in Settings</li>
             </ul>
           </div>
 

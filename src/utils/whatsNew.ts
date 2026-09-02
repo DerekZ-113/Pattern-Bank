@@ -13,6 +13,6 @@ export const WHATS_NEW: WhatsNewContent = {
   bullets: [
     "Review due problems right from All Problems — every rating counts toward your goal, streak, and Done today",
     "Database is now an opt-in pattern — enable it under Settings › Additional Patterns",
-    "Star ratings start empty until you pick one, everywhere",
+    "Star pickers preview as you hover, and start empty when nothing has been rated yet",
   ],
 };

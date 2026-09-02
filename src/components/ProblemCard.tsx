@@ -152,7 +152,7 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
 
       {/* The card itself opens the editor on click; the panel swallows its
           own clicks so rating, Back, Done, and Open never trigger that. */}
-      {reviewing && (
+      {reviewing && canReview && (
         <div className="mt-3 cursor-default" onClick={(e) => e.stopPropagation()}>
           <ReviewRatePanel
             problem={problem}

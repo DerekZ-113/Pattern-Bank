@@ -35,6 +35,8 @@ describe("ReviewRatePanel", () => {
     render(<ReviewRatePanel problem={makeProblem()} onDone={onDone} onBack={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("radio", { name: "5 stars" }));
+    expect(screen.getByRole("radio", { name: "5 stars" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: "3 stars" }).getAttribute("aria-checked")).toBe("false");
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
     expect(onDone).toHaveBeenCalledWith(5);
