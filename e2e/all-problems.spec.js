@@ -57,6 +57,29 @@ test.describe("All Problems View", () => {
     expect(stored).toHaveLength(3);
   });
 
+  test("review a due problem inline without opening the editor", async ({ page }) => {
+    // Every seeded problem is due today (buildProblem defaults nextReviewDate to today).
+    const card = page.locator("article", { hasText: "Two Sum" });
+    await card.getByRole("button", { name: "Review" }).click();
+
+    // The rate panel opens in place — no edit modal.
+    await expect(card.getByRole("radiogroup")).toBeVisible();
+    await expect(page.getByText("Problem Details")).not.toBeVisible();
+
+    await card.getByRole("radio", { name: "5 stars" }).click();
+    await card.getByRole("button", { name: "Done" }).click();
+
+    // Same toast as a Today review, and the card leaves the due state.
+    await expect(page.getByText(/1 of \d+ done/)).toBeVisible();
+    await expect(card.getByText(/Next review:/)).toBeVisible();
+    await expect(card.getByRole("button", { name: "Review" })).toHaveCount(0);
+
+    const stored = await getStoredProblems(page);
+    const twoSum = stored.find((p) => p.id === "p1");
+    expect(twoSum.confidence).toBe(5);
+    expect(twoSum.lastReviewed).toBeTruthy();
+  });
+
   test("edit a problem by clicking its card", async ({ page }) => {
     // Click the first problem card (not on delete/exclude buttons)
     await page.getByText("Two Sum").click();

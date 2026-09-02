@@ -596,6 +596,31 @@ describe("useProblems", () => {
       expect(updated.nextReviewDate).not.toBe("2025-01-01");
     });
 
+    it("counts a same-confidence re-rate as a review (All Problems re-confirm)", () => {
+      const p = makeProblem({
+        id: "review-same",
+        confidence: 3,
+        nextReviewDate: "2025-01-01",
+        lastReviewed: null,
+      });
+      (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);
+
+      const { result } = renderHook(() =>
+        useProblems({ user: null, showToast: mockShowToast })
+      );
+
+      act(() => {
+        result.current.handleReview("review-same", 3 as Confidence);
+      });
+
+      const updated = result.current.problems[0];
+      expect(updated.confidence).toBe(3);
+      expect(updated.lastReviewed).not.toBeNull();
+      expect(updated.nextReviewDate).not.toBe("2025-01-01");
+      expect(logReviewToday).toHaveBeenCalled();
+      expect(logReviewEvent).toHaveBeenCalledWith("review-same", 3, p.patterns, expect.any(String));
+    });
+
     it("logs review to localStorage", () => {
       const p = makeProblem({ id: "review-log-1" });
       (loadProblems as ReturnType<typeof vi.fn>).mockReturnValue([p]);

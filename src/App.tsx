@@ -146,6 +146,14 @@ export default function App() {
     });
   }, [handleReview, leetcodeActivity, leetcodePendingImports.recordRatedCompletion]);
 
+  // Same review path as Today, tagged so analytics can tell the surfaces apart.
+  const handleReviewFromAllProblems = useCallback((
+    problemId: string,
+    confidence: Parameters<typeof handleReview>[1],
+  ) => {
+    handleReview(problemId, confidence, { source: "all_problems" });
+  }, [handleReview]);
+
   // Settings surfaces sync errors inline; the header button reports via toast.
   const handleHeaderLeetCodeSync = useCallback(async () => {
     const result = await leetcodeActivity.syncNow();
@@ -306,6 +314,7 @@ export default function App() {
           onEdit={ui.handleEdit}
           onDelete={ui.handleDeleteRequest}
           onToggleExclude={handleToggleExclude}
+          onReview={handleReviewFromAllProblems}
           initialSort={ui.problemsInitialSort}
           initialPatternFilter={ui.problemsInitialPatternFilter}
           enabledExtraPatterns={preferences.enabledExtraPatterns}

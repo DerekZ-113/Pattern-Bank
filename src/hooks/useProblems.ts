@@ -65,7 +65,11 @@ interface UseProblemsReturn {
   handleSaveProblem: (problem: Problem, confidenceChanged?: boolean) => void;
   handleCreateProblemFromLeetCodeImport: (problem: Problem) => { status: "created" | "duplicate"; problem: Problem };
   handleDeleteConfirm: (deleteTarget: Problem | null) => void;
-  handleReview: (problemId: string, newConfidence: Confidence, options?: { replaceSameDayReviewEvent?: boolean }) => void;
+  handleReview: (
+    problemId: string,
+    newConfidence: Confidence,
+    options?: { replaceSameDayReviewEvent?: boolean; source?: "today" | "all_problems" },
+  ) => void;
   handleUpdateNotes: (problemId: string, newNotes: string) => void;
   handleDismiss: (problemId: string) => void;
   handleImport: (file: File) => Promise<void>;
@@ -250,7 +254,11 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
   }, [showToast, user]);
 
   const handleReview = useCallback(
-    (problemId: string, newConfidence: Confidence, options?: { replaceSameDayReviewEvent?: boolean }) => {
+    (
+      problemId: string,
+      newConfidence: Confidence,
+      options?: { replaceSameDayReviewEvent?: boolean; source?: "today" | "all_problems" },
+    ) => {
       const current = problemsRef.current;
       const { currentReviewed, effectiveGoal } = computeReviewProgress(current, preferences.dailyReviewGoal);
       const original = current.find((p) => p.id === problemId);
@@ -269,7 +277,12 @@ export default function useProblems({ user, showToast }: UseProblemsParams): Use
         logReviewEvent(problemId, newConfidence, original?.patterns ?? [], reviewTimestamp);
       }
       setReviewCount((c) => c + 1);
-      posthog.capture("problem_reviewed", { old_confidence: original?.confidence, new_confidence: newConfidence, platform: "web" });
+      posthog.capture("problem_reviewed", {
+        old_confidence: original?.confidence,
+        new_confidence: newConfidence,
+        source: options?.source ?? "today",
+        platform: "web",
+      });
 
       if (user && updatedProblem && original) {
         pushProblemToCloud(user.id, updatedProblem);

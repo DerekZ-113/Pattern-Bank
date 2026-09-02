@@ -1,19 +1,24 @@
+import { useState } from "react";
 import StarPicker from "./StarPicker";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTagList from "./PatternTagList";
+import ReviewRatePanel from "./ReviewRatePanel";
 import { todayStr, formatRelativeDate } from "@patternbank/core";
-import type { Problem } from "../types";
+import type { Confidence, Problem } from "../types";
 
 interface Props {
   problem: Problem;
   onEdit: (problem: Problem) => void;
   onDelete: (problem: Problem) => void;
   onToggleExclude?: (id: string) => void;
+  onReview?: (id: string, confidence: Confidence) => void;
 }
 
-export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude }: Props) {
+export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude, onReview }: Props) {
   const isExcluded = problem.excludeFromReview;
   const isDue = !isExcluded && problem.nextReviewDate <= todayStr();
+  const [reviewing, setReviewing] = useState(false);
+  const canReview = isDue && !!onReview;
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -23,6 +28,16 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
   const handleToggleExclude = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleExclude?.(problem.id);
+  };
+
+  const handleStartReview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setReviewing(true);
+  };
+
+  const handleReviewDone = (confidence: Confidence) => {
+    onReview?.(problem.id, confidence);
+    setReviewing(false);
   };
 
   const getReviewStatusText = () => {
@@ -105,24 +120,47 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
         className="mt-2.5 flex items-center justify-between gap-3"
       >
         <StarPicker mode="display" size="md" value={problem.confidence} />
-        <span
-          className={`inline-flex items-center gap-1.5 text-xs ${
-            isExcluded
-              ? "text-pb-medium"
-              : isDue
-                ? "font-semibold text-pb-accent"
-                : "text-pb-text-muted"
-          }`}
-        >
-          {isDue && (
-            <span
-              aria-hidden="true"
-              className="h-1.5 w-1.5 rounded-full bg-pb-accent shadow-[0_0_0_3px_rgba(124,107,245,0.18)]"
-            />
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`inline-flex items-center gap-1.5 text-xs ${
+              isExcluded
+                ? "text-pb-medium"
+                : isDue
+                  ? "font-semibold text-pb-accent"
+                  : "text-pb-text-muted"
+            }`}
+          >
+            {isDue && (
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 rounded-full bg-pb-accent shadow-[0_0_0_3px_rgba(124,107,245,0.18)]"
+              />
+            )}
+            {getReviewStatusText()}
+          </span>
+          {canReview && !reviewing && (
+            <button
+              type="button"
+              onClick={handleStartReview}
+              className="h-7 cursor-pointer rounded-lg border border-pb-accent/35 bg-pb-accent-subtle px-3 text-xs font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+            >
+              Review
+            </button>
           )}
-          {getReviewStatusText()}
-        </span>
+        </div>
       </div>
+
+      {/* The card itself opens the editor on click; the panel swallows its
+          own clicks so rating, Back, Done, and Open never trigger that. */}
+      {reviewing && (
+        <div className="mt-3 cursor-default" onClick={(e) => e.stopPropagation()}>
+          <ReviewRatePanel
+            problem={problem}
+            onDone={handleReviewDone}
+            onBack={() => setReviewing(false)}
+          />
+        </div>
+      )}
     </article>
   );
 }

@@ -54,6 +54,7 @@ function renderAllProblems(overrides: Partial<ComponentProps<typeof AllProblemsV
     onEdit: vi.fn(),
     onDelete: vi.fn(),
     onToggleExclude: vi.fn(),
+    onReview: vi.fn(),
     onAddClick: vi.fn(),
     enabledExtraPatterns: [],
     ...overrides,
@@ -180,5 +181,52 @@ describe("AllProblemsView", () => {
     fireEvent.click(within(twoSumRow).getByRole("button", { name: "Delete problem" }));
     expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: "problem-1" }));
     expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Review only on due, non-excluded cards", () => {
+    renderAllProblems();
+
+    const twoSumRow = screen.getByText("Two Sum").closest("article")!;
+    const dueRow = screen.getByText("Number of Islands").closest("article")!;
+    const excludedRow = screen.getByText("Word Ladder").closest("article")!;
+
+    expect(within(twoSumRow).queryByRole("button", { name: "Review" })).toBeNull();
+    expect(within(dueRow).getByRole("button", { name: "Review" })).toBeTruthy();
+    expect(within(excludedRow).queryByRole("button", { name: "Review" })).toBeNull();
+  });
+
+  it("reviews a due card inline without opening the editor", () => {
+    const { onEdit, onReview } = renderAllProblems();
+    const dueRow = screen.getByText("Number of Islands").closest("article")!;
+
+    fireEvent.click(within(dueRow).getByRole("button", { name: "Review" }));
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(within(dueRow).getByRole("radiogroup", { name: "Rate Number of Islands confidence" })).toBeTruthy();
+
+    fireEvent.click(within(dueRow).getByRole("radio", { name: "4 stars" }));
+    fireEvent.click(within(dueRow).getByRole("button", { name: "Done" }));
+
+    expect(onReview).toHaveBeenCalledWith("problem-2", 4);
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(within(dueRow).queryByRole("radiogroup")).toBeNull();
+  });
+
+  it("closes the review panel on Back without reviewing", () => {
+    const { onEdit, onReview } = renderAllProblems();
+    const dueRow = screen.getByText("Number of Islands").closest("article")!;
+
+    fireEvent.click(within(dueRow).getByRole("button", { name: "Review" }));
+    fireEvent.click(within(dueRow).getByRole("button", { name: "Back" }));
+
+    expect(onReview).not.toHaveBeenCalled();
+    expect(onEdit).not.toHaveBeenCalled();
+    expect(within(dueRow).queryByRole("radiogroup")).toBeNull();
+    expect(within(dueRow).getByRole("button", { name: "Review" })).toBeTruthy();
+  });
+
+  it("hides Review entirely when no onReview handler is provided", () => {
+    renderAllProblems({ onReview: undefined });
+
+    expect(screen.queryByRole("button", { name: "Review" })).toBeNull();
   });
 });

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { CORE_PATTERNS, EXTRA_PATTERNS, DIFFICULTIES } from "../utils/constants";
 import ProblemCard from "./ProblemCard";
 import FilterSelect from "./FilterSelect";
-import type { Problem } from "../types";
+import type { Confidence, Problem } from "../types";
 import { DEFAULT_ALL_PROBLEMS_SORT, isAllProblemsSort } from "../utils/uiState";
 import type { AllProblemsSort } from "../utils/uiState";
 
@@ -11,6 +11,7 @@ interface Props {
   onEdit: (problem: Problem) => void;
   onDelete: (problem: Problem) => void;
   onToggleExclude: (id: string) => void;
+  onReview?: (id: string, confidence: Confidence) => void;
   initialSort?: AllProblemsSort;
   initialPatternFilter?: string;
   enabledExtraPatterns?: string[];
@@ -18,7 +19,7 @@ interface Props {
   onSortChange?: (sort: AllProblemsSort) => void;
 }
 
-export default function AllProblemsView({ problems, onEdit, onDelete, onToggleExclude, initialSort = DEFAULT_ALL_PROBLEMS_SORT, initialPatternFilter = "all", enabledExtraPatterns, onAddClick, onSortChange }: Props) {
+export default function AllProblemsView({ problems, onEdit, onDelete, onToggleExclude, onReview, initialSort = DEFAULT_ALL_PROBLEMS_SORT, initialPatternFilter = "all", enabledExtraPatterns, onAddClick, onSortChange }: Props) {
   const [search, setSearch] = useState("");
   const [filterPattern, setFilterPattern] = useState(initialPatternFilter);
   const [filterDifficulty, setFilterDifficulty] = useState("all");
@@ -266,6 +267,7 @@ export default function AllProblemsView({ problems, onEdit, onDelete, onToggleEx
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleExclude={onToggleExclude}
+              onReview={onReview}
             />
           ))}
         </div>

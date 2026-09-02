@@ -1,6 +1,7 @@
 import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
 import PatternTagList from "./PatternTagList";
+import ReviewRatePanel from "./ReviewRatePanel";
 import StarPicker from "./StarPicker";
 import { formatRelativeDate } from "@patternbank/core";
 import type { Confidence, Problem } from "../types";
@@ -25,7 +26,6 @@ export default function TodayReviewCard({
   onOpenDetails,
 }: Props) {
   const [reviewing, setReviewing] = useState(false);
-  const [newConfidence, setNewConfidence] = useState<Confidence>(problem.confidence);
   const [notesRevealed, setNotesRevealed] = useState(false);
   const [patternsRevealed, setPatternsRevealed] = useState(false);
   const [localNotes, setLocalNotes] = useState(problem.notes || "");
@@ -41,8 +41,8 @@ export default function TodayReviewCard({
     setReviewing(true);
   };
 
-  const handleDone = () => {
-    onReview(problem.id, newConfidence);
+  const handleDone = (confidence: Confidence) => {
+    onReview(problem.id, confidence);
     setReviewing(false);
     setNotesRevealed(false);
   };
@@ -129,44 +129,15 @@ export default function TodayReviewCard({
       </div>
 
       {reviewing ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-pb-bg px-4 py-3.5">
-          <div>
-            <div className="mb-1.5 text-xs text-pb-text-muted">Rate your confidence:</div>
-            <StarPicker
-              mode="select"
-              size="xl"
-              value={newConfidence}
-              onChange={setNewConfidence}
-              label={`Rate ${problem.title} confidence`}
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2 max-sm:w-full max-sm:[&>*]:flex-1">
-            {problem.url && (
-              <a
-                href={problem.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-pb-border bg-pb-surface-2 px-3 text-[13px] font-medium text-pb-text-muted no-underline transition-colors hover:border-pb-border-strong hover:text-pb-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-              >
-                Open ↗
-              </a>
-            )}
-            <button
-              onClick={() => {
-                setReviewing(false);
-                setNotesRevealed(false);
-              }}
-              className="h-9 cursor-pointer rounded-lg border border-pb-border bg-transparent px-3 text-[13px] font-medium text-pb-text-muted transition-colors hover:border-pb-border-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-            >
-              Back
-            </button>
-            <button
-              onClick={handleDone}
-              className="h-9 cursor-pointer rounded-lg border border-pb-accent/35 bg-pb-accent-subtle px-5 text-[13px] font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-            >
-              Done
-            </button>
-          </div>
+        <div className="mt-3">
+          <ReviewRatePanel
+            problem={problem}
+            onDone={handleDone}
+            onBack={() => {
+              setReviewing(false);
+              setNotesRevealed(false);
+            }}
+          />
         </div>
       ) : (
         <div className={actionGridClass}>
