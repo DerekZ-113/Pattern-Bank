@@ -24,6 +24,23 @@
   --color-pb-shadow: rgba(0,0,0,0.5);
   --color-pb-heatmap-empty: rgba(48,54,61,0.4);
 
+  /* Progress tab palette */
+  --color-pb-progress-card: #12121a;
+  --color-pb-progress-border: #23232f;
+  --color-pb-progress-border-hover: #2d2d3c;
+  --color-pb-progress-divider: #1a1a24;
+  --color-pb-progress-track: #15151e;
+  --color-pb-progress-input: #0a0a0f;
+  --color-pb-progress-knob: #ffffff;
+  --color-pb-progress-text: #ededf2;
+  --color-pb-progress-text-muted: #8a8a99;
+  --color-pb-progress-text-dim: #5e5e6e;
+  --color-pb-progress-accent-text: #b6abff;
+  --color-pb-progress-accent-tint: #1c1838;
+  --color-pb-progress-good: #4ade80;
+  --color-pb-progress-warn: #f5b942;
+  --color-pb-progress-bad: #f76060;
+
   /* Pattern colors — text */
   --color-pattern-array-text: #7ee2e8;
   --color-pattern-math-text: #ab7ee8;
@@ -155,6 +172,26 @@ html.light {
   --color-pb-error: #cf222e;
   --color-pb-shadow: rgba(0,0,0,0.1);
   --color-pb-heatmap-empty: rgba(200,205,215,0.25);
+
+  /* Progress tab palette — light mode reuses the app palette */
+  --color-pb-progress-card: var(--color-pb-surface);
+  --color-pb-progress-border: var(--color-pb-border);
+  --color-pb-progress-border-hover: var(--color-pb-border-strong);
+  --color-pb-progress-divider: var(--color-pb-border-light);
+  --color-pb-progress-track: #eaeef2;
+  --color-pb-progress-input: var(--color-pb-bg);
+  --color-pb-progress-knob: var(--color-pb-accent);
+  --color-pb-progress-text: var(--color-pb-text);
+  --color-pb-progress-text-muted: var(--color-pb-text-muted);
+  --color-pb-progress-text-dim: var(--color-pb-text-dim);
+  --color-pb-progress-accent-text: var(--color-pb-accent-hover);
+  --color-pb-progress-accent-tint: #efedfe;
+  --color-pb-progress-good: var(--color-pb-success);
+  --color-pb-progress-warn: var(--color-pb-medium);
+  --color-pb-progress-bad: var(--color-pb-error);
+  /* Core's heatmap score colors are pale (built for dark tiles); blend them
+     toward the text color so they stay readable on light tiles. */
+  --pb-progress-tint-text-strength: 45%;
 
   /* Pattern colors — text (darker for white bg contrast) */
   --color-pattern-array-text: #148490;

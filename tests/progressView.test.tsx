@@ -202,6 +202,14 @@ describe("ProgressView", () => {
     );
   });
 
+  it("colors surfaces and text with theme tokens so light mode applies", () => {
+    // The tab's former fixed dark palette — these never change with the theme.
+    const fixedDarkColors = /#(12121a|23232f|1a1a24|15151e|0a0a0f|ededf2|8a8a99|5e5e6e|b6abff|1c1838|22222d|20202c)\b/i;
+
+    renderProgress();
+    expect(document.body.innerHTML).not.toMatch(fixedDarkColors);
+  });
+
   it("renders the Progress empty state when there are no problems", () => {
     renderProgress({ problems: [] });
 

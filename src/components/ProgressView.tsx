@@ -23,10 +23,10 @@ interface Props {
 }
 
 const PROGRESS_CARD =
-  "rounded-[10px] border border-[#23232f] bg-[#12121a]";
+  "rounded-[10px] border border-pb-progress-border bg-pb-progress-card";
 const PROGRESS_CARD_PADDED = `${PROGRESS_CARD} p-[18px]`;
-const SECTION_TITLE_CLASS = "text-[15px] font-semibold text-[#ededf2]";
-const SECTION_SUB_CLASS = "ml-auto text-right text-xs text-[#5e5e6e] max-sm:hidden";
+const SECTION_TITLE_CLASS = "text-[15px] font-semibold text-pb-progress-text";
+const SECTION_SUB_CLASS = "ml-auto text-right text-xs text-pb-progress-text-dim max-sm:hidden";
 const PROGRESS_CONFIDENCE_COLORS = [
   "#f76060",
   "#fb923c",
@@ -76,36 +76,36 @@ function StatsRow({
 
   const avgConfColor =
     avgConf === 0
-      ? "text-[#8a8a99]"
+      ? "text-pb-progress-text-muted"
       : avgConf < 2.5
-        ? "text-[#f76060]"
+        ? "text-pb-progress-bad"
         : avgConf < 3.5
-          ? "text-[#f5b942]"
-          : "text-[#4ade80]";
+          ? "text-pb-progress-warn"
+          : "text-pb-progress-good";
 
   const stats = [
     {
       label: "Total Problems",
       value: problems.length,
-      color: problems.length > 0 ? "text-[#ededf2]" : "text-[#8a8a99]",
+      color: problems.length > 0 ? "text-pb-progress-text" : "text-pb-progress-text-muted",
       meta: "",
     },
     {
       label: "Total Reviews",
       value: totalReviews,
-      color: "text-[#ededf2]",
+      color: "text-pb-progress-text",
       meta: "",
     },
     {
       label: "Active Days",
       value: activeDays,
-      color: activeDays > 0 ? "text-[#7c6bf5]" : "text-[#8a8a99]",
+      color: activeDays > 0 ? "text-[#7c6bf5]" : "text-pb-progress-text-muted",
       meta: activeDays > 0 ? "review days" : "",
     },
     {
       label: "Current Streak",
       value: `${streak}d`,
-      color: streak > 0 ? "text-[#7c6bf5]" : "text-[#8a8a99]",
+      color: streak > 0 ? "text-[#7c6bf5]" : "text-pb-progress-text-muted",
       meta: bestStreak > 0 ? `best: ${bestStreak}d` : "",
     },
     {
@@ -130,11 +130,11 @@ function StatsRow({
           <div className={`text-[28px] font-semibold leading-none tracking-normal tabular-nums ${s.color}`}>
             {s.value}
           </div>
-          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5e5e6e]">
+          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-pb-progress-text-dim">
             {s.label}
           </div>
           {s.meta && (
-            <div className="mt-1 text-[11px] text-[#8a8a99]">{s.meta}</div>
+            <div className="mt-1 text-[11px] text-pb-progress-text-muted">{s.meta}</div>
           )}
         </div>
       ))}
@@ -167,7 +167,7 @@ function ProgressSection({
           {title}
         </h2>
         {typeof count === "number" && (
-          <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full border border-[#23232f] bg-[#12121a] px-2 text-[11px] font-semibold text-[#8a8a99]">
+          <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full border border-pb-progress-border bg-pb-progress-card px-2 text-[11px] font-semibold text-pb-progress-text-muted">
             {count}
           </span>
         )}
@@ -393,23 +393,23 @@ function StreakHeatmap({
       </div>
 
       {/* Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-3 text-[11px] max-sm:flex-col max-sm:items-start max-sm:gap-3">
-        <div className="flex gap-4 text-[#8a8a99]">
+      <div className="mt-4 flex items-center justify-between border-t border-pb-progress-border pt-3 text-[11px] max-sm:flex-col max-sm:items-start max-sm:gap-3">
+        <div className="flex gap-4 text-pb-progress-text-muted">
           <span>
             Current streak:{" "}
-            <span className="font-semibold text-[#ededf2]">
+            <span className="font-semibold text-pb-progress-text">
               {currentStreak}d
             </span>
           </span>
           <span>
             Longest streak:{" "}
-            <span className="font-semibold text-[#ededf2]">
+            <span className="font-semibold text-pb-progress-text">
               {longestStreak}d
             </span>
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-[#5e5e6e]">Less</span>
+          <span className="text-pb-progress-text-dim">Less</span>
           {legendColors.map((c, i) => (
             <div
               key={i}
@@ -425,7 +425,7 @@ function StreakHeatmap({
               }}
             />
           ))}
-          <span className="text-[#5e5e6e]">More</span>
+          <span className="text-pb-progress-text-dim">More</span>
         </div>
       </div>
       </div>
@@ -514,7 +514,7 @@ function ConfidenceTrend({
         <select
           value={selectedPattern}
           onChange={(e) => setSelectedPattern(e.target.value)}
-          className="ml-3 cursor-pointer appearance-none rounded-lg border border-[#23232f] bg-[#0a0a0f] px-2.5 py-1.5 text-xs text-[#ededf2] outline-none focus:border-[#7c6bf5] max-sm:ml-auto"
+          className="ml-3 cursor-pointer appearance-none rounded-lg border border-pb-progress-border bg-pb-progress-input px-2.5 py-1.5 text-xs text-pb-progress-text outline-none focus:border-[#7c6bf5] max-sm:ml-auto"
         >
           <option value="all">All Patterns</option>
           {availablePatterns.map((p) => (
@@ -528,7 +528,7 @@ function ConfidenceTrend({
       <div className={`${PROGRESS_CARD} px-[18px] pb-2 pt-[18px]`}>
 
       {!hasEnoughData ? (
-        <div className="flex h-[240px] items-center justify-center text-[13px] text-[#5e5e6e]">
+        <div className="flex h-[240px] items-center justify-center text-[13px] text-pb-progress-text-dim">
           Not enough data yet
         </div>
       ) : (
@@ -551,7 +551,7 @@ function ConfidenceTrend({
                 y1={toY(v)}
                 x2={svgW - padR}
                 y2={toY(v)}
-                stroke="#22222d"
+                stroke="var(--color-pb-progress-border)"
                 strokeDasharray="4 4"
                 strokeWidth={0.5}
               />
@@ -559,7 +559,7 @@ function ConfidenceTrend({
                 x={padL - 6}
                 y={toY(v) + 3.5}
                 textAnchor="end"
-                fill="#5e5e6e"
+                fill="var(--color-pb-progress-text-dim)"
                 fontSize={11}
               >
                 {v}
@@ -575,7 +575,7 @@ function ConfidenceTrend({
                 x={toX(i)}
                 y={svgH - 4}
                 textAnchor="middle"
-                fill="#5e5e6e"
+                fill="var(--color-pb-progress-text-dim)"
                 fontSize={11}
               >
                 {w.label}
@@ -621,7 +621,7 @@ function ConfidenceTrend({
                 cx={toX(i)}
                 cy={toY(w.avg)}
                 r={3}
-                fill="#12121a"
+                fill="var(--color-pb-progress-card)"
                 stroke={lineColor}
                 strokeWidth={2}
               />
@@ -630,28 +630,28 @@ function ConfidenceTrend({
         </svg>
       )}
 
-      <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#23232f] px-1 pb-1 pt-3 text-xs text-[#8a8a99]">
+      <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-pb-progress-border px-1 pb-1 pt-3 text-xs text-pb-progress-text-muted">
         <span>
           <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#7c6bf5]" />
           Avg confidence
         </span>
         {trendDelta !== null && (
-          <span className={trendDelta >= 0 ? "text-[#4ade80]" : "text-[#f76060]"}>
+          <span className={trendDelta >= 0 ? "text-pb-progress-good" : "text-pb-progress-bad"}>
             {trendDelta >= 0 ? "↑" : "↓"}{" "}
             <strong>{Math.abs(trendDelta).toFixed(1)}</strong>{" "}
-            <span className="text-[#8a8a99]">vs first week</span>
+            <span className="text-pb-progress-text-muted">vs first week</span>
           </span>
         )}
         <span className="ml-auto">
-          <span className="text-[#8a8a99]">Current</span>{" "}
-          <strong className="font-semibold text-[#ededf2]">
+          <span className="text-pb-progress-text-muted">Current</span>{" "}
+          <strong className="font-semibold text-pb-progress-text">
             {currentAvg !== null ? currentAvg.toFixed(1) : "—"}
           </strong>
         </span>
       </div>
 
       {showInfoBanner && (
-        <div className="mt-3 rounded-md bg-[#1c1838] px-3 py-2 text-[11px] text-[#8a8a99]">
+        <div className="mt-3 rounded-md bg-pb-progress-accent-tint px-3 py-2 text-[11px] text-pb-progress-text-muted">
           Trend data is collected from reviews going forward.
         </div>
       )}
@@ -688,11 +688,11 @@ function ConfidenceSpread({ problems }: { problems: Problem[] }) {
               key={i}
               className="grid grid-cols-[58px_1fr_36px] items-center gap-3"
             >
-              <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-[#8a8a99]">
+              <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-pb-progress-text-muted">
                 <span style={{ color }}>{"★".repeat(i + 1)}</span>
-                <span className="text-[#5e5e6e]">{i + 1}</span>
+                <span className="text-pb-progress-text-dim">{i + 1}</span>
               </span>
-              <span className="relative h-3.5 overflow-hidden rounded bg-[#15151e]">
+              <span className="relative h-3.5 overflow-hidden rounded bg-pb-progress-track">
                 <span
                   className="absolute inset-y-0 left-0 rounded"
                   style={{
@@ -701,21 +701,21 @@ function ConfidenceSpread({ problems }: { problems: Problem[] }) {
                   }}
                 />
               </span>
-              <span className="text-right text-[13px] font-semibold tabular-nums text-[#ededf2]">
+              <span className="text-right text-[13px] font-semibold tabular-nums text-pb-progress-text">
                 {count}
               </span>
             </div>
           );
         })}
         </div>
-        <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-4 text-xs text-[#8a8a99] max-sm:flex-col max-sm:items-start max-sm:gap-2">
+        <div className="mt-4 flex items-center justify-between border-t border-pb-progress-border pt-4 text-xs text-pb-progress-text-muted max-sm:flex-col max-sm:items-start max-sm:gap-2">
           <span>
-            <strong className="font-semibold text-[#ededf2]">{highConfidence}</strong>{" "}
-            at 4–5★ <span className="text-[#5e5e6e]">· {masteredPct}% mastered</span>
+            <strong className="font-semibold text-pb-progress-text">{highConfidence}</strong>{" "}
+            at 4–5★ <span className="text-pb-progress-text-dim">· {masteredPct}% mastered</span>
           </span>
           <span>
-            <strong className="font-semibold text-[#ededf2]">{lowConfidence}</strong>{" "}
-            at 1–2★ <span className="text-[#5e5e6e]">· need work</span>
+            <strong className="font-semibold text-pb-progress-text">{lowConfidence}</strong>{" "}
+            at 1–2★ <span className="text-pb-progress-text-dim">· need work</span>
           </span>
         </div>
       </div>
@@ -743,7 +743,7 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
       </div>
       <div className={`${PROGRESS_CARD} px-5 py-[18px]`}>
         {patternCounts.length === 0 ? (
-          <div className="py-4 text-center text-[13px] text-[#5e5e6e]">
+          <div className="py-4 text-center text-[13px] text-pb-progress-text-dim">
             No patterns yet
           </div>
         ) : (
@@ -754,13 +754,13 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
             const pct = (count / maxCount) * 100;
             return (
               <div key={pattern} className="grid grid-cols-[18px_1fr_1fr_36px] items-center gap-3 max-sm:grid-cols-[18px_1fr_36px]">
-                <span className="text-[11px] font-semibold tabular-nums text-[#5e5e6e]">
+                <span className="text-[11px] font-semibold tabular-nums text-pb-progress-text-dim">
                   {index + 1}
                 </span>
-                <span className="truncate text-[13px] font-medium text-[#ededf2]">
+                <span className="truncate text-[13px] font-medium text-pb-progress-text">
                   {pattern}
                 </span>
-                <div className="relative h-2 overflow-hidden rounded-full bg-[#15151e] max-sm:hidden">
+                <div className="relative h-2 overflow-hidden rounded-full bg-pb-progress-track max-sm:hidden">
                   <div
                     className="absolute inset-y-0 left-0 rounded-full"
                     style={{
@@ -770,7 +770,7 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
                     }}
                   />
                 </div>
-                <span className="w-[28px] shrink-0 text-right text-[13px] font-semibold tabular-nums text-[#ededf2]">
+                <span className="w-[28px] shrink-0 text-right text-[13px] font-semibold tabular-nums text-pb-progress-text">
                   {count}
                 </span>
               </div>
@@ -778,7 +778,7 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
           })}
           </div>
         )}
-        <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-4 text-xs text-[#8a8a99]">
+        <div className="mt-4 flex items-center justify-between border-t border-pb-progress-border pt-4 text-xs text-pb-progress-text-muted">
           <span>Showing {patternCounts.length} patterns</span>
           <span className="font-medium text-[#7c6bf5]">Use heatmap to filter</span>
         </div>
@@ -802,19 +802,19 @@ export default function ProgressView({
     return (
       <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-6 md:px-8">
         <header>
-          <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-[#ededf2]">
+          <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-pb-progress-text">
             Progress
           </h1>
-          <p className="mt-1 text-sm text-[#8a8a99]">
+          <p className="mt-1 text-sm text-pb-progress-text-muted">
             Patterns, streaks, and review history
           </p>
         </header>
 
         <div className={`${PROGRESS_CARD} px-6 py-12 text-center`}>
-          <h2 className="mb-2 text-lg font-semibold text-[#ededf2]">
+          <h2 className="mb-2 text-lg font-semibold text-pb-progress-text">
             No progress yet
           </h2>
-          <p className="mx-auto max-w-md text-sm text-[#8a8a99]">
+          <p className="mx-auto max-w-md text-sm text-pb-progress-text-muted">
             Add problems and complete reviews to see patterns, streaks, and trends.
           </p>
         </div>
@@ -825,10 +825,10 @@ export default function ProgressView({
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-5 pb-8 pt-6 md:px-8">
       <header>
-        <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-[#ededf2]">
+        <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-pb-progress-text">
           Progress
         </h1>
-        <p className="mt-1 text-sm text-[#8a8a99]">
+        <p className="mt-1 text-sm text-pb-progress-text-muted">
           Patterns, streaks, and review history
         </p>
       </header>

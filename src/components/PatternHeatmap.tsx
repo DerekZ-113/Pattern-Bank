@@ -9,6 +9,13 @@ interface Props {
   enabledExtraPatterns?: string[];
 }
 
+// Core's empty tint is a fixed dark color; use the theme tokens instead.
+const EMPTY_TILE = {
+  background: "var(--color-pb-progress-card)",
+  border: "var(--color-pb-progress-border)",
+  text: "var(--color-pb-progress-text-dim)",
+};
+
 export default function PatternHeatmap({ problems, onPatternClick, enabledExtraPatterns }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const allPatterns = getVisiblePatterns(enabledExtraPatterns ?? []);
@@ -33,7 +40,9 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
         {allPatterns.map((pattern) => {
           const data = statsMap[pattern];
           const avgConf = data.count > 0 ? data.totalConf / data.count : 0;
-          const tint = getProgressHeatmapTint(avgConf, data.count);
+          const tint = data.count > 0
+            ? getProgressHeatmapTint(avgConf, data.count)
+            : EMPTY_TILE;
           const isHovered = hovered === pattern;
           const problemLabel = data.count === 1 ? "problem" : "problems";
           const confidenceLabel =
@@ -54,7 +63,7 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
               style={{
                 appearance: "none",
                 backgroundColor: tint.background,
-                border: `1px solid ${isHovered ? "#2d2d3c" : tint.border}`,
+                border: `1px solid ${isHovered ? "var(--color-pb-progress-border-hover)" : tint.border}`,
                 borderRadius: 8,
                 padding: "16px 15px 14px",
                 cursor: "pointer",
@@ -78,7 +87,9 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
                 style={{
                   fontSize: 13,
                   fontWeight: 700,
-                  color: data.count > 0 ? "#ededf2" : "#8a8a99",
+                  color: data.count > 0
+                    ? "var(--color-pb-progress-text)"
+                    : "var(--color-pb-progress-text-muted)",
                   lineHeight: 1.25,
                   marginBottom: 12,
                 }}
@@ -95,7 +106,9 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
                 <span
                   style={{
                     fontSize: 12,
-                    color: data.count > 0 ? "#8a8a99" : "#5e5e6e",
+                    color: data.count > 0
+                      ? "var(--color-pb-progress-text-muted)"
+                      : "var(--color-pb-progress-text-dim)",
                   }}
                 >
                   {data.count > 0 ? `${data.count} ${problemLabel}` : "—"}
@@ -104,7 +117,8 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
                   style={{
                     fontSize: 12,
                     fontWeight: 600,
-                    color: tint.text,
+                    // Full strength in dark; light mode blends toward the text color.
+                    color: `color-mix(in srgb, ${tint.text} var(--pb-progress-tint-text-strength, 100%), var(--color-pb-progress-text))`,
                     lineHeight: 1.1,
                     letterSpacing: 0,
                   }}
