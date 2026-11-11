@@ -62,12 +62,52 @@ describe("ReviewRatePanel", () => {
     expect(onDone).not.toHaveBeenCalled();
   });
 
+  it("says what the selected rating will schedule, using the real intervals", () => {
+    render(<ReviewRatePanel problem={makeProblem()} onDone={vi.fn()} onBack={vi.fn()} />);
+
+    // Seeded at 3 stars: a 5-day interval.
+    expect(screen.getByText("Next review in 5 days")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("radio", { name: "1 star" }));
+    expect(screen.getByText("Next review tomorrow")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("radio", { name: "4 stars" }));
+    expect(screen.getByText("Next review in 10 days")).toBeTruthy();
+  });
+
+  it("previews the schedule of a hovered star before it is picked", () => {
+    const onDone = vi.fn();
+    render(<ReviewRatePanel problem={makeProblem()} onDone={onDone} onBack={vi.fn()} />);
+
+    fireEvent.mouseEnter(screen.getByRole("radio", { name: "5 stars" }));
+    expect(screen.getByText("Next review in 30 days")).toBeTruthy();
+
+    // Hovering is not choosing.
+    fireEvent.mouseLeave(screen.getByRole("radiogroup"));
+    expect(screen.getByText("Next review in 5 days")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(onDone).toHaveBeenCalledWith(3);
+  });
+
+  it("shows the graduated interval for a repeated five-star review", () => {
+    // Already at five stars once: the next five-star review graduates to 60 days.
+    render(
+      <ReviewRatePanel
+        problem={makeProblem({ confidence: 5, fiveStarStreak: 1 })}
+        onDone={vi.fn()}
+        onBack={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Next review in 60 days")).toBeTruthy();
+  });
+
   it("offers an Open link only when the problem has a URL", () => {
     const { unmount } = render(<ReviewRatePanel problem={makeProblem()} onDone={vi.fn()} onBack={vi.fn()} />);
-    expect(screen.getByRole("link", { name: "Open ↗" }).getAttribute("href")).toBe("https://leetcode.com/problems/two-sum/");
+    expect(screen.getByRole("link", { name: "Open" }).getAttribute("href")).toBe("https://leetcode.com/problems/two-sum/");
     unmount();
 
     render(<ReviewRatePanel problem={makeProblem({ url: "" })} onDone={vi.fn()} onBack={vi.fn()} />);
-    expect(screen.queryByRole("link", { name: "Open ↗" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Open" })).toBeNull();
   });
 });

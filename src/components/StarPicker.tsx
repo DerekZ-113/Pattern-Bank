@@ -43,6 +43,11 @@ interface SelectProps extends InteractiveProps {
   mode: "select";
   value: Confidence;
   onChange: (value: Confidence) => void;
+  /**
+   * Replaces the default "3/5" readout — for example with what that rating
+   * would schedule. It follows hover and focus, exactly like the stars.
+   */
+  describe?: (value: Confidence) => string;
 }
 
 /** Clicking a star commits immediately; the picker stays disabled while awaiting. */
@@ -150,7 +155,7 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
       aria-label={props.label ?? "Confidence"}
       aria-busy={busy || undefined}
       tabIndex={autoFocus ? -1 : undefined}
-      className={`flex items-center ${size.gap} ${props.className ?? ""}`}
+      className={`flex flex-wrap items-center ${size.gap} ${props.className ?? ""}`}
       onMouseLeave={() => setPreview(null)}
     >
       {STARS.map((star, index) => {
@@ -172,7 +177,7 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
             onBlur={() => setPreview(null)}
             onClick={() => handleActivate(star)}
             onKeyDown={(event) => handleKeyDown(event, index)}
-            className={`inline-flex ${size.box} cursor-pointer items-center justify-center rounded border p-0 ${size.glyph} leading-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-70 ${
+            className={`inline-flex ${size.box} cursor-pointer items-center justify-center rounded border p-0 ${size.glyph} leading-none transition-colors aria-disabled:cursor-not-allowed aria-disabled:opacity-70 ${
               filled ? "text-pb-star" : "text-pb-text-muted hover:text-pb-star"
             } ${
               active
@@ -189,7 +194,12 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
         );
       })}
       {props.mode === "select" && (
-        <span className="ml-1.5 text-xs text-pb-text-muted">{shown}/5</span>
+        <span
+          className={`text-xs text-pb-text-muted ${props.describe ? "" : "ml-1.5"}`}
+          aria-live={props.describe ? "polite" : undefined}
+        >
+          {props.describe && shown > 0 ? props.describe(shown as Confidence) : `${shown}/5`}
+        </span>
       )}
     </div>
   );

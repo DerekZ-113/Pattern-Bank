@@ -197,6 +197,23 @@ describe("StarPicker commit mode", () => {
     expect(filledFlags()).toEqual([false, false, false, false, false]);
   });
 
+  it("swaps the n/5 readout for a caller's description, which follows hover", () => {
+    render(
+      <StarPicker
+        mode="select"
+        value={2}
+        onChange={vi.fn()}
+        describe={(value) => `level ${value}`}
+      />
+    );
+
+    expect(screen.getByText("level 2")).toBeTruthy();
+    expect(screen.queryByText("2/5")).toBeNull();
+
+    fireEvent.mouseEnter(screen.getByRole("radio", { name: "4 stars" }));
+    expect(screen.getByText("level 4")).toBeTruthy();
+  });
+
   it("keeps the pinned lg geometry classes", () => {
     render(<StarPicker mode="commit" value={null} onCommit={vi.fn()} />);
 

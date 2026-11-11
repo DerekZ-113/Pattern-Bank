@@ -1046,3 +1046,33 @@ describe("TodayView opens Problem Details from Today surfaces", () => {
     expect(onEditProblem).toHaveBeenCalledWith(expect.objectContaining({ id: "p1" }));
   });
 });
+
+describe("TodayView goal meter", () => {
+  it("shows today's goal as tiles: reviewed ones filled, due ones waiting", () => {
+    renderTodayView({
+      problems: [
+        makeProblem({ id: "done", title: "Done One", lastReviewed: "2026-05-14", nextReviewDate: "2026-05-19" }),
+        makeProblem({ id: "due-1", title: "Due One", leetcodeNumber: 2 }),
+        makeProblem({ id: "due-2", title: "Due Two", leetcodeNumber: 3 }),
+      ],
+    });
+
+    // Goal is 5, but only 3 problems are reviewable today, so the meter has 3 tiles.
+    expect(screen.getByRole("img", { name: "1 of 3 reviews done today" })).toBeTruthy();
+  });
+
+  it("has no meter when nothing is due and nothing was reviewed", () => {
+    renderTodayView({
+      problems: [makeProblem({ nextReviewDate: "2026-06-01" })],
+    });
+
+    expect(screen.queryByRole("img", { name: /reviews done today/ })).toBeNull();
+    expect(screen.getByText("No reviews due")).toBeTruthy();
+  });
+
+  it("has no meter on the first-run screen", () => {
+    renderTodayView({ problems: [] });
+
+    expect(screen.queryByRole("img", { name: /reviews done today/ })).toBeNull();
+  });
+});

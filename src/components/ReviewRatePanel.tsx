@@ -1,5 +1,9 @@
 import { useState } from "react";
+import { getReviewIntervalDays } from "@patternbank/core";
+import Icon from "./Icon";
 import StarPicker from "./StarPicker";
+import { buttonClass } from "../utils/buttonStyles";
+import { formatNextReview } from "../utils/format";
 import type { Confidence, Problem } from "../types";
 
 interface Props {
@@ -11,12 +15,16 @@ interface Props {
 /**
  * The rate-your-confidence panel shared by Today's review card and the
  * All Problems card, so a review looks and commits the same way everywhere.
+ *
+ * Beside the stars it says what the rating will do — "Next review in 5 days"
+ * — computed by the same core function that schedules the review, so the
+ * schedule is something you choose rather than something that happens to you.
  */
 export default function ReviewRatePanel({ problem, onDone, onBack }: Props) {
   const [confidence, setConfidence] = useState<Confidence>(problem.confidence);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-pb-bg px-4 py-3.5">
+    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 rounded-lg bg-pb-bg px-4 py-3.5">
       <div>
         <div className="mb-1.5 text-xs text-pb-text-muted">Rate your confidence:</div>
         <StarPicker
@@ -25,6 +33,7 @@ export default function ReviewRatePanel({ problem, onDone, onBack }: Props) {
           value={confidence}
           onChange={setConfidence}
           label={`Rate ${problem.title} confidence`}
+          describe={(value) => formatNextReview(getReviewIntervalDays(problem, value))}
           autoFocus
         />
       </div>
@@ -34,23 +43,16 @@ export default function ReviewRatePanel({ problem, onDone, onBack }: Props) {
             href={problem.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-pb-border bg-pb-surface-2 px-3 text-[13px] font-medium text-pb-text-muted no-underline transition-colors hover:border-pb-border-strong hover:text-pb-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+            className={buttonClass("outline")}
           >
-            Open ↗
+            Open
+            <Icon name="external" className="h-3.5 w-3.5" />
           </a>
         )}
-        <button
-          type="button"
-          onClick={onBack}
-          className="h-9 cursor-pointer rounded-lg border border-pb-border bg-transparent px-3 text-[13px] font-medium text-pb-text-muted transition-colors hover:border-pb-border-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-        >
+        <button type="button" onClick={onBack} className={buttonClass("ghost")}>
           Back
         </button>
-        <button
-          type="button"
-          onClick={() => onDone(confidence)}
-          className="h-9 cursor-pointer rounded-lg border border-pb-accent/35 bg-pb-accent-subtle px-5 text-[13px] font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-        >
+        <button type="button" onClick={() => onDone(confidence)} className={buttonClass("primary")}>
           Done
         </button>
       </div>

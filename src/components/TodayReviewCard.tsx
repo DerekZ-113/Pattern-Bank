@@ -1,9 +1,11 @@
 import { useState } from "react";
 import DifficultyBadge from "./DifficultyBadge";
+import Icon from "./Icon";
 import PatternTagList from "./PatternTagList";
 import ReviewRatePanel from "./ReviewRatePanel";
 import StarPicker from "./StarPicker";
 import { formatRelativeDate } from "@patternbank/core";
+import { buttonClass } from "../utils/buttonStyles";
 import type { Confidence, Problem } from "../types";
 
 interface Props {
@@ -31,15 +33,8 @@ export default function TodayReviewCard({
   const [localNotes, setLocalNotes] = useState(problem.notes || "");
 
   const lastReviewedText = problem.lastReviewed
-    ? `last reviewed ${formatRelativeDate(problem.lastReviewed).toLowerCase()}`
+    ? `Last reviewed ${formatRelativeDate(problem.lastReviewed).toLowerCase()}`
     : "Never reviewed";
-  const actionGridClass = problem.url
-    ? "mt-3 grid grid-cols-[auto_1fr_auto] gap-2 max-sm:grid-cols-1"
-    : "mt-3 grid grid-cols-[1fr_auto] gap-2 max-sm:grid-cols-1";
-
-  const handleStartReview = () => {
-    setReviewing(true);
-  };
 
   const handleDone = (confidence: Confidence) => {
     onReview(problem.id, confidence);
@@ -48,87 +43,104 @@ export default function TodayReviewCard({
   };
 
   return (
-    <article className="relative overflow-hidden rounded-[10px] border border-pb-border bg-pb-surface px-4 py-4 transition-colors hover:border-pb-border-strong hover:bg-pb-surface-2">
-      <span aria-hidden="true" className="absolute left-0 right-0 top-0 h-0.5 bg-pb-star/80" />
-
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-2">
-            <h3 className="text-[15px] font-semibold leading-tight text-pb-text">
-              {onOpenDetails ? (
-                <button
-                  type="button"
-                  onClick={() => onOpenDetails(problem)}
-                  className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-tight text-pb-text transition-colors duration-150 hover:text-pb-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-                >
-                  {problem.title}
-                </button>
-              ) : (
-                problem.title
-              )}
-            </h3>
-            {problem.leetcodeNumber && (
-              <span className="font-mono text-[13px] font-semibold leading-tight text-pb-text-dim">
-                #{problem.leetcodeNumber}
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <DifficultyBadge difficulty={problem.difficulty} />
-            {solvedOnLeetCodeToday && (
-              <span className="rounded-full border border-pb-accent/25 bg-pb-accent-subtle px-2.5 py-1 text-[11px] font-semibold text-pb-accent">
-                Solved on LC today
-              </span>
-            )}
-            {hidePatterns && !patternsRevealed ? (
-              <button
-                onClick={() => setPatternsRevealed(true)}
-                className="cursor-pointer rounded-full border border-dashed border-pb-border px-2.5 py-1 text-[11px] font-medium text-pb-text-dim transition-colors hover:border-pb-text-dim hover:text-pb-text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-              >
-                Reveal patterns
-              </button>
-            ) : (
-              <PatternTagList patterns={problem.patterns} />
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span className="text-xs text-pb-text-muted">Confidence</span>
-        <StarPicker mode="display" size="md" value={problem.confidence} />
-        <span className="text-xs text-pb-text-dim">· {lastReviewedText}</span>
-      </div>
-
-      <div className="mt-3">
-        {notesRevealed ? (
-          <div className="relative">
-            <textarea
-              value={localNotes}
-              onChange={(event) => setLocalNotes(event.target.value)}
-              onBlur={() => onUpdateNotes(problem.id, localNotes)}
-              placeholder="Add notes..."
-              className="max-h-[140px] min-h-[64px] w-full resize-y rounded-lg border border-pb-border bg-pb-bg px-3 py-2 pr-12 text-[13px] leading-relaxed text-pb-text outline-none transition-colors focus:border-pb-accent"
-            />
+    <article className="rounded-xl border border-pb-border-light bg-pb-surface p-4 sm:px-5">
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <h3 className="m-0 text-[15px] font-semibold leading-snug text-pb-text">
+          {onOpenDetails ? (
             <button
-              onClick={() => setNotesRevealed(false)}
-              className="absolute right-2 top-2 cursor-pointer rounded border-none bg-transparent px-1 py-0.5 text-xs text-pb-text-dim transition-colors hover:text-pb-text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+              type="button"
+              onClick={() => onOpenDetails(problem)}
+              className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-snug text-pb-text transition-colors duration-150 hover:text-pb-accent"
             >
-              Hide
+              {problem.title}
             </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setNotesRevealed(true)}
-            className="w-full cursor-pointer rounded-lg border border-dashed border-pb-border bg-transparent px-3 py-2 text-left text-[13px] text-pb-text-dim transition-colors hover:border-pb-text-dim hover:text-pb-text-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-          >
-            {problem.notes ? "Show notes" : "Add notes"}
-          </button>
+          ) : (
+            problem.title
+          )}
+        </h3>
+        {problem.leetcodeNumber && (
+          <span className="font-mono text-[13px] leading-tight text-pb-text-dim">
+            #{problem.leetcodeNumber}
+          </span>
         )}
       </div>
 
-      {reviewing ? (
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <DifficultyBadge difficulty={problem.difficulty} />
+        {solvedOnLeetCodeToday && (
+          <span className="text-xs font-semibold text-pb-accent">Solved on LC today</span>
+        )}
+        {hidePatterns && !patternsRevealed ? (
+          <button
+            type="button"
+            onClick={() => setPatternsRevealed(true)}
+            className="cursor-pointer rounded-md border border-dashed border-pb-border-strong bg-transparent px-2 py-1 text-xs font-medium leading-none text-pb-text-dim transition-colors hover:text-pb-text-muted"
+          >
+            Reveal patterns
+          </button>
+        ) : (
+          <PatternTagList patterns={problem.patterns} />
+        )}
+      </div>
+
+      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <div className="flex items-center gap-2.5">
+          <StarPicker mode="display" size="md" value={problem.confidence} />
+          <span className="text-xs text-pb-text-dim">{lastReviewedText}</span>
+        </div>
+        {!reviewing && (
+          <div className="flex flex-wrap items-center gap-2 max-sm:w-full">
+            {!notesRevealed && (
+              <button type="button" onClick={() => setNotesRevealed(true)} className={buttonClass("ghost")}>
+                <Icon name="note" className="h-3.5 w-3.5" />
+                {problem.notes ? "Show notes" : "Add notes"}
+              </button>
+            )}
+            <button type="button" onClick={() => onDismiss(problem.id)} className={buttonClass("ghost")}>
+              Dismiss
+            </button>
+            {problem.url && (
+              <a
+                href={problem.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonClass("outline")}
+              >
+                Open
+                <Icon name="external" className="h-3.5 w-3.5" />
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => setReviewing(true)}
+              className={`${buttonClass("soft")} max-sm:flex-1`}
+            >
+              Review Now
+            </button>
+          </div>
+        )}
+      </div>
+
+      {notesRevealed && (
+        <div className="relative mt-3">
+          <textarea
+            value={localNotes}
+            onChange={(event) => setLocalNotes(event.target.value)}
+            onBlur={() => onUpdateNotes(problem.id, localNotes)}
+            placeholder="Add notes..."
+            className="max-h-[140px] min-h-[64px] w-full resize-y rounded-lg border border-pb-border bg-pb-bg px-3 py-2 pr-14 font-mono text-[13px] leading-relaxed text-pb-text outline-none transition-colors focus:border-pb-accent"
+          />
+          <button
+            type="button"
+            onClick={() => setNotesRevealed(false)}
+            className="absolute right-2 top-2 cursor-pointer rounded border-none bg-transparent px-1 py-0.5 text-xs text-pb-text-dim transition-colors hover:text-pb-text-muted"
+          >
+            Hide
+          </button>
+        </div>
+      )}
+
+      {reviewing && (
         <div className="mt-3">
           <ReviewRatePanel
             problem={problem}
@@ -138,31 +150,6 @@ export default function TodayReviewCard({
               setNotesRevealed(false);
             }}
           />
-        </div>
-      ) : (
-        <div className={actionGridClass}>
-          {problem.url && (
-            <a
-              href={problem.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-pb-border bg-pb-surface-2 px-4 text-[13px] font-medium text-pb-text-muted no-underline transition-colors hover:border-pb-border-strong hover:text-pb-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-            >
-              Open ↗
-            </a>
-          )}
-          <button
-            onClick={handleStartReview}
-            className="h-9 cursor-pointer rounded-lg border border-pb-accent/35 bg-pb-accent-subtle px-4 text-[13px] font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-          >
-            Review Now
-          </button>
-          <button
-            onClick={() => onDismiss(problem.id)}
-            className="h-9 cursor-pointer rounded-lg border border-pb-border bg-transparent px-4 text-[13px] font-medium text-pb-text-muted transition-colors hover:border-pb-border-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-          >
-            Dismiss
-          </button>
         </div>
       )}
     </article>
