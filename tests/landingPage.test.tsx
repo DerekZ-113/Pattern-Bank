@@ -40,7 +40,8 @@ describe("LandingPage", () => {
     expect(screen.getByText("Remember what")).toBeTruthy();
     const practicedText = screen.getByText("you practiced.");
     expect(practicedText).toBeTruthy();
-    expect(practicedText.className).not.toContain("text-[#5e5e6e]");
+    // One-colour headline: no accent-coloured or gradient word.
+    expect(practicedText.className).not.toMatch(/text-pb-accent|bg-clip-text|bg-gradient/);
     expect(screen.getByText("Now with LeetCode Sync")).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "Paste your username. Watch it fill." }),
