@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
-import { PATTERN_COLORS, getVisiblePatterns } from "../utils/constants";
+import { getVisiblePatterns } from "../utils/constants";
 import { calculateStreak } from "../utils/storage";
 import { todayStr, addDays, formatLocalDate } from "@patternbank/core";
 import {
@@ -474,10 +474,7 @@ function ConfidenceTrend({
     avg: number;
   }[];
 
-  const lineColor =
-    selectedPattern !== "all" && PATTERN_COLORS[selectedPattern]
-      ? PATTERN_COLORS[selectedPattern].text
-      : "#7c6bf5";
+  const lineColor = "var(--color-pb-accent)";
 
   const hasEnoughData = dataPoints.length >= 2;
   const showInfoBanner =
@@ -749,8 +746,6 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
         ) : (
           <div className="flex flex-col gap-[11px]">
           {patternCounts.map(([pattern, count], index) => {
-            const color =
-              PATTERN_COLORS[pattern]?.text ?? "#8b949e";
             const pct = (count / maxCount) * 100;
             return (
               <div key={pattern} className="grid grid-cols-[18px_1fr_1fr_36px] items-center gap-3 max-sm:grid-cols-[18px_1fr_36px]">
@@ -765,7 +760,7 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
                     className="absolute inset-y-0 left-0 rounded-full"
                     style={{
                       width: `${pct}%`,
-                      background: `linear-gradient(90deg, ${color}66, #7c6bf5)`,
+                      background: "var(--color-pb-accent)",
                       transition: "width 0.3s ease",
                     }}
                   />

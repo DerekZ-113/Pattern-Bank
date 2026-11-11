@@ -5,6 +5,8 @@ import * as Sentry from "@sentry/react";
 import posthog from "posthog-js";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import "@fontsource-variable/atkinson-hyperlegible-next";
+import "@fontsource-variable/atkinson-hyperlegible-mono";
 import "./index.css";
 import AuthProvider from "./contexts/AuthContext";
 import App from "./App";

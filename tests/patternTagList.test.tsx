@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
+import PatternTag from "../src/components/PatternTag";
 import PatternTagList from "../src/components/PatternTagList";
-import { CORE_PATTERNS, EXTRA_PATTERNS, PATTERN_COLORS } from "../src/utils/constants";
+import { CORE_PATTERNS, EXTRA_PATTERNS } from "../src/utils/constants";
 
 function renderedLabels(container: HTMLElement): string[] {
   // Pills and dividers in DOM order; dividers render as "|" placeholders.
@@ -77,19 +78,18 @@ describe("PatternTagList", () => {
   });
 });
 
-describe("PATTERN_COLORS", () => {
-  it("has entries for the new Array and Math patterns", () => {
-    expect(PATTERN_COLORS["Array"]).toBeDefined();
-    expect(PATTERN_COLORS["Math"]).toBeDefined();
-  });
+describe("PatternTag", () => {
+  it("renders every pattern with the same neutral chip — colour is reserved for confidence and difficulty", () => {
+    render(
+      <div>
+        {[...CORE_PATTERNS, ...EXTRA_PATTERNS].map((pattern) => (
+          <PatternTag key={pattern} name={pattern} />
+        ))}
+      </div>
+    );
 
-  it("has an entry for the opt-in Database pattern", () => {
-    expect(PATTERN_COLORS["Database"]).toBeDefined();
-  });
-
-  it("has a colour row for every core and extra pattern", () => {
-    for (const pattern of [...CORE_PATTERNS, ...EXTRA_PATTERNS]) {
-      expect(PATTERN_COLORS[pattern], pattern).toBeDefined();
-    }
+    const chips = [...CORE_PATTERNS, ...EXTRA_PATTERNS].map((pattern) => screen.getByText(pattern));
+    expect(new Set(chips.map((chip) => chip.className)).size).toBe(1);
+    expect(chips.every((chip) => chip.getAttribute("style") === null)).toBe(true);
   });
 });

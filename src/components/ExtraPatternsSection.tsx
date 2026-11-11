@@ -1,4 +1,4 @@
-import { EXTRA_PATTERNS, PATTERN_COLORS } from "../utils/constants";
+import { EXTRA_PATTERNS } from "../utils/constants";
 
 interface Props {
   enabledExtraPatterns: string[];
@@ -11,7 +11,7 @@ export default function ExtraPatternsSection({ enabledExtraPatterns, onToggle, h
     <div>
       {!hideLabel && (
         <>
-          <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+          <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
             Additional Patterns
           </label>
           <p className="mb-3 text-xs leading-relaxed text-pb-text-dim">
@@ -22,22 +22,20 @@ export default function ExtraPatternsSection({ enabledExtraPatterns, onToggle, h
       <div className="flex flex-col gap-1.5">
         {EXTRA_PATTERNS.map((pattern) => {
           const enabled = enabledExtraPatterns.includes(pattern);
-          const pc = PATTERN_COLORS[pattern] ?? { text: "#8b949e", bg: "transparent" };
           return (
             <button
               key={pattern}
+              type="button"
+              aria-pressed={enabled}
               onClick={() => onToggle(pattern)}
               className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-pb-border bg-transparent px-3 py-2 text-left transition-colors duration-150 hover:border-pb-text-muted"
             >
-              <span
-                className="text-sm font-medium"
-                style={{ color: enabled ? pc.text : "#8b949e" }}
-              >
+              <span className={`text-sm font-medium ${enabled ? "text-pb-text" : "text-pb-text-muted"}`}>
                 {pattern}
               </span>
               <span
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
-                  enabled ? "bg-pb-accent" : "bg-pb-border"
+                  enabled ? "bg-pb-accent-solid" : "bg-pb-border-strong"
                 }`}
               >
                 <span

@@ -376,9 +376,9 @@ describe("TodayView", () => {
     expect(titleRowText.indexOf("Two Sum")).toBeLessThan(titleRowText.indexOf("#1"));
     expect(title.className).toContain("text-[15px]");
     expect(problemNumber.className).toContain("text-[13px]");
-    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("rounded-full");
-    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("border");
-    expect(within(leetcodeSection).getByText("Easy").className).toContain("border");
+    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("rounded-md");
+    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("bg-pb-surface-hover");
+    expect(within(leetcodeSection).getByText("Easy").className).toContain("text-pb-easy");
     expect(within(leetcodeSection).queryByText("LEETCODE")).toBeNull();
     expect(within(leetcodeSection).queryByText("Review due")).toBeNull();
     expect(within(leetcodeSection).queryByRole("radio", { name: "Import Two Sum with 4-star confidence" })).toBeNull();
@@ -841,9 +841,9 @@ describe("TodayView", () => {
     });
 
     const reviewsSection = screen.getByText("Reviews due").closest("section")!;
-    expect(within(reviewsSection).getByText("Hash Table").className).toContain("rounded-full");
-    expect(within(reviewsSection).getByText("Hash Table").className).toContain("border");
-    expect(within(reviewsSection).getByText("Easy").className).toContain("border");
+    expect(within(reviewsSection).getByText("Hash Table").className).toContain("rounded-md");
+    expect(within(reviewsSection).getByText("Hash Table").className).toContain("bg-pb-surface-hover");
+    expect(within(reviewsSection).getByText("Easy").className).toContain("text-pb-easy");
     expect(within(reviewsSection).getByText("Solved on LC today")).toBeTruthy();
   });
 

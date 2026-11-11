@@ -1,15 +1,16 @@
 export type Theme = "dark" | "light";
 
-/** Web-only visual constants (moved out of progressUtils when it went to core). */
-export const CONFIDENCE_BAR_COLORS = [
-  "#f85149", // 1
-  "#f0883e", // 2
-  "#d29922", // 3
-  "#8fbd3a", // 4
-  "#3fb950", // 5
-];
-
 const STORAGE_KEY = "patternbank-theme";
+
+/**
+ * Page background per theme, mirrored into <meta name="theme-color"> so the
+ * mobile browser chrome matches. Keep in sync with --color-pb-bg in index.css
+ * and the inline script in index.html.
+ */
+export const THEME_COLORS: Record<Theme, string> = {
+  dark: "#121116",
+  light: "#f6f5f9",
+};
 
 export function getTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -21,9 +22,8 @@ export function setTheme(theme: Theme): void {
 }
 
 export function applyTheme(theme: Theme): void {
-  if (theme === "light") {
-    document.documentElement.classList.add("light");
-  } else {
-    document.documentElement.classList.remove("light");
-  }
+  document.documentElement.classList.toggle("light", theme === "light");
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", THEME_COLORS[theme]);
 }

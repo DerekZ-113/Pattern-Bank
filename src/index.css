@@ -1,86 +1,150 @@
 @import "tailwindcss";
 
+/*
+ * PatternBank design tokens.
+ *
+ * Colour carries meaning in exactly three places, and nowhere else:
+ *   - accent (violet): things to act on — due reviews, primary actions
+ *   - confidence (violet → amber → green): how well something is banked,
+ *     the same three hues as the app icon's tiles
+ *   - difficulty (teal / orange / red): LeetCode's own convention
+ * Everything else is graphite. Dark is the default; html.light overrides.
+ */
 @theme {
-  --color-pb-bg: #0d1117;
-  --color-pb-surface: #161b22;
-  --color-pb-surface-2: #15151e;
-  --color-pb-surface-hover: #1c2129;
-  --color-pb-border: #30363d;
-  --color-pb-border-strong: #3d444d;
-  --color-pb-border-light: #21262d;
-  --color-pb-text: #e6edf3;
-  --color-pb-text-muted: #8b949e;
-  --color-pb-text-dim: #484f58;
-  --color-pb-accent: #7c6bf5;
-  --color-pb-accent-hover: #9080f5;
-  --color-pb-accent-subtle: rgba(124, 107, 245, 0.12);
-  --color-pb-easy: #3fb950;
-  --color-pb-medium: #d29922;
-  --color-pb-hard: #f85149;
-  --color-pb-star: #e3b341;
-  --color-pb-star-empty: #30363d;
-  --color-pb-success: #3fb950;
-  --color-pb-error: #f85149;
-  --color-pb-shadow: rgba(0,0,0,0.5);
-  --color-pb-heatmap-empty: rgba(48,54,61,0.4);
+  --font-sans: "Atkinson Hyperlegible Next Variable", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono Variable", ui-monospace, "SF Mono",
+    SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Pattern colors — text */
-  --color-pattern-array-text: #7ee2e8;
-  --color-pattern-math-text: #ab7ee8;
-  --color-pattern-two-pointers-text: #7ee8c7;
-  --color-pattern-hash-table-text: #e8a87e;
-  --color-pattern-sliding-window-text: #7ecbe8;
-  --color-pattern-binary-search-text: #e8c77e;
-  --color-pattern-sorting-text: #a0a8e8;
-  --color-pattern-linked-list-text: #48d4b8;
-  --color-pattern-stack-text: #7ea8e8;
-  --color-pattern-queue-text: #8eaee8;
-  --color-pattern-tree-text: #7ee89c;
-  --color-pattern-bfs-text: #e87e7e;
-  --color-pattern-dfs-text: #e8607e;
-  --color-pattern-heap-text: #e8987e;
-  --color-pattern-greedy-text: #b8e87e;
-  --color-pattern-backtracking-text: #e8e07e;
-  --color-pattern-graph-text: #e87eb8;
-  --color-pattern-union-find-text: #d4a8e8;
-  --color-pattern-trie-text: #8ce87e;
-  --color-pattern-dp-text: #c57ee8;
-  --color-pattern-intervals-text: #e88ea8;
-  --color-pattern-mono-stack-text: #8b8ee8;
-  --color-pattern-prefix-sum-text: #e87ed8;
-  --color-pattern-bit-text: #d8e87e;
-  --color-pattern-system-design-text: #78b8a8;
-  --color-pattern-ood-text: #c89078;
-  --color-pattern-database-text: #a3b8cc;
+  /* Surfaces — graphite with a trace of the brand violet */
+  --color-pb-bg: #121116;
+  --color-pb-surface: #1a181f;
+  --color-pb-surface-2: #211f28;
+  --color-pb-surface-hover: #272430;
+  --color-pb-border-light: #27242e;
+  --color-pb-border: #353140;
+  --color-pb-border-strong: #4b4658;
 
-  /* Pattern colors — background */
-  --color-pattern-array-bg: rgba(126,226,232,0.12);
-  --color-pattern-math-bg: rgba(171,126,232,0.12);
-  --color-pattern-two-pointers-bg: rgba(126,232,199,0.12);
-  --color-pattern-hash-table-bg: rgba(232,168,126,0.12);
-  --color-pattern-sliding-window-bg: rgba(126,203,232,0.12);
-  --color-pattern-binary-search-bg: rgba(232,199,126,0.12);
-  --color-pattern-sorting-bg: rgba(160,168,232,0.12);
-  --color-pattern-linked-list-bg: rgba(72,212,184,0.12);
-  --color-pattern-stack-bg: rgba(126,168,232,0.12);
-  --color-pattern-queue-bg: rgba(142,174,232,0.12);
-  --color-pattern-tree-bg: rgba(126,232,156,0.12);
-  --color-pattern-bfs-bg: rgba(232,126,126,0.12);
-  --color-pattern-dfs-bg: rgba(232,96,126,0.12);
-  --color-pattern-heap-bg: rgba(232,152,126,0.12);
-  --color-pattern-greedy-bg: rgba(184,232,126,0.12);
-  --color-pattern-backtracking-bg: rgba(232,224,126,0.12);
-  --color-pattern-graph-bg: rgba(232,126,184,0.12);
-  --color-pattern-union-find-bg: rgba(212,168,232,0.12);
-  --color-pattern-trie-bg: rgba(140,232,126,0.12);
-  --color-pattern-dp-bg: rgba(197,126,232,0.12);
-  --color-pattern-intervals-bg: rgba(232,142,168,0.12);
-  --color-pattern-mono-stack-bg: rgba(139,142,232,0.12);
-  --color-pattern-prefix-sum-bg: rgba(232,126,216,0.12);
-  --color-pattern-bit-bg: rgba(216,232,126,0.12);
-  --color-pattern-system-design-bg: rgba(120,184,168,0.12);
-  --color-pattern-ood-bg: rgba(200,144,120,0.12);
-  --color-pattern-database-bg: rgba(163,184,204,0.12);
+  /* Text — every step clears 4.5:1 on bg and surface */
+  --color-pb-text: #efedf3;
+  --color-pb-text-muted: #aba6b7;
+  --color-pb-text-dim: #8a8597;
+
+  /* Accent — `accent` is for text and icons, `accent-solid` for fills that
+     carry white text (one value cannot clear AA in both roles on dark). */
+  --color-pb-accent: #9a8cfa;
+  --color-pb-accent-hover: #b3a8fc;
+  --color-pb-accent-solid: #6a57ee;
+  --color-pb-accent-solid-hover: #7867f0;
+  --color-pb-accent-subtle: rgba(138, 122, 250, 0.14);
+
+  /* Confidence 1–5: learning (violet) → familiar (amber) → mastered (green) */
+  --color-pb-conf-1: #7b69f2;
+  --color-pb-conf-2: #ab9efc;
+  --color-pb-conf-3: #e8b84a;
+  --color-pb-conf-4: #9bd884;
+  --color-pb-conf-5: #4cc985;
+
+  --color-pb-star: #e8b84a;
+  --color-pb-star-empty: #3f3a4b;
+
+  --color-pb-easy: #3fc9b0;
+  --color-pb-medium: #f0a440;
+  --color-pb-hard: #f4707f;
+
+  --color-pb-success: #4cc985;
+  --color-pb-warning: #f0a440;
+  --color-pb-error: #f4707f;
+
+  --color-pb-shadow: rgba(0, 0, 0, 0.55);
+  --color-pb-heatmap-empty: rgba(75, 70, 88, 0.3);
+}
+
+html {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
+
+  --color-pb-bg: #f6f5f9;
+  --color-pb-surface: #ffffff;
+  --color-pb-surface-2: #faf9fc;
+  --color-pb-surface-hover: #f0eef5;
+  --color-pb-border-light: #eae8f0;
+  --color-pb-border: #dbd8e3;
+  --color-pb-border-strong: #bcb7ca;
+
+  --color-pb-text: #1c1a22;
+  --color-pb-text-muted: #5b5769;
+  --color-pb-text-dim: #6c6980;
+
+  --color-pb-accent: #5a45de;
+  --color-pb-accent-hover: #4733c4;
+  --color-pb-accent-solid: #5a45de;
+  --color-pb-accent-solid-hover: #4733c4;
+  --color-pb-accent-subtle: rgba(90, 69, 222, 0.09);
+
+  --color-pb-conf-1: #5a45de;
+  --color-pb-conf-2: #8f81ee;
+  --color-pb-conf-3: #c08a12;
+  --color-pb-conf-4: #5fa648;
+  --color-pb-conf-5: #1b8a4c;
+
+  --color-pb-star: #b97f0a;
+  --color-pb-star-empty: #d3cfdd;
+
+  --color-pb-easy: #0a7968;
+  --color-pb-medium: #99590a;
+  --color-pb-hard: #cc2f47;
+
+  --color-pb-success: #177a43;
+  --color-pb-warning: #99590a;
+  --color-pb-error: #cc2f47;
+
+  --color-pb-shadow: rgba(28, 26, 34, 0.12);
+  --color-pb-heatmap-empty: rgba(188, 183, 202, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-pb-bg);
+  color: var(--color-pb-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* One focus ring for every control. Text fields opt out with outline-none
+   and show focus on their border instead. */
+:focus-visible {
+  outline: 2px solid var(--color-pb-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background-color: color-mix(in oklab, var(--color-pb-accent-solid) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @keyframes toast-slide-in {
@@ -97,120 +161,4 @@
 @keyframes sync-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-@keyframes landing-orb1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-25px, 18px) scale(1.04); }
-  66% { transform: translate(18px, -14px) scale(0.97); }
-}
-
-@keyframes landing-orb2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  45% { transform: translate(22px, -16px) scale(1.03); }
-  75% { transform: translate(-14px, 12px) scale(0.98); }
-}
-
-@keyframes landing-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background-color: var(--color-pb-bg);
-  color: var(--color-pb-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
-    Helvetica, Arial, sans-serif;
-}
-
-html.light {
-  --color-pb-bg: #ffffff;
-  --color-pb-surface: #f6f8fa;
-  --color-pb-surface-2: #ffffff;
-  --color-pb-surface-hover: #eef1f4;
-  --color-pb-border: #d0d7de;
-  --color-pb-border-strong: #afb8c1;
-  --color-pb-border-light: #e8ecef;
-  --color-pb-text: #1f2328;
-  --color-pb-text-muted: #656d76;
-  --color-pb-text-dim: #8b949e;
-  --color-pb-accent: #7c6bf5;
-  --color-pb-accent-hover: #6856e0;
-  --color-pb-accent-subtle: rgba(124, 107, 245, 0.08);
-  --color-pb-easy: #1a7f37;
-  --color-pb-medium: #9a6700;
-  --color-pb-hard: #cf222e;
-  --color-pb-star: #b08800;
-  --color-pb-star-empty: #d0d7de;
-  --color-pb-success: #1a7f37;
-  --color-pb-error: #cf222e;
-  --color-pb-shadow: rgba(0,0,0,0.1);
-  --color-pb-heatmap-empty: rgba(200,205,215,0.25);
-
-  /* Pattern colors — text (darker for white bg contrast) */
-  --color-pattern-array-text: #148490;
-  --color-pattern-math-text: #6b3ac0;
-  --color-pattern-two-pointers-text: #0f7b6f;
-  --color-pattern-hash-table-text: #a85d2a;
-  --color-pattern-sliding-window-text: #1a7a9e;
-  --color-pattern-binary-search-text: #9e7a1a;
-  --color-pattern-sorting-text: #4a52b0;
-  --color-pattern-linked-list-text: #1a8a74;
-  --color-pattern-stack-text: #2a5ea8;
-  --color-pattern-queue-text: #3a62a0;
-  --color-pattern-tree-text: #1a8a3e;
-  --color-pattern-bfs-text: #b83a3a;
-  --color-pattern-dfs-text: #b82a52;
-  --color-pattern-heap-text: #a85a2a;
-  --color-pattern-greedy-text: #5a8a1a;
-  --color-pattern-backtracking-text: #8a7a1a;
-  --color-pattern-graph-text: #a82a72;
-  --color-pattern-union-find-text: #7a4aa0;
-  --color-pattern-trie-text: #2a8a1a;
-  --color-pattern-dp-text: #8a2ab0;
-  --color-pattern-intervals-text: #a83a5e;
-  --color-pattern-mono-stack-text: #3a3eb0;
-  --color-pattern-prefix-sum-text: #a82a8a;
-  --color-pattern-bit-text: #7a8a1a;
-  --color-pattern-system-design-text: #2a7a68;
-  --color-pattern-ood-text: #8a5a3a;
-  --color-pattern-database-text: #4b6377;
-
-  /* Pattern colors — background (higher alpha for white bg) */
-  --color-pattern-array-bg: rgba(20,132,144,0.08);
-  --color-pattern-math-bg: rgba(107,58,192,0.08);
-  --color-pattern-two-pointers-bg: rgba(15,123,111,0.08);
-  --color-pattern-hash-table-bg: rgba(168,93,42,0.08);
-  --color-pattern-sliding-window-bg: rgba(26,122,158,0.08);
-  --color-pattern-binary-search-bg: rgba(158,122,26,0.08);
-  --color-pattern-sorting-bg: rgba(74,82,176,0.08);
-  --color-pattern-linked-list-bg: rgba(26,138,116,0.08);
-  --color-pattern-stack-bg: rgba(42,94,168,0.08);
-  --color-pattern-queue-bg: rgba(58,98,160,0.08);
-  --color-pattern-tree-bg: rgba(26,138,62,0.08);
-  --color-pattern-bfs-bg: rgba(184,58,58,0.08);
-  --color-pattern-dfs-bg: rgba(184,42,82,0.08);
-  --color-pattern-heap-bg: rgba(168,90,42,0.08);
-  --color-pattern-greedy-bg: rgba(90,138,26,0.08);
-  --color-pattern-backtracking-bg: rgba(138,122,26,0.08);
-  --color-pattern-graph-bg: rgba(168,42,114,0.08);
-  --color-pattern-union-find-bg: rgba(122,74,160,0.08);
-  --color-pattern-trie-bg: rgba(42,138,26,0.08);
-  --color-pattern-dp-bg: rgba(138,42,176,0.08);
-  --color-pattern-intervals-bg: rgba(168,58,94,0.08);
-  --color-pattern-mono-stack-bg: rgba(58,62,176,0.08);
-  --color-pattern-prefix-sum-bg: rgba(168,42,138,0.08);
-  --color-pattern-bit-bg: rgba(122,138,26,0.08);
-  --color-pattern-system-design-bg: rgba(42,122,104,0.08);
-  --color-pattern-ood-bg: rgba(138,90,58,0.08);
-  --color-pattern-database-bg: rgba(75,99,119,0.08);
 }

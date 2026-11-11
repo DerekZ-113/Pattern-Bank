@@ -16,6 +16,10 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    // Vitest stubs CSS imports to "". The theme test reads the real token
+    // file (as ?raw text) to check it against the colours duplicated in TS
+    // and index.html, so let that one file through.
+    css: { include: [/src\/index\.css/] },
     include: [
       "tests/**/*.test.{ts,tsx}",
       "packages/core/tests/**/*.test.ts",

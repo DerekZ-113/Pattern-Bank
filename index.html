@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0d1117" />
+    <meta name="theme-color" content="#121116" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
@@ -17,8 +17,12 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <script>
-      if (localStorage.getItem('patternbank-theme') === 'light')
+      // Runs before first paint so a light-theme reload never flashes dark.
+      // Colours mirror THEME_COLORS in src/utils/theme.ts.
+      if (localStorage.getItem('patternbank-theme') === 'light') {
         document.documentElement.classList.add('light');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f6f5f9');
+      }
     </script>
   </head>
   <body>

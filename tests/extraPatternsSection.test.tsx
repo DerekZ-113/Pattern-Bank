@@ -25,7 +25,8 @@ describe("ExtraPatternsSection", () => {
 
     const database = screen.getByRole("button", { name: "Database" });
     const intervals = screen.getByRole("button", { name: "Intervals" });
-    expect(database.querySelector(".bg-pb-accent")).not.toBeNull();
-    expect(intervals.querySelector(".bg-pb-accent")).toBeNull();
+    // The on/off state is exposed to assistive tech, not just painted.
+    expect(database.getAttribute("aria-pressed")).toBe("true");
+    expect(intervals.getAttribute("aria-pressed")).toBe("false");
   });
 });
