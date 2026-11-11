@@ -141,7 +141,7 @@ describe("ProgressView", () => {
   it("renders redesigned projection controls and range copy", () => {
     renderProgress();
 
-    expect(screen.getByText("INPUTS")).toBeTruthy();
+    expect(screen.getByText("Inputs")).toBeTruthy();
     expect(screen.getByLabelText("Daily reviews")).toBeTruthy();
     expect(screen.getByLabelText("New / week")).toBeTruthy();
     expect(screen.getByText(/AT DAY 18/i)).toBeTruthy();

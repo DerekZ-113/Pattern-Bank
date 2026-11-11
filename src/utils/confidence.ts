@@ -14,6 +14,19 @@ export const CONFIDENCE_COLORS: Record<Confidence, string> = {
   5: "var(--color-pb-conf-5)",
 };
 
+/**
+ * Fills for pattern tiles: the same scale at full strength. Unlike
+ * CONFIDENCE_COLORS these do not change with the theme, and text on them is
+ * always --color-pb-tile-ink.
+ */
+export const TILE_COLORS: Record<Confidence, string> = {
+  1: "var(--color-pb-tile-1)",
+  2: "var(--color-pb-tile-2)",
+  3: "var(--color-pb-tile-3)",
+  4: "var(--color-pb-tile-4)",
+  5: "var(--color-pb-tile-5)",
+};
+
 export const CONFIDENCE_LEVELS: readonly Confidence[] = [1, 2, 3, 4, 5];
 
 /**
@@ -27,4 +40,8 @@ export function confidenceLevel(average: number): Confidence {
 
 export function confidenceColor(average: number): string {
   return CONFIDENCE_COLORS[confidenceLevel(average)];
+}
+
+export function tileColor(average: number): string {
+  return TILE_COLORS[confidenceLevel(average)];
 }

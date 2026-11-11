@@ -10,7 +10,8 @@ import { todayStr, addDays } from "@patternbank/core";
 import { getConfidenceDistribution } from "@patternbank/core";
 import { simulateProjectionSeries, type ProjectionDistribution } from "@patternbank/core";
 import { INTERVALS } from "@patternbank/core";
-import type { Problem, ReviewEvent, Confidence } from "../types";
+import { CONFIDENCE_COLORS, CONFIDENCE_LEVELS } from "../utils/confidence";
+import type { Problem, ReviewEvent } from "../types";
 
 interface Props {
   problems: Problem[];
@@ -22,12 +23,6 @@ interface Point {
   y: number;
 }
 
-interface ChartTint {
-  fill: string;
-  stroke: string;
-  solid: string;
-}
-
 const DAYS = 30;
 const DEFAULT_SELECTED_DAY = 18;
 const SVG_WIDTH = 660;
@@ -35,18 +30,11 @@ const SVG_HEIGHT = 348;
 const PLOT = { x0: 38, y0: 32, x1: 610, y1: 312 };
 const CURSOR_LABEL_WIDTH = 116;
 const CURSOR_LABEL_HALF_WIDTH = CURSOR_LABEL_WIDTH / 2;
-const CHART_TINTS: readonly ChartTint[] = [
-  { fill: "rgba(247,96,96,0.32)", stroke: "rgba(247,96,96,0.62)", solid: "#ef4444" },
-  { fill: "rgba(251,146,60,0.32)", stroke: "rgba(251,146,60,0.62)", solid: "#fb923c" },
-  { fill: "rgba(245,185,66,0.32)", stroke: "rgba(245,185,66,0.62)", solid: "#f5b942" },
-  { fill: "rgba(96,165,250,0.32)", stroke: "rgba(96,165,250,0.62)", solid: "#60a5fa" },
-  { fill: "rgba(74,222,128,0.32)", stroke: "rgba(74,222,128,0.62)", solid: "#4ade80" },
-];
-
+// Hard colour stops, not a blend: this paints the filled part of the range track.
 function getRangeTrackStyle(value: number, min: number, max: number): CSSProperties {
   const fill = ((value - min) / (max - min)) * 100;
   return {
-    background: `linear-gradient(to right, #7c6bf5 0%, #7c6bf5 ${fill}%, #20202c ${fill}%, #20202c 100%)`,
+    background: `linear-gradient(to right, var(--color-pb-accent-solid) ${fill}%, var(--color-pb-border) ${fill}%)`,
   };
 }
 
@@ -222,7 +210,7 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
     const yFor = (value: number) => PLOT.y1 - (value / maxTotal) * height;
     const xPoints = optimisticSeries.map((day) => xFor(day.day));
     const zero = optimisticSeries.map((_, index) => ({ x: xPoints[index], y: yFor(0) }));
-    const optimisticTops = CHART_TINTS.map((_, starIndex) =>
+    const optimisticTops = CONFIDENCE_LEVELS.map((_, starIndex) =>
       cumulativeSeries(optimisticDistributions, starIndex).map((value, index) => ({
         x: xPoints[index],
         y: yFor(value),
@@ -289,23 +277,23 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
 
   return (
     <section aria-labelledby="progress-projection" className="flex flex-col gap-3">
-      <div className="rounded-[10px] border border-[#23232f] bg-[#12121a] px-[22px] py-[22px]">
-        <div className="mb-[18px] flex h-6 items-center justify-between gap-4">
-          <h2 id="progress-projection" className="text-[15px] font-semibold tracking-normal text-[#ededf2]">
+      <div className="rounded-xl border border-pb-border bg-pb-surface p-5">
+        <div className="mb-5 flex h-6 items-center justify-between gap-4">
+          <h2 id="progress-projection" className="text-[15px] font-semibold text-pb-text">
             30-Day Projection
           </h2>
-          <span className="text-right text-xs text-[#5e5e6e] max-sm:hidden">
+          <span className="text-right text-xs text-pb-text-muted max-sm:hidden">
             See how spaced repetition compounds
           </span>
         </div>
 
         <div className="flex items-stretch max-lg:flex-col">
           <aside className="flex w-[280px] shrink-0 flex-col max-lg:w-full">
-            <div className="pr-[18px] pb-[18px] max-lg:pr-0">
-              <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5e5e6e]">
-                INPUTS
+            <div className="pb-5 pr-5 max-lg:pr-0">
+              <div className="mb-1 text-[13px] font-medium text-pb-text">
+                Inputs
               </div>
-              <p className="mb-3.5 text-[11px] leading-relaxed text-[#5e5e6e]">
+              <p className="mb-4 text-xs leading-relaxed text-pb-text-muted">
                 Simulation inputs — daily pace defaults to your recent activity,
                 not your Settings goal.
               </p>
@@ -331,19 +319,19 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
               </div>
             </div>
 
-            <div className="mr-[18px] h-px bg-[#1a1a24] max-lg:mr-0" />
+            <div className="mr-5 h-px bg-pb-border-light max-lg:mr-0" />
 
-            <div className="flex flex-1 flex-col pr-[18px] pt-[18px] max-lg:pr-0">
-              <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#b6abff]">
-                AT DAY {selectedDay}
+            <div className="flex flex-1 flex-col pr-5 pt-5 max-lg:pr-0">
+              <div className="mb-3 text-[13px] font-medium tabular-nums text-pb-text">
+                At day {selectedDay}
               </div>
-              <div className="mb-0.5 text-[13px] text-[#8a8a99]">Mastered</div>
-              <div className="text-[32px] font-semibold leading-tight tracking-[-0.01em] tabular-nums text-[#ededf2]">
+              <div className="mb-0.5 text-[13px] text-pb-text-muted">Mastered</div>
+              <div className="text-[32px] font-semibold leading-tight tabular-nums text-pb-text">
                 {formatRange(selectedRealisticMastered, selectedOptimisticMastered)}
               </div>
-              <div className="mt-1 text-[11px] text-[#5e5e6e]">(4–5★)</div>
+              <div className="mt-1 text-xs text-pb-text-dim">(4–5★)</div>
 
-              <div className="mt-5 grid grid-cols-[auto_auto] justify-start gap-x-3 gap-y-0.5">
+              <div className="mt-5 grid grid-cols-[auto_auto] justify-start gap-x-5 gap-y-0.5">
                 <StatColumn label="Total" value={`${cursorTotal}`} />
                 <StatColumn
                   label="Mastery"
@@ -355,15 +343,15 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                 />
               </div>
 
-              <div className="mt-[18px] text-[11px] italic text-[#5e5e6e]">
+              <div className="mt-5 text-xs text-pb-text-dim">
                 Drag chart to explore other days
               </div>
             </div>
           </aside>
 
-          <div className="w-px self-stretch bg-[#1a1a24] max-lg:my-5 max-lg:h-px max-lg:w-full" />
+          <div className="w-px self-stretch bg-pb-border-light max-lg:my-5 max-lg:h-px max-lg:w-full" />
 
-          <div className="flex min-w-0 flex-1 flex-col pl-[22px] max-lg:pl-0">
+          <div className="flex min-w-0 flex-1 flex-col pl-5 max-lg:pl-0">
             <div
               role="slider"
               aria-label="Explore projection day"
@@ -371,7 +359,7 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
               aria-valuemax={DAYS}
               aria-valuenow={selectedDay}
               tabIndex={0}
-              className="outline-none focus-visible:ring-2 focus-visible:ring-[#7c6bf5]/70"
+              className="rounded-lg"
               onPointerDown={handlePointer}
               onPointerMove={(event) => {
                 if (event.buttons === 1) handlePointer(event);
@@ -397,7 +385,8 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                       y1="0"
                       x2="0"
                       y2="8"
-                      stroke="rgba(124,107,245,0.28)"
+                      style={{ stroke: "var(--color-pb-text-muted)" }}
+                      strokeOpacity="0.35"
                       strokeWidth="1"
                     />
                   </pattern>
@@ -411,7 +400,11 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                   </clipPath>
                 </defs>
 
-                <g stroke="rgba(35,35,47,0.62)" strokeWidth="1" strokeDasharray="2 4">
+                <g
+                  style={{ stroke: "var(--color-pb-border)" }}
+                  strokeWidth="1"
+                  strokeDasharray="2 4"
+                >
                   {yLabels.map((label) => (
                     <line
                       key={label}
@@ -423,7 +416,7 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                   ))}
                 </g>
 
-                <g fontSize="11" fill="#5e5e6e" textAnchor="end">
+                <g fontSize="11" style={{ fill: "var(--color-pb-text-dim)" }} textAnchor="end">
                   {yLabels.map((label) => (
                     <text key={label} x="30" y={chart.yFor(label) + 4}>
                       {label}
@@ -432,14 +425,15 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                 </g>
 
                 <g clipPath="url(#projection-plot-clip)">
-                  {CHART_TINTS.map((tint, index) => {
+                  {CONFIDENCE_LEVELS.map((level, index) => {
                     const bottom = index === 0 ? chart.zero : chart.optimisticTops[index - 1];
                     const top = chart.optimisticTops[index];
                     return (
                       <path
-                        key={tint.fill}
+                        key={`band-${level}`}
                         d={buildBandPath(bottom, top)}
-                        fill={tint.fill}
+                        style={{ fill: CONFIDENCE_COLORS[level] }}
+                        fillOpacity="0.3"
                       />
                     );
                   })}
@@ -449,12 +443,13 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                     fill="url(#projection-hatch)"
                   />
 
-                  {CHART_TINTS.map((tint, index) => (
+                  {CONFIDENCE_LEVELS.map((level, index) => (
                     <path
-                      key={tint.stroke}
+                      key={`edge-${level}`}
                       d={buildLinearPath(chart.optimisticTops[index])}
                       fill="none"
-                      stroke={tint.stroke}
+                      style={{ stroke: CONFIDENCE_COLORS[level] }}
+                      strokeOpacity="0.7"
                       strokeWidth="1"
                     />
                   ))}
@@ -462,19 +457,19 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                   <path
                     d={buildLinearPath(chart.realisticLowBoundary)}
                     fill="none"
-                    stroke="rgba(237,237,242,0.72)"
+                    style={{ stroke: "var(--color-pb-text-muted)" }}
                     strokeWidth="1.5"
                     strokeDasharray="8 4"
                   />
                 </g>
 
-                <g fontSize="10" fill="#8a8a99">
+                <g fontSize="10" style={{ fill: "var(--color-pb-text-muted)" }}>
                   <line
                     x1={PLOT.x1 - 10}
                     y1={chart.realisticLowBoundary[DAYS].y}
                     x2={PLOT.x1 + 3}
                     y2={chart.realisticLowBoundary[DAYS].y}
-                    stroke="rgba(237,237,242,0.55)"
+                    style={{ stroke: "var(--color-pb-text-muted)" }}
                     strokeWidth="1"
                     strokeDasharray="2 2"
                   />
@@ -492,22 +487,22 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                   y1={PLOT.y0}
                   x2={cursorX}
                   y2={PLOT.y1}
-                  stroke="rgba(124,107,245,0.58)"
+                  style={{ stroke: "var(--color-pb-accent)" }}
                   strokeWidth="1.5"
                   strokeDasharray="4 4"
                 />
 
-                <g fontSize="11">
-                  <text x={PLOT.x0} y="328" textAnchor="middle" fill="#5e5e6e">
+                <g fontSize="11" style={{ fill: "var(--color-pb-text-dim)" }}>
+                  <text x={PLOT.x0} y="328" textAnchor="middle">
                     Day 0
                   </text>
-                  <text x={chart.xFor(10)} y="328" textAnchor="middle" fill="#8a8a99">
+                  <text x={chart.xFor(10)} y="328" textAnchor="middle">
                     Day 10
                   </text>
-                  <text x={chart.xFor(20)} y="328" textAnchor="middle" fill="#8a8a99">
+                  <text x={chart.xFor(20)} y="328" textAnchor="middle">
                     Day 20
                   </text>
-                  <text x={PLOT.x1} y="328" textAnchor="end" fill="#5e5e6e">
+                  <text x={PLOT.x1} y="328" textAnchor="end">
                     Day 30
                   </text>
                 </g>
@@ -520,8 +515,7 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                       width={CURSOR_LABEL_WIDTH}
                       height="22"
                       rx="11"
-                      fill="#1c1838"
-                      stroke="rgba(124,107,245,0.45)"
+                      style={{ fill: "var(--color-pb-surface)", stroke: "var(--color-pb-border-strong)" }}
                     />
                     <text
                       x="58"
@@ -529,42 +523,41 @@ export default function ProjectionCalculator({ problems, reviewEvents }: Props) 
                       textAnchor="middle"
                       fontSize="11"
                       fontWeight="600"
-                      fill="#b6abff"
+                      style={{ fill: "var(--color-pb-text)" }}
                     >
                       Day {selectedDay} · Total {cursorTotal}
                     </text>
                   </g>
                   <polygon
                     points={formatCursorPointerPoints(cursorPointerOffset)}
-                    fill="#1c1838"
-                    stroke="rgba(124,107,245,0.45)"
+                    style={{ fill: "var(--color-pb-surface)", stroke: "var(--color-pb-border-strong)" }}
                     strokeLinejoin="miter"
                   />
                 </g>
               </svg>
             </div>
 
-            <div className="mt-3.5 flex flex-wrap justify-center gap-x-[18px] gap-y-2">
-              {CHART_TINTS.map((tint, index) => (
-                <div key={tint.solid} className="inline-flex items-center gap-1.5">
+            <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2">
+              {CONFIDENCE_LEVELS.map((level) => (
+                <div key={level} className="inline-flex items-center gap-1.5">
                   <span
-                    className="inline-block h-2.5 w-2.5 rounded-[3px]"
-                    style={{ backgroundColor: tint.solid }}
+                    className="inline-block h-2.5 w-2.5 rounded-sm"
+                    style={{ backgroundColor: CONFIDENCE_COLORS[level] }}
                   />
-                  <span className="text-[11px] font-medium text-[#8a8a99]">
-                    {index + 1}★
-                    <span className="ml-1 text-[#5e5e6e]">
-                      {INTERVALS[(index + 1) as Confidence]}d interval
+                  <span className="text-xs text-pb-text-muted">
+                    {level}★
+                    <span className="ml-1 tabular-nums text-pb-text-dim">
+                      {INTERVALS[level]}d interval
                     </span>
                   </span>
                 </div>
               ))}
             </div>
 
-            <p className="mx-auto mt-3.5 max-w-[520px] text-center text-xs leading-relaxed text-[#8a8a99]">
+            <p className="mx-auto mt-4 max-w-[520px] text-center text-[13px] leading-relaxed text-pb-text-muted">
               {caption}
             </p>
-            <p className="mx-auto mt-3 max-w-[560px] text-center text-[11px] leading-relaxed text-[#5e5e6e]">
+            <p className="mx-auto mt-2 max-w-[560px] text-center text-xs leading-relaxed text-pb-text-dim">
               Range shows realistic (70% advancement) to optimistic (100% advancement) outcomes.
               {excludedCount > 0 && (
                 <> {excludedCount} excluded problem{excludedCount !== 1 ? "s" : ""} not shown.</>
@@ -597,10 +590,10 @@ function SliderControl({
   return (
     <div>
       <div className="mb-2.5 flex items-baseline justify-between gap-3">
-        <label htmlFor={id} className="text-xs text-[#8a8a99]">
+        <label htmlFor={id} className="text-[13px] text-pb-text-muted">
           {label}
         </label>
-        <span className="text-[15px] font-semibold tabular-nums text-[#ededf2]">
+        <span className="text-[15px] font-semibold tabular-nums text-pb-text">
           {value}
         </span>
       </div>
@@ -612,10 +605,10 @@ function SliderControl({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         style={getRangeTrackStyle(value, min, max)}
-        className="h-1 w-full cursor-pointer appearance-none rounded-full outline-none accent-[#7c6bf5] [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-white [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+        className="h-1 w-full cursor-pointer appearance-none rounded-full accent-pb-accent-solid [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-pb-accent-solid [&::-moz-range-thumb]:bg-pb-surface [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-solid [&::-webkit-slider-thumb]:border-pb-accent-solid [&::-webkit-slider-thumb]:bg-pb-surface"
       />
       {isDefault && (
-        <span className="mt-2 inline-flex rounded-full border border-[#7c6bf5]/30 bg-[#1c1838] px-2.5 py-1 text-[10px] font-semibold leading-none text-[#b6abff]">
+        <span className="mt-2 inline-flex rounded-full bg-pb-accent-subtle px-2 py-0.5 text-xs font-medium text-pb-accent">
           your recent pace
         </span>
       )}
@@ -626,8 +619,8 @@ function SliderControl({
 function StatColumn({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[11px] text-[#8a8a99]">{label}</span>
-      <span className="text-base font-semibold tabular-nums text-[#ededf2]">{value}</span>
+      <span className="text-xs text-pb-text-muted">{label}</span>
+      <span className="text-base font-semibold tabular-nums text-pb-text">{value}</span>
     </div>
   );
 }

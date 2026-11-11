@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { getVisiblePatterns } from "../utils/constants";
-import { getProgressHeatmapTint } from "@patternbank/core";
+import { tileColor } from "../utils/confidence";
 import type { Problem } from "../types";
 
 interface Props {
@@ -10,7 +9,6 @@ interface Props {
 }
 
 export default function PatternHeatmap({ problems, onPatternClick, enabledExtraPatterns }: Props) {
-  const [hovered, setHovered] = useState<string | null>(null);
   const allPatterns = getVisiblePatterns(enabledExtraPatterns ?? []);
 
   // Compute stats per pattern
@@ -29,17 +27,15 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
         {allPatterns.map((pattern) => {
           const data = statsMap[pattern];
-          const avgConf = data.count > 0 ? data.totalConf / data.count : 0;
-          const tint = getProgressHeatmapTint(avgConf, data.count);
-          const isHovered = hovered === pattern;
+          const hasProblems = data.count > 0;
+          const avgConf = hasProblems ? data.totalConf / data.count : 0;
           const problemLabel = data.count === 1 ? "problem" : "problems";
-          const confidenceLabel =
-            data.count > 0
-              ? `average confidence ${avgConf.toFixed(1)}`
-              : "no problems yet";
+          const confidenceLabel = hasProblems
+            ? `average confidence ${avgConf.toFixed(1)}`
+            : "no problems yet";
 
           return (
             <button
@@ -47,71 +43,27 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
               type="button"
               aria-label={`${pattern}: ${data.count} ${problemLabel}, ${confidenceLabel}`}
               onClick={() => onPatternClick(pattern)}
-              onMouseEnter={() => setHovered(pattern)}
-              onMouseLeave={() => setHovered(null)}
-              onFocus={() => setHovered(pattern)}
-              onBlur={() => setHovered(null)}
-              style={{
-                appearance: "none",
-                backgroundColor: tint.background,
-                border: `1px solid ${isHovered ? "#2d2d3c" : tint.border}`,
-                borderRadius: 8,
-                padding: "16px 15px 14px",
-                cursor: "pointer",
-                transition: "transform 0.1s ease, border-color 0.12s ease, box-shadow 0.15s ease",
-                minHeight: 86,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                width: "100%",
-                fontFamily: "inherit",
-                textAlign: "left",
-                transform: isHovered ? "translateY(-1px)" : "translateY(0)",
-                boxShadow: isHovered
-                  ? "0 0 0 1px rgba(124,107,245,0.16)"
-                  : "none",
-                overflow: "hidden",
-              }}
-              className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+              style={hasProblems ? { backgroundColor: tileColor(avgConf) } : undefined}
+              className={`flex min-h-[76px] w-full cursor-pointer appearance-none flex-col justify-between rounded-[10px] border p-3 text-left font-[inherit] ${
+                hasProblems
+                  ? "border-transparent text-pb-tile-ink transition-[filter] hover:brightness-110"
+                  : "border-pb-border-light bg-transparent text-pb-text-dim transition-colors hover:border-pb-border-strong hover:text-pb-text-muted"
+              }`}
             >
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: data.count > 0 ? "#ededf2" : "#8a8a99",
-                  lineHeight: 1.25,
-                  marginBottom: 12,
-                }}
-              >
+              <span className={`text-[13px] leading-tight ${hasProblems ? "font-bold" : "font-medium"}`}>
                 {pattern}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: data.count > 0 ? "#8a8a99" : "#5e5e6e",
-                  }}
-                >
-                  {data.count > 0 ? `${data.count} ${problemLabel}` : "—"}
+              </span>
+              {hasProblems && (
+                <span className="flex items-end justify-between gap-2">
+                  <span className="text-xs tabular-nums opacity-75">
+                    {data.count}
+                    <span className="max-sm:hidden"> {problemLabel}</span>
+                  </span>
+                  <span className="text-[17px] font-bold leading-none tabular-nums">
+                    {avgConf.toFixed(1)}
+                  </span>
                 </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: tint.text,
-                    lineHeight: 1.1,
-                    letterSpacing: 0,
-                  }}
-                >
-                  {data.count > 0 ? avgConf.toFixed(1) : ""}
-                </span>
-              </div>
+              )}
             </button>
           );
         })}

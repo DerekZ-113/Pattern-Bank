@@ -45,6 +45,17 @@
   --color-pb-conf-4: #9bd884;
   --color-pb-conf-5: #4cc985;
 
+  /* Pattern tiles — the confidence scale at full strength, and the one loud
+     thing in the product: a bank of tiles like the app icon. Deliberately not
+     overridden in the light theme: a tile is the same bright chip on either
+     page and always carries the same dark ink (every pair clears 4.5:1). */
+  --color-pb-tile-1: #8f7ff8;
+  --color-pb-tile-2: #b9aefd;
+  --color-pb-tile-3: #edbe55;
+  --color-pb-tile-4: #a8dd92;
+  --color-pb-tile-5: #58cf8e;
+  --color-pb-tile-ink: #17151d;
+
   --color-pb-star: #e8b84a;
   --color-pb-star-empty: #3f3a4b;
 

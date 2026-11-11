@@ -10,6 +10,7 @@ import {
   getConfidenceDistribution,
   getTopPatterns,
 } from "@patternbank/core";
+import { CONFIDENCE_COLORS, CONFIDENCE_LEVELS } from "../utils/confidence";
 import PatternHeatmap from "./PatternHeatmap";
 import ProjectionCalculator from "./ProjectionCalculator";
 import type { Problem, ReviewLogEntry, ReviewEvent } from "../types";
@@ -22,18 +23,10 @@ interface Props {
   onPatternClick: (pattern: string) => void;
 }
 
-const PROGRESS_CARD =
-  "rounded-[10px] border border-[#23232f] bg-[#12121a]";
-const PROGRESS_CARD_PADDED = `${PROGRESS_CARD} p-[18px]`;
-const SECTION_TITLE_CLASS = "text-[15px] font-semibold text-[#ededf2]";
-const SECTION_SUB_CLASS = "ml-auto text-right text-xs text-[#5e5e6e] max-sm:hidden";
-const PROGRESS_CONFIDENCE_COLORS = [
-  "#f76060",
-  "#fb923c",
-  "#f5b942",
-  "#60a5fa",
-  "#4ade80",
-];
+const PROGRESS_CARD = "rounded-xl border border-pb-border bg-pb-surface";
+const SECTION_TITLE_CLASS = "text-[15px] font-semibold text-pb-text";
+const SECTION_SUB_CLASS = "ml-auto text-right text-xs text-pb-text-muted max-sm:hidden";
+const CARD_FOOTER_CLASS = "border-t border-pb-border-light text-xs text-pb-text-muted";
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -42,12 +35,21 @@ function formatWeekLabel(dateStr: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Activity strengths 1–4, mixed into the card surface so they hold in both themes.
+const ACTIVITY_STRENGTHS = [30, 50, 75, 100];
+
+function activityColor(level: number): string {
+  if (level <= 0) return "var(--color-pb-heatmap-empty)";
+  const pct = ACTIVITY_STRENGTHS[Math.min(level, ACTIVITY_STRENGTHS.length) - 1];
+  return `color-mix(in oklab, var(--color-pb-success) ${pct}%, var(--color-pb-surface))`;
+}
+
 function getCellColor(count: number): string {
-  if (count === 0) return "transparent";
-  if (count <= 2) return "rgba(63,185,80,0.25)";
-  if (count <= 4) return "rgba(63,185,80,0.45)";
-  if (count <= 6) return "rgba(63,185,80,0.65)";
-  return "rgba(63,185,80,0.88)";
+  if (count === 0) return activityColor(0);
+  if (count <= 2) return activityColor(1);
+  if (count <= 4) return activityColor(2);
+  if (count <= 6) return activityColor(3);
+  return activityColor(4);
 }
 
 // ── Stats Row ────────────────────────────────────────────
@@ -74,67 +76,54 @@ function StatsRow({
       ? problems.reduce((s, p) => s + p.confidence, 0) / problems.length
       : 0;
 
-  const avgConfColor =
-    avgConf === 0
-      ? "text-[#8a8a99]"
-      : avgConf < 2.5
-        ? "text-[#f76060]"
-        : avgConf < 3.5
-          ? "text-[#f5b942]"
-          : "text-[#4ade80]";
-
   const stats = [
     {
       label: "Total Problems",
       value: problems.length,
-      color: problems.length > 0 ? "text-[#ededf2]" : "text-[#8a8a99]",
       meta: "",
     },
     {
       label: "Total Reviews",
       value: totalReviews,
-      color: "text-[#ededf2]",
       meta: "",
     },
     {
       label: "Active Days",
       value: activeDays,
-      color: activeDays > 0 ? "text-[#7c6bf5]" : "text-[#8a8a99]",
       meta: activeDays > 0 ? "review days" : "",
     },
     {
       label: "Current Streak",
       value: `${streak}d`,
-      color: streak > 0 ? "text-[#7c6bf5]" : "text-[#8a8a99]",
       meta: bestStreak > 0 ? `best: ${bestStreak}d` : "",
     },
     {
       label: "Avg Confidence",
       value: avgConf > 0 ? avgConf.toFixed(1) : "—",
-      color: avgConfColor,
       meta: problems.length > 0 ? `${problems.length} problems` : "",
     },
   ];
 
+  // gap-px over a hairline-coloured background draws the dividers; the last
+  // cell spans both columns on small screens so no empty slot shows through.
   return (
     <div
       aria-label="Progress overview"
-      className="grid gap-3"
-      style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}
+      className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-pb-border bg-pb-border-light sm:grid-cols-5"
     >
-      {stats.map((s) => (
+      {stats.map((s, i) => (
         <div
           key={s.label}
-          className={`${PROGRESS_CARD} flex min-h-[92px] flex-col justify-center px-5 py-[18px]`}
+          className={`flex flex-col bg-pb-surface px-5 py-4 ${
+            i === stats.length - 1 ? "max-sm:col-span-2" : ""
+          }`}
         >
-          <div className={`text-[28px] font-semibold leading-none tracking-normal tabular-nums ${s.color}`}>
+          <div className="text-[28px] font-semibold leading-none tabular-nums text-pb-text">
             {s.value}
           </div>
-          <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5e5e6e]">
-            {s.label}
-          </div>
+          <div className="mt-2 text-[13px] text-pb-text-muted">{s.label}</div>
           {s.meta && (
-            <div className="mt-1 text-[11px] text-[#8a8a99]">{s.meta}</div>
+            <div className="mt-0.5 text-xs tabular-nums text-pb-text-dim">{s.meta}</div>
           )}
         </div>
       ))}
@@ -167,7 +156,7 @@ function ProgressSection({
           {title}
         </h2>
         {typeof count === "number" && (
-          <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full border border-[#23232f] bg-[#12121a] px-2 text-[11px] font-semibold text-[#8a8a99]">
+          <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-pb-surface-2 px-2 text-xs font-medium tabular-nums text-pb-text-muted">
             {count}
           </span>
         )}
@@ -296,13 +285,7 @@ function StreakHeatmap({
   const currentStreak = calculateStreak();
   const longestStreak = calculateLongestStreak(reviewLog);
 
-  const legendColors = [
-    "transparent",
-    "rgba(63,185,80,0.25)",
-    "rgba(63,185,80,0.45)",
-    "rgba(63,185,80,0.65)",
-    "rgba(63,185,80,0.88)",
-  ];
+  const legendColors = [0, 1, 2, 3, 4].map(activityColor);
 
   return (
     <section aria-labelledby="progress-review-activity" className="flex flex-col gap-3">
@@ -313,7 +296,7 @@ function StreakHeatmap({
         <span className={SECTION_SUB_CLASS}>Last 12 months</span>
       </div>
 
-      <div className={PROGRESS_CARD_PADDED}>
+      <div className={`${PROGRESS_CARD} p-5`}>
 
       <div ref={containerRef} className="overflow-x-auto">
         <div className="flex">
@@ -365,10 +348,6 @@ function StreakHeatmap({
                       );
                     }
                     const bg = cell.isFuture ? "transparent" : getCellColor(cell.count);
-                    const border =
-                      cell.isFuture || cell.count > 0
-                        ? "none"
-                        : "1px solid var(--color-pb-border-light)";
                     return (
                       <div
                         key={colIdx}
@@ -378,7 +357,6 @@ function StreakHeatmap({
                           height: cellSize,
                           borderRadius: 2,
                           backgroundColor: bg,
-                          border,
                           flexShrink: 0,
                           marginLeft: colIdx > 0 ? gap : 0,
                         }}
@@ -393,23 +371,23 @@ function StreakHeatmap({
       </div>
 
       {/* Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-3 text-[11px] max-sm:flex-col max-sm:items-start max-sm:gap-3">
-        <div className="flex gap-4 text-[#8a8a99]">
+      <div className={`${CARD_FOOTER_CLASS} mt-4 flex items-center justify-between pt-3 max-sm:flex-col max-sm:items-start max-sm:gap-3`}>
+        <div className="flex gap-4">
           <span>
             Current streak:{" "}
-            <span className="font-semibold text-[#ededf2]">
+            <span className="font-semibold tabular-nums text-pb-text">
               {currentStreak}d
             </span>
           </span>
           <span>
             Longest streak:{" "}
-            <span className="font-semibold text-[#ededf2]">
+            <span className="font-semibold tabular-nums text-pb-text">
               {longestStreak}d
             </span>
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-[#5e5e6e]">Less</span>
+          <span className="mr-0.5 text-pb-text-dim">Less</span>
           {legendColors.map((c, i) => (
             <div
               key={i}
@@ -418,14 +396,10 @@ function StreakHeatmap({
                 height: 10,
                 borderRadius: 2,
                 backgroundColor: c,
-                border:
-                  i === 0
-                    ? "1px solid var(--color-pb-border-light)"
-                    : "none",
               }}
             />
           ))}
-          <span className="text-[#5e5e6e]">More</span>
+          <span className="ml-0.5 text-pb-text-dim">More</span>
         </div>
       </div>
       </div>
@@ -511,7 +485,7 @@ function ConfidenceTrend({
         <select
           value={selectedPattern}
           onChange={(e) => setSelectedPattern(e.target.value)}
-          className="ml-3 cursor-pointer appearance-none rounded-lg border border-[#23232f] bg-[#0a0a0f] px-2.5 py-1.5 text-xs text-[#ededf2] outline-none focus:border-[#7c6bf5] max-sm:ml-auto"
+          className="ml-3 cursor-pointer appearance-none rounded-lg border border-pb-border bg-pb-surface px-2.5 py-1.5 text-xs text-pb-text outline-none hover:border-pb-border-strong focus:border-pb-accent max-sm:ml-auto"
         >
           <option value="all">All Patterns</option>
           {availablePatterns.map((p) => (
@@ -522,10 +496,10 @@ function ConfidenceTrend({
         </select>
       </div>
 
-      <div className={`${PROGRESS_CARD} px-[18px] pb-2 pt-[18px]`}>
+      <div className={`${PROGRESS_CARD} px-5 pb-3 pt-5`}>
 
       {!hasEnoughData ? (
-        <div className="flex h-[240px] items-center justify-center text-[13px] text-[#5e5e6e]">
+        <div className="py-6 text-center text-[13px] text-pb-text-muted">
           Not enough data yet
         </div>
       ) : (
@@ -533,13 +507,6 @@ function ConfidenceTrend({
           viewBox={`0 0 ${svgW} ${svgH}`}
           style={{ width: "100%", height: 240, display: "block" }}
         >
-          <defs>
-            <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={lineColor} stopOpacity={0.2} />
-              <stop offset="100%" stopColor={lineColor} stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-
           {/* Y-axis grid lines */}
           {[1, 2, 3, 4, 5].map((v) => (
             <g key={v}>
@@ -548,7 +515,7 @@ function ConfidenceTrend({
                 y1={toY(v)}
                 x2={svgW - padR}
                 y2={toY(v)}
-                stroke="#22222d"
+                style={{ stroke: "var(--color-pb-border)" }}
                 strokeDasharray="4 4"
                 strokeWidth={0.5}
               />
@@ -556,7 +523,7 @@ function ConfidenceTrend({
                 x={padL - 6}
                 y={toY(v) + 3.5}
                 textAnchor="end"
-                fill="#5e5e6e"
+                style={{ fill: "var(--color-pb-text-dim)" }}
                 fontSize={11}
               >
                 {v}
@@ -572,7 +539,7 @@ function ConfidenceTrend({
                 x={toX(i)}
                 y={svgH - 4}
                 textAnchor="middle"
-                fill="#5e5e6e"
+                style={{ fill: "var(--color-pb-text-dim)" }}
                 fontSize={11}
               >
                 {w.label}
@@ -588,7 +555,7 @@ function ConfidenceTrend({
               .filter(Boolean) as { x: number; y: number }[];
             if (pts.length < 2) return null;
             const areaPath = `M${pts[0].x},${pts[0].y} ${pts.map((p) => `L${p.x},${p.y}`).join(" ")} L${pts[pts.length - 1].x},${toY(1)} L${pts[0].x},${toY(1)} Z`;
-            return <path d={areaPath} fill="url(#trendFill)" />;
+            return <path d={areaPath} style={{ fill: lineColor }} fillOpacity={0.08} />;
           })()}
 
           {/* Line */}
@@ -602,7 +569,7 @@ function ConfidenceTrend({
               <path
                 d={linePath}
                 fill="none"
-                stroke={lineColor}
+                style={{ stroke: lineColor }}
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -618,8 +585,7 @@ function ConfidenceTrend({
                 cx={toX(i)}
                 cy={toY(w.avg)}
                 r={3}
-                fill="#12121a"
-                stroke={lineColor}
+                style={{ fill: "var(--color-pb-surface)", stroke: lineColor }}
                 strokeWidth={2}
               />
             ) : null,
@@ -627,28 +593,28 @@ function ConfidenceTrend({
         </svg>
       )}
 
-      <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#23232f] px-1 pb-1 pt-3 text-xs text-[#8a8a99]">
+      <div className={`${CARD_FOOTER_CLASS} mt-1 flex flex-wrap items-center gap-x-5 gap-y-2 pt-3`}>
         <span>
-          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#7c6bf5]" />
+          <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-pb-accent" />
           Avg confidence
         </span>
         {trendDelta !== null && (
-          <span className={trendDelta >= 0 ? "text-[#4ade80]" : "text-[#f76060]"}>
+          <span className={trendDelta >= 0 ? "text-pb-success" : "text-pb-error"}>
             {trendDelta >= 0 ? "↑" : "↓"}{" "}
-            <strong>{Math.abs(trendDelta).toFixed(1)}</strong>{" "}
-            <span className="text-[#8a8a99]">vs first week</span>
+            <strong className="font-semibold tabular-nums">{Math.abs(trendDelta).toFixed(1)}</strong>{" "}
+            <span className="text-pb-text-muted">vs first week</span>
           </span>
         )}
         <span className="ml-auto">
-          <span className="text-[#8a8a99]">Current</span>{" "}
-          <strong className="font-semibold text-[#ededf2]">
+          Current{" "}
+          <strong className="font-semibold tabular-nums text-pb-text">
             {currentAvg !== null ? currentAvg.toFixed(1) : "—"}
           </strong>
         </span>
       </div>
 
       {showInfoBanner && (
-        <div className="mt-3 rounded-md bg-[#1c1838] px-3 py-2 text-[11px] text-[#8a8a99]">
+        <div className="mt-3 rounded-lg bg-pb-surface-2 px-3 py-2 text-xs text-pb-text-muted">
           Trend data is collected from reviews going forward.
         </div>
       )}
@@ -675,44 +641,41 @@ function ConfidenceSpread({ problems }: { problems: Problem[] }) {
         </h2>
         <span className={SECTION_SUB_CLASS}>{problems.length} problems</span>
       </div>
-      <div className={`${PROGRESS_CARD} px-5 py-[18px]`}>
+      <div className={`${PROGRESS_CARD} px-5 py-5`}>
         <div className="flex flex-col gap-3">
         {counts.map((count, i) => {
-          const color = PROGRESS_CONFIDENCE_COLORS[i];
+          const color = CONFIDENCE_COLORS[CONFIDENCE_LEVELS[i]];
           const pct = count > 0 ? (count / maxCount) * 100 : 0;
           return (
             <div
               key={i}
-              className="grid grid-cols-[58px_1fr_36px] items-center gap-3"
+              className="grid grid-cols-[30px_1fr_36px] items-center gap-3"
             >
-              <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs text-[#8a8a99]">
-                <span style={{ color }}>{"★".repeat(i + 1)}</span>
-                <span className="text-[#5e5e6e]">{i + 1}</span>
+              <span className="whitespace-nowrap text-[13px] font-medium tabular-nums text-pb-text-muted">
+                {i + 1}
+                <span aria-hidden="true" style={{ color }}>★</span>
               </span>
-              <span className="relative h-3.5 overflow-hidden rounded bg-[#15151e]">
+              <span className="relative h-3 overflow-hidden rounded bg-pb-surface-2">
                 <span
                   className="absolute inset-y-0 left-0 rounded"
-                  style={{
-                    width: `${pct}%`,
-                    background: `linear-gradient(90deg, ${color}55, ${color})`,
-                  }}
+                  style={{ width: `${pct}%`, backgroundColor: color }}
                 />
               </span>
-              <span className="text-right text-[13px] font-semibold tabular-nums text-[#ededf2]">
+              <span className="text-right text-[13px] font-semibold tabular-nums text-pb-text">
                 {count}
               </span>
             </div>
           );
         })}
         </div>
-        <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-4 text-xs text-[#8a8a99] max-sm:flex-col max-sm:items-start max-sm:gap-2">
+        <div className={`${CARD_FOOTER_CLASS} mt-4 flex items-center justify-between pt-4 max-sm:flex-col max-sm:items-start max-sm:gap-2`}>
           <span>
-            <strong className="font-semibold text-[#ededf2]">{highConfidence}</strong>{" "}
-            at 4–5★ <span className="text-[#5e5e6e]">· {masteredPct}% mastered</span>
+            <strong className="font-semibold tabular-nums text-pb-text">{highConfidence}</strong>{" "}
+            at 4–5★ <span className="text-pb-text-dim">· {masteredPct}% mastered</span>
           </span>
           <span>
-            <strong className="font-semibold text-[#ededf2]">{lowConfidence}</strong>{" "}
-            at 1–2★ <span className="text-[#5e5e6e]">· need work</span>
+            <strong className="font-semibold tabular-nums text-pb-text">{lowConfidence}</strong>{" "}
+            at 1–2★ <span className="text-pb-text-dim">· need work</span>
           </span>
         </div>
       </div>
@@ -738,34 +701,34 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
         </h2>
         <span className={SECTION_SUB_CLASS}>By problem count</span>
       </div>
-      <div className={`${PROGRESS_CARD} px-5 py-[18px]`}>
+      <div className={`${PROGRESS_CARD} px-5 py-5`}>
         {patternCounts.length === 0 ? (
-          <div className="py-4 text-center text-[13px] text-[#5e5e6e]">
+          <div className="py-4 text-center text-[13px] text-pb-text-muted">
             No patterns yet
           </div>
         ) : (
-          <div className="flex flex-col gap-[11px]">
+          <div className="flex flex-col gap-3">
           {patternCounts.map(([pattern, count], index) => {
             const pct = (count / maxCount) * 100;
             return (
               <div key={pattern} className="grid grid-cols-[18px_1fr_1fr_36px] items-center gap-3 max-sm:grid-cols-[18px_1fr_36px]">
-                <span className="text-[11px] font-semibold tabular-nums text-[#5e5e6e]">
+                <span className="text-xs tabular-nums text-pb-text-dim">
                   {index + 1}
                 </span>
-                <span className="truncate text-[13px] font-medium text-[#ededf2]">
+                <span className="truncate text-[13px] font-medium text-pb-text">
                   {pattern}
                 </span>
-                <div className="relative h-2 overflow-hidden rounded-full bg-[#15151e] max-sm:hidden">
+                <div className="relative h-2 overflow-hidden rounded-full bg-pb-surface-2 max-sm:hidden">
                   <div
                     className="absolute inset-y-0 left-0 rounded-full"
                     style={{
                       width: `${pct}%`,
-                      background: "var(--color-pb-accent)",
+                      background: "var(--color-pb-text-dim)",
                       transition: "width 0.3s ease",
                     }}
                   />
                 </div>
-                <span className="w-[28px] shrink-0 text-right text-[13px] font-semibold tabular-nums text-[#ededf2]">
+                <span className="w-[28px] shrink-0 text-right text-[13px] font-semibold tabular-nums text-pb-text">
                   {count}
                 </span>
               </div>
@@ -773,9 +736,9 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
           })}
           </div>
         )}
-        <div className="mt-4 flex items-center justify-between border-t border-[#23232f] pt-4 text-xs text-[#8a8a99]">
+        <div className={`${CARD_FOOTER_CLASS} mt-4 flex items-center justify-between pt-4`}>
           <span>Showing {patternCounts.length} patterns</span>
-          <span className="font-medium text-[#7c6bf5]">Use heatmap to filter</span>
+          <span className="text-pb-text-dim">Use heatmap to filter</span>
         </div>
       </div>
     </section>
@@ -797,19 +760,19 @@ export default function ProgressView({
     return (
       <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-6 md:px-8">
         <header>
-          <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-[#ededf2]">
+          <h1 className="m-0 text-[30px] font-semibold leading-tight text-pb-text">
             Progress
           </h1>
-          <p className="mt-1 text-sm text-[#8a8a99]">
+          <p className="mt-1 text-sm text-pb-text-muted">
             Patterns, streaks, and review history
           </p>
         </header>
 
         <div className={`${PROGRESS_CARD} px-6 py-12 text-center`}>
-          <h2 className="mb-2 text-lg font-semibold text-[#ededf2]">
+          <h2 className="mb-2 text-lg font-semibold text-pb-text">
             No progress yet
           </h2>
-          <p className="mx-auto max-w-md text-sm text-[#8a8a99]">
+          <p className="mx-auto max-w-md text-sm text-pb-text-muted">
             Add problems and complete reviews to see patterns, streaks, and trends.
           </p>
         </div>
@@ -820,10 +783,10 @@ export default function ProgressView({
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-5 pb-8 pt-6 md:px-8">
       <header>
-        <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-[#ededf2]">
+        <h1 className="m-0 text-[30px] font-semibold leading-tight text-pb-text">
           Progress
         </h1>
-        <p className="mt-1 text-sm text-[#8a8a99]">
+        <p className="mt-1 text-sm text-pb-text-muted">
           Patterns, streaks, and review history
         </p>
       </header>
