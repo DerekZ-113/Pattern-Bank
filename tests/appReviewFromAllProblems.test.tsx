@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import App from "../src/App";
 import useAuth from "../src/hooks/useAuth";
@@ -22,7 +23,7 @@ vi.mock("../src/utils/storage", () => ({
 }));
 // The header hosts the (real) nav, so the stub passes it through.
 vi.mock("../src/components/Header", () => ({
-  default: (props: { nav?: React.ReactNode }) => <div data-testid="header">{props.nav}</div>,
+  default: (props: { nav?: ReactNode }) => <div data-testid="header">{props.nav}</div>,
 }));
 vi.mock("../src/components/HelpModal", () => ({ default: () => null }));
 vi.mock("../src/components/SettingsModal", () => ({ default: () => null }));
