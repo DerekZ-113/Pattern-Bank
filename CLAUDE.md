@@ -30,9 +30,20 @@ React app for tracking LeetCode problems with spaced repetition. localStorage-fi
 - Tests: web `tests/*.test.ts(x)` (jsdom via `// @vitest-environment jsdom` docblocks) and `packages/core/tests/**` (NODE env — no localStorage/DOM; inject in-memory StorageAdapters and mock clients)
 - State hooks: `useProblems` (coordinator), `usePreferences`, `useCloudSync`, `useUI`, `useAuth` — wired together in `App.tsx`
 - TypeScript with `strict: true`; repo is ESM (`import.meta.dirname`, never `__dirname`)
-- Tailwind CSS for all styling, custom `pb-*` color tokens
+- Tailwind CSS for all styling, through the design system below
 - Props passed explicitly (no global state except AuthContext)
 - Handlers named `handle*` internally, passed as `on*` props
+
+## Design system (web)
+
+- **Tokens** live in `src/index.css` (`@theme`, with `html.light` overrides). Components never hard-code a colour: use the `pb-*` utilities, or `var(--color-pb-…)` in inline styles and SVG. A page that hard-codes dark hex values breaks the light theme (Progress did).
+- **Colour means three things only**: accent violet = something to act on; the confidence scale (violet → amber → green, the app icon's hues); LeetCode difficulty. Pattern tags are neutral on purpose.
+- **Confidence colours** come from `src/utils/confidence.ts` (`CONFIDENCE_COLORS`, `confidenceLevel`, `tileColor`). Web no longer uses core's `progressVisuals` tints (mobile still does); `tests/confidence.test.ts` pins web's binning to core's.
+- **`pb-accent` is for text, icons and lines; `pb-accent-solid` is for fills that carry white text** — one violet cannot clear AA in both roles on dark.
+- **Buttons** take their classes from `src/utils/buttonStyles.ts` (`buttonClass(variant, size)`, `iconButtonClass`); text fields from `src/utils/fieldStyles.ts`; icons from `src/components/Icon.tsx`. No text glyphs as icons (× ↗ ✓ ▸) — stars (★/☆) are the one exception. A glyph-free icon button needs an `aria-label`.
+- **Type**: Atkinson Hyperlegible Next + Mono, self-hosted via fontsource (imported in `main.tsx`). Nothing under 12px, no uppercase letter-spaced labels, sentence case. Mono is for problem numbers and notes only.
+- **Navigation** is one `NavBar` element rendered by `Header` through its `nav` prop: a fixed bottom bar below `md`, header tabs from `md` up. `Header` must not get a transform, filter or backdrop-filter (it would capture the fixed bar). Tests that stub `Header` and need the tabs must pass `nav` through.
+- The page background is duplicated in `THEME_COLORS` (`src/utils/theme.ts`) and `index.html` for the browser-chrome colour; `tests/theme.test.ts` keeps the three in step.
 
 ## Key Rules
 
