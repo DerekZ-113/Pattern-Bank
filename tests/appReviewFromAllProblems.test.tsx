@@ -20,7 +20,10 @@ vi.mock("../src/utils/storage", () => ({
   loadReviewEvents: vi.fn(() => []),
   loadReviewLog: vi.fn(() => []),
 }));
-vi.mock("../src/components/Header", () => ({ default: () => <div data-testid="header" /> }));
+// The header hosts the (real) nav, so the stub passes it through.
+vi.mock("../src/components/Header", () => ({
+  default: (props: { nav?: React.ReactNode }) => <div data-testid="header">{props.nav}</div>,
+}));
 vi.mock("../src/components/HelpModal", () => ({ default: () => null }));
 vi.mock("../src/components/SettingsModal", () => ({ default: () => null }));
 vi.mock("../src/components/ProgressView", () => ({ default: () => null }));

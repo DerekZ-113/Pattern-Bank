@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import Header from "../src/components/Header";
+import NavBar from "../src/components/NavBar";
 import { formatLastSynced } from "../src/utils/format";
 
 const baseProps = {
@@ -61,5 +62,40 @@ describe("Header LeetCode sync button", () => {
     expect((button as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(button);
     expect(onSyncNow).not.toHaveBeenCalled();
+  });
+});
+
+describe("Header navigation slot", () => {
+  it("hosts the primary nav inside the banner, once", () => {
+    const onTabChange = vi.fn();
+    render(
+      <Header
+        {...baseProps}
+        nav={<NavBar activeTab="dashboard" onTabChange={onTabChange} />}
+      />
+    );
+
+    const banner = screen.getByRole("banner");
+    const nav = within(banner).getByRole("navigation", { name: "Primary" });
+    // One element serves both the phone tab bar and the desktop header tabs,
+    // so each destination is announced exactly once.
+    expect(within(nav).getAllByRole("button")).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: "Today" })).toHaveLength(1);
+
+    fireEvent.click(within(nav).getByRole("button", { name: "Progress" }));
+    expect(onTabChange).toHaveBeenCalledWith("progress");
+  });
+
+  it("renders without a nav", () => {
+    render(<Header {...baseProps} />);
+
+    expect(screen.queryByRole("navigation")).toBeNull();
+  });
+
+  it("names the wordmark without adding a second page heading", () => {
+    render(<Header {...baseProps} />);
+
+    expect(screen.getByText("PatternBank")).toBeTruthy();
+    expect(screen.queryByRole("heading")).toBeNull();
   });
 });
