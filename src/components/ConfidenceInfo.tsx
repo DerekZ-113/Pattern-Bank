@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { INTERVALS } from "@patternbank/core";
 import type { Confidence } from "../types";
+import Icon from "./Icon";
+import { iconButtonClass } from "../utils/buttonStyles";
 
 export default function ConfidenceInfo() {
   const [open, setOpen] = useState(false);
@@ -23,16 +25,18 @@ export default function ConfidenceInfo() {
   return (
     <span ref={ref} className="relative inline-block">
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="ml-1 inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-pb-border bg-transparent text-[10px] leading-none text-pb-text-muted hover:border-pb-text-muted hover:text-pb-text"
         aria-label="Confidence info"
+        aria-expanded={open}
+        className={iconButtonClass("sm")}
       >
-        ?
+        <Icon name="help" />
       </button>
       {open && (
-        <div className="absolute left-0 top-6 z-50 w-52 rounded-lg border border-pb-border bg-pb-surface p-3 shadow-lg">
-          <p className="mb-2 text-[11px] font-semibold text-pb-text-muted">
-            Review Schedule
+        <div className="absolute left-0 top-8 z-50 w-52 rounded-lg border border-pb-border bg-pb-surface p-3 shadow-[0_8px_32px_var(--color-pb-shadow)]">
+          <p className="mb-2 text-xs font-semibold text-pb-text-muted">
+            Review schedule
           </p>
           <div className="flex flex-col gap-1">
             {([1, 2, 3, 4, 5] as Confidence[]).map((stars) => (
@@ -47,7 +51,7 @@ export default function ConfidenceInfo() {
               </div>
             ))}
           </div>
-          <p className="mt-2 text-[11px] leading-snug text-pb-text-dim">
+          <p className="mt-2 text-xs leading-snug text-pb-text-dim">
             5-star reviews can graduate longer.
           </p>
         </div>

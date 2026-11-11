@@ -1,5 +1,7 @@
 import { useRef } from "react";
 import posthog from "posthog-js";
+import Icon from "./Icon";
+import { buttonClass } from "../utils/buttonStyles";
 
 interface Props {
   problemCount: number;
@@ -23,7 +25,7 @@ export default function DataSection({ problemCount, onExport, onImport, onClose,
   return (
     <div>
       {!hideLabel && (
-        <label className="mb-2 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+        <label className="mb-2 block text-[13px] font-semibold text-pb-text-muted">
           Data
         </label>
       )}
@@ -37,18 +39,20 @@ export default function DataSection({ problemCount, onExport, onImport, onClose,
         />
         {problemCount > 0 && (
           <button
+            type="button"
             onClick={() => { posthog.capture("data_exported", { problem_count: problemCount, platform: "web" }); onExport(); onClose(); }}
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-pb-border bg-transparent px-3.5 py-2.5 text-[13px] font-medium text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text"
+            className={`${buttonClass("outline")} w-full`}
           >
-            <span className="text-sm">↓</span>
+            <Icon name="download" />
             Export Backup
           </button>
         )}
         <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-pb-border bg-transparent px-3.5 py-2.5 text-[13px] font-medium text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text"
+          className={`${buttonClass("outline")} w-full`}
         >
-          <span className="text-sm">↑</span>
+          <Icon name="upload" />
           Import Backup
         </button>
       </div>

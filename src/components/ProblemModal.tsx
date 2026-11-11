@@ -12,6 +12,9 @@ import ProblemInfo from "./ProblemInfo";
 import PatternSelector from "./PatternSelector";
 import NotesEditor from "./NotesEditor";
 import ConfidenceInfo from "./ConfidenceInfo";
+import Icon from "./Icon";
+import { buttonClass, iconButtonClass } from "../utils/buttonStyles";
+import { fieldClass } from "../utils/fieldStyles";
 import type { Problem, Difficulty, Confidence } from "../types";
 
 interface ProblemFormState {
@@ -161,28 +164,27 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
 
   if (!isOpen) return null;
 
-  const inputBase =
-    "w-full rounded-lg border bg-pb-bg px-3 py-2.5 text-sm text-pb-text outline-none transition-colors duration-150 focus:border-pb-accent";
-  const inputNormal = `${inputBase} border-pb-border`;
-  const inputError = `${inputBase} border-pb-error`;
+  const inputNormal = fieldClass();
+  const inputError = fieldClass({ error: true });
 
   return (
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-[520px] overflow-y-auto rounded-[14px] border border-pb-border bg-pb-surface max-sm:h-screen max-sm:max-h-screen max-sm:max-w-full max-sm:rounded-none sm:max-h-[90vh]">
+      <div className="w-full max-w-[520px] overflow-y-auto rounded-xl border border-pb-border bg-pb-surface max-sm:h-screen max-sm:max-h-screen max-sm:max-w-full max-sm:rounded-none sm:max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-pb-border px-6 py-4">
           <h2 className="text-base font-semibold text-pb-text">
             {isEdit ? "Problem Details" : "Add New Problem"}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
-            className="cursor-pointer rounded-md border-none bg-transparent px-2 py-1 text-xl leading-none text-pb-text-muted hover:text-pb-text"
+            className={iconButtonClass("sm")}
           >
-            ✕
+            <Icon name="close" />
           </button>
         </div>
 
@@ -218,8 +220,8 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
             <>
               {!isLeetCodeEdit && (
                 <div>
-                  <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-                    Problem Title *
+                  <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
+                    Problem title *
                   </label>
                   <input
                     className={errors.title ? inputError : inputNormal}
@@ -234,7 +236,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
               {isLeetCodeEdit ? null : (
                 <div className="grid grid-cols-[1fr_2fr] gap-3">
                   <div>
-                    <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+                    <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
                       Problem #
                     </label>
                     <input
@@ -248,7 +250,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+                    <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
                       URL
                     </label>
                     <input
@@ -264,7 +266,7 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
 
               {mode === "custom" && !form.leetcodeNumber && (
                 <div>
-                  <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+                  <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
                     Difficulty *
                   </label>
                   <div className="flex gap-2">
@@ -291,11 +293,13 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
                       return (
                         <button
                           key={d}
+                          type="button"
+                          aria-pressed={active}
                           onClick={() => updateForm({ difficulty: d })}
-                          className={`flex-1 cursor-pointer rounded-lg border py-2 text-[13px] font-semibold transition-all duration-150 ${
+                          className={`flex-1 cursor-pointer rounded-lg border py-2 text-[13px] font-semibold transition-colors duration-150 ${
                             active
                               ? `${c.border} ${c.bg} ${c.text}`
-                              : "border-pb-border bg-transparent text-pb-text-muted"
+                              : "border-pb-border bg-transparent text-pb-text-muted hover:border-pb-border-strong hover:text-pb-text"
                           }`}
                         >
                           {d}
@@ -316,9 +320,9 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
           />
 
           <div>
-            <label className="mb-1.5 flex items-center text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+            <label className="mb-1.5 flex items-center text-[13px] font-semibold text-pb-text-muted">
               Confidence
-              <span className="ml-[15px]"><ConfidenceInfo /></span>
+              <span className="ml-1"><ConfidenceInfo /></span>
             </label>
             <StarPicker
               mode="select"
@@ -343,19 +347,17 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
         {/* Footer */}
         <div className="flex justify-end gap-2.5 border-t border-pb-border px-6 py-4">
           <button
+            type="button"
             onClick={onClose}
-            className="cursor-pointer rounded-lg border border-pb-border bg-transparent px-5 py-2 text-[13px] font-semibold text-pb-text-muted hover:border-pb-text-muted"
+            className={buttonClass("outline")}
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={isDuplicate}
-            className={`rounded-lg border-none px-5 py-2 text-[13px] font-semibold text-white ${
-              isDuplicate
-                ? "cursor-not-allowed bg-pb-text-dim opacity-50"
-                : "cursor-pointer bg-pb-accent hover:opacity-85"
-            }`}
+            className={buttonClass("primary")}
           >
             {isEdit ? "Save Changes" : "Save Problem"}
           </button>

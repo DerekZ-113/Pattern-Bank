@@ -7,8 +7,10 @@ export default function ModeToggle({ mode, onModeChange }: Props) {
   return (
     <div className="flex gap-1 rounded-lg bg-pb-bg p-1">
       <button
+        type="button"
+        aria-pressed={mode === "leetcode"}
         onClick={() => onModeChange("leetcode")}
-        className={`flex-1 cursor-pointer rounded-md border-none py-1.5 text-[13px] font-semibold transition-all duration-150 ${
+        className={`flex-1 cursor-pointer rounded-md border-none py-1.5 text-[13px] font-semibold transition-colors duration-150 ${
           mode === "leetcode"
             ? "bg-pb-accent-subtle text-pb-accent"
             : "bg-transparent text-pb-text-dim hover:text-pb-text-muted"
@@ -17,8 +19,10 @@ export default function ModeToggle({ mode, onModeChange }: Props) {
         LeetCode
       </button>
       <button
+        type="button"
+        aria-pressed={mode === "custom"}
         onClick={() => onModeChange("custom")}
-        className={`flex-1 cursor-pointer rounded-md border-none py-1.5 text-[13px] font-semibold transition-all duration-150 ${
+        className={`flex-1 cursor-pointer rounded-md border-none py-1.5 text-[13px] font-semibold transition-colors duration-150 ${
           mode === "custom"
             ? "bg-pb-accent-subtle text-pb-accent"
             : "bg-transparent text-pb-text-dim hover:text-pb-text-muted"

@@ -16,14 +16,14 @@ test.describe("Settings", () => {
     const goalInput = page.getByRole("spinbutton", { name: "Daily Review Goal" });
     await expect(goalInput).toHaveValue("5");
 
-    // Click + twice (use exact match to avoid hitting "+" in Bulk Add and Add Problem buttons)
-    const plusButton = page.getByRole("button", { name: "+", exact: true });
+    // Click + twice
+    const plusButton = page.getByRole("button", { name: "Increase daily goal" });
     await plusButton.click();
     await plusButton.click();
     await expect(goalInput).toHaveValue("7");
 
     // Click - once
-    const minusButton = page.getByRole("button", { name: "−", exact: true });
+    const minusButton = page.getByRole("button", { name: "Decrease daily goal" });
     await minusButton.click();
     await expect(goalInput).toHaveValue("6");
   });
@@ -43,7 +43,7 @@ test.describe("Settings", () => {
 
     // Open bulk add section
     await page.getByRole("button", { name: /Bulk Add/i }).click();
-    await page.getByRole("button", { name: /\+ Bulk Add Problems/i }).click();
+    await page.getByRole("button", { name: /Bulk Add Problems/i }).click();
 
     // Type problem numbers
     const input = page.getByPlaceholder(/1, 15, 56/i);

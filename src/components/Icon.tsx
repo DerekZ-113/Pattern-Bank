@@ -63,6 +63,28 @@ const ICONS = {
       <path d="M9 12h7M9 16h5" />
     </>
   ),
+  minus: <path d="M5 12h14" />,
+  download: (
+    <>
+      <path d="M12 4v11" />
+      <path d="m7 10.5 5 5 5-5" />
+      <path d="M5 20h14" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M12 16V5" />
+      <path d="m7 9.5 5-5 5 5" />
+      <path d="M5 20h14" />
+    </>
+  ),
+  alert: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5.5" />
+      <path d="M12 16.5v.01" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof ICONS;

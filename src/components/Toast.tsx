@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import Icon from "./Icon";
+import { buttonClass } from "../utils/buttonStyles";
 
 interface Props {
   message: string;
@@ -25,14 +27,15 @@ export default function Toast({ message, isVisible, onDone, action, variant = "s
 
   return (
     <div
-      className={`fixed top-5 left-1/2 z-[2000] flex max-w-[90vw] items-center gap-2.5 rounded-[10px] border bg-pb-surface px-5 py-3 shadow-[0_8px_32px_var(--color-pb-shadow)] ${
-        isError ? "border-pb-hard" : "border-pb-success"
+      className={`fixed top-5 left-1/2 z-[2000] flex max-w-[90vw] items-center gap-2.5 rounded-xl border bg-pb-surface px-5 py-3 shadow-[0_8px_32px_var(--color-pb-shadow)] ${
+        isError ? "border-pb-error" : "border-pb-success"
       }`}
       style={{ animation: "toast-slide-in 0.3s ease", transform: "translateX(-50%)" }}
     >
-      <span className={`text-base leading-none ${isError ? "text-pb-hard" : "text-pb-success"}`}>
-        {isError ? "!" : "✓"}
-      </span>
+      <Icon
+        name={isError ? "alert" : "check"}
+        className={`h-4 w-4 ${isError ? "text-pb-error" : "text-pb-success"}`}
+      />
       <span className="text-sm font-medium text-pb-text">{message}</span>
       {action && (
         <button
@@ -41,7 +44,7 @@ export default function Toast({ message, isVisible, onDone, action, variant = "s
             action.onClick();
             onDone();
           }}
-          className="ml-1 cursor-pointer rounded-md border border-pb-border bg-pb-surface-2 px-2.5 py-1 text-xs font-semibold text-pb-accent transition-colors hover:border-pb-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
+          className={`${buttonClass("soft", "sm")} ml-1`}
         >
           {action.label}
         </button>

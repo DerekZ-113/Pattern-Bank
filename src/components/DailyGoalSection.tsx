@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Preferences } from "../types";
+import Icon from "./Icon";
+import { buttonClass, iconButtonClass } from "../utils/buttonStyles";
 
 export interface UpcomingScheduleInfo {
   count: number;
@@ -58,17 +60,19 @@ export default function DailyGoalSection({
     <div>
       <label
         htmlFor="daily-goal-input"
-        className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted"
+        className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted"
       >
-        Daily Review Goal
+        Daily review goal
       </label>
       <div className="flex items-center gap-4">
         <button
+          type="button"
           onClick={() => adjustGoal(-1)}
           disabled={goal <= MIN_GOAL}
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-pb-border bg-transparent text-base font-semibold text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Decrease daily goal"
+          className={iconButtonClass("md", "outline")}
         >
-          −
+          <Icon name="minus" />
         </button>
         <input
           id="daily-goal-input"
@@ -80,14 +84,16 @@ export default function DailyGoalSection({
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commitDraft}
           onKeyDown={(e) => e.key === "Enter" && commitDraft()}
-          className="h-10 w-16 rounded-lg border border-pb-border bg-transparent text-center text-2xl font-bold text-pb-text [appearance:textfield] focus:border-pb-accent focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="h-10 w-16 rounded-lg border border-pb-border bg-transparent text-center text-2xl font-bold text-pb-text outline-none [appearance:textfield] focus:border-pb-accent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <button
+          type="button"
           onClick={() => adjustGoal(1)}
           disabled={goal >= MAX_GOAL}
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-pb-border bg-transparent text-base font-semibold text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text disabled:cursor-not-allowed disabled:opacity-30"
+          aria-label="Increase daily goal"
+          className={iconButtonClass("md", "outline")}
         >
-          +
+          <Icon name="plus" />
         </button>
       </div>
       <p className="mt-2 text-xs leading-relaxed text-pb-text-dim">
@@ -96,15 +102,16 @@ export default function DailyGoalSection({
         review more from All Problems.
       </p>
       {showRespread && (
-        <div className="mt-3 rounded-lg border border-pb-border bg-pb-bg px-3 py-2.5">
+        <div className="mt-3 rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3">
           <p className="text-xs leading-relaxed text-pb-text-muted">
             {upcomingScheduleInfo.count} upcoming problem
             {upcomingScheduleInfo.count !== 1 ? "s are" : " is"} paced at ~
             {upcomingScheduleInfo.currentPace}/day.
           </p>
           <button
+            type="button"
             onClick={onRequestRespread}
-            className="mt-2 cursor-pointer rounded-lg border-none bg-pb-accent px-3 py-1.5 text-[13px] font-semibold text-white hover:opacity-85"
+            className={`${buttonClass("primary", "sm")} mt-2`}
           >
             Reschedule at {goal}/day
           </button>
