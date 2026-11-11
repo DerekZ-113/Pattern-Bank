@@ -91,7 +91,7 @@ describe("AllProblemsView", () => {
     expect(difficultyFilter?.getAttribute("data-active-filter")).toBe("true");
     expect(screen.getByText(/Showing/).textContent).toContain("1");
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear filters ×" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
     expect((screen.getByLabelText("Difficulty") as HTMLSelectElement).value).toBe("all");
     expect(screen.getByText(/Showing/).textContent).toContain("3");
@@ -165,6 +165,27 @@ describe("AllProblemsView", () => {
 
     const excludedRow = screen.getByText("Word Ladder").closest("article")!;
     expect(within(excludedRow).getByText("Excluded from reviews")).toBeTruthy();
+  });
+
+  // The row opens the editor on click, but a row is not focusable: without a
+  // real control in it, keyboard users could not open a problem at all.
+  it("opens a problem from its title button, exactly once", () => {
+    const { onEdit } = renderAllProblems();
+
+    const title = screen.getByRole("button", { name: "Two Sum" });
+    expect(title.closest("h3")).not.toBeNull();
+    fireEvent.click(title);
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: "problem-1" }));
+  });
+
+  it("gives every problem its own title button", () => {
+    renderAllProblems();
+
+    for (const problem of problems) {
+      expect(screen.getByRole("button", { name: problem.title })).toBeTruthy();
+    }
   });
 
   it("keeps card edit, exclude, and delete interactions isolated", () => {

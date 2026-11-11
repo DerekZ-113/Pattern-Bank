@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import StarPicker from "./StarPicker";
 import DifficultyBadge from "./DifficultyBadge";
+import Icon from "./Icon";
 import PatternTagList from "./PatternTagList";
 import ReviewRatePanel from "./ReviewRatePanel";
 import { todayStr, formatRelativeDate } from "@patternbank/core";
+import { buttonClass, iconButtonClass } from "../utils/buttonStyles";
 import type { Confidence, Problem } from "../types";
 
 interface Props {
@@ -31,6 +33,13 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
     else articleRef.current?.focus();
     restoreFocusTo.current = null;
   }, [reviewing]);
+
+  // The whole row opens the editor on click, which a keyboard cannot do — the
+  // title is the real control. It stops the click so the row does not fire too.
+  const handleOpen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit(problem);
+  };
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -69,109 +78,92 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
       ref={articleRef}
       tabIndex={-1}
       onClick={() => onEdit(problem)}
-      className={`cursor-pointer rounded-[10px] border bg-pb-surface px-4 py-3.5 transition-[border-color,background,opacity] duration-150 hover:border-pb-border-strong hover:bg-pb-surface-2 ${
-        isDue ? "border-pb-accent/35" : "border-pb-border"
-      } ${isExcluded ? "opacity-60" : ""}`}
+      className={`cursor-pointer border-t border-pb-border-light px-4 py-3 transition-colors duration-150 first:border-t-0 hover:bg-pb-surface-2 sm:px-5 ${
+        isExcluded ? "opacity-60" : ""
+      }`}
     >
-      {/* Title row */}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <div className="flex min-w-0 flex-1 basis-full flex-wrap items-baseline gap-2 sm:basis-auto">
-          <span className="text-[15px] font-semibold tracking-normal text-pb-text">{problem.title}</span>
-          {problem.leetcodeNumber && <span className="font-mono text-[13px] font-medium text-pb-text-dim">#{problem.leetcodeNumber}</span>}
-        </div>
-        <DifficultyBadge difficulty={problem.difficulty} />
-        <div className="flex shrink-0 items-center gap-1">
-          {onToggleExclude && (
+      {/* From md up: one aligned row (problem | confidence | status | actions).
+          Below md: two independent flex rows, so the wide status cell cannot
+          squeeze the title. `md:contents` dissolves the row wrappers into the
+          grid; `md:order-last` moves the actions to the final column. */}
+      <div className="flex flex-col gap-2.5 md:grid md:grid-cols-[minmax(0,1fr)_92px_176px_60px] md:items-center md:gap-x-4">
+        <div className="flex items-start justify-between gap-3 md:contents">
+          <div className="min-w-0">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <h3 className="m-0 text-[15px] font-semibold leading-snug text-pb-text">
+                <button
+                  type="button"
+                  onClick={handleOpen}
+                  className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-snug text-pb-text transition-colors duration-150 hover:text-pb-accent"
+                >
+                  {problem.title}
+                </button>
+              </h3>
+              {problem.leetcodeNumber && (
+                <span className="font-mono text-[13px] text-pb-text-dim">#{problem.leetcodeNumber}</span>
+              )}
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+              <DifficultyBadge difficulty={problem.difficulty} />
+              <PatternTagList patterns={problem.patterns} />
+            </div>
+          </div>
+
+          <div className="-mr-1.5 -mt-1 flex shrink-0 items-center gap-0.5 md:order-last md:m-0 md:justify-end">
+            {onToggleExclude && (
+              <button
+                type="button"
+                onClick={handleToggleExclude}
+                title={isExcluded ? "Include in reviews" : "Exclude from reviews"}
+                aria-label={isExcluded ? "Include in reviews" : "Exclude from review"}
+                className={`${iconButtonClass("sm")} ${isExcluded ? "text-pb-warning hover:text-pb-warning" : ""}`}
+              >
+                <Icon name="exclude" className="h-[15px] w-[15px]" />
+              </button>
+            )}
             <button
               type="button"
-              onClick={handleToggleExclude}
-              title={isExcluded ? "Include in reviews" : "Exclude from reviews"}
-              aria-label={isExcluded ? "Include in reviews" : "Exclude from review"}
-              className={`inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border transition-colors duration-150 ${
+              onClick={handleDelete}
+              title="Delete problem"
+              aria-label="Delete problem"
+              className={`${iconButtonClass("sm")} hover:text-pb-error`}
+            >
+              <Icon name="trash" className="h-[15px] w-[15px]" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 md:contents">
+          <StarPicker mode="display" size="md" value={problem.confidence} />
+
+          <div className="flex items-center justify-end gap-2.5">
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs ${
                 isExcluded
-                  ? "border-pb-medium/30 bg-pb-medium/10 text-pb-medium hover:bg-pb-medium/15"
-                  : "border-transparent text-pb-text-dim hover:border-pb-border hover:bg-pb-surface-2 hover:text-pb-text"
+                  ? "text-pb-text-dim"
+                  : isDue
+                    ? "font-semibold text-pb-accent"
+                    : "tabular-nums text-pb-text-muted"
               }`}
             >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-3.5 w-3.5"
+              {isDue && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-pb-accent" />}
+              {getReviewStatusText()}
+            </span>
+            {canReview && !reviewing && (
+              <button
+                ref={reviewButtonRef}
+                type="button"
+                onClick={handleStartReview}
+                className={buttonClass("soft", "sm")}
               >
-                <circle cx="12" cy="12" r="9" />
-                {isExcluded && <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />}
-              </svg>
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleDelete}
-            title="Delete problem"
-            aria-label="Delete problem"
-            className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-transparent text-pb-text-dim transition-colors duration-150 hover:border-pb-border hover:bg-pb-surface-2 hover:text-pb-hard"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              className="h-3.5 w-3.5"
-            >
-              <path d="M6 6l12 12M18 6 6 18" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Pattern tags */}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <PatternTagList patterns={problem.patterns} />
-      </div>
-
-      {/* Confidence and review date */}
-      <div
-        className="mt-2.5 flex flex-wrap items-center justify-between gap-3"
-      >
-        <StarPicker mode="display" size="md" value={problem.confidence} />
-        <div className="flex items-center gap-2.5">
-          <span
-            className={`inline-flex items-center gap-1.5 text-xs ${
-              isExcluded
-                ? "text-pb-medium"
-                : isDue
-                  ? "font-semibold text-pb-accent"
-                  : "text-pb-text-muted"
-            }`}
-          >
-            {isDue && (
-              <span
-                aria-hidden="true"
-                className="h-1.5 w-1.5 rounded-full bg-pb-accent shadow-[0_0_0_3px_rgba(124,107,245,0.18)]"
-              />
+                Review
+              </button>
             )}
-            {getReviewStatusText()}
-          </span>
-          {canReview && !reviewing && (
-            <button
-              ref={reviewButtonRef}
-              type="button"
-              onClick={handleStartReview}
-              className="h-7 cursor-pointer rounded-lg border border-pb-accent/35 bg-pb-accent-subtle px-3 text-xs font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-            >
-              Review
-            </button>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* The card itself opens the editor on click; the panel swallows its
+      {/* The row itself opens the editor on click; the panel swallows its
           own clicks so rating, Back, Done, and Open never trigger that. */}
       {reviewing && canReview && (
         <div className="mt-3 cursor-default" onClick={(e) => e.stopPropagation()}>

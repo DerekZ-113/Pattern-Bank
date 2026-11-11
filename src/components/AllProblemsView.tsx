@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { CORE_PATTERNS, EXTRA_PATTERNS, DIFFICULTIES } from "../utils/constants";
 import ProblemCard from "./ProblemCard";
 import FilterSelect from "./FilterSelect";
+import Icon from "./Icon";
+import { buttonClass } from "../utils/buttonStyles";
 import type { Confidence, Problem } from "../types";
 import { DEFAULT_ALL_PROBLEMS_SORT, isAllProblemsSort } from "../utils/uiState";
 import type { AllProblemsSort } from "../utils/uiState";
@@ -128,23 +130,24 @@ export default function AllProblemsView({ problems, onEdit, onDelete, onToggleEx
     onSortChange?.(value);
   };
 
+  const pageClass = "mx-auto flex w-full max-w-[1200px] flex-col px-5 pb-8 pt-7 md:px-8";
+  const panelClass = "rounded-xl border border-pb-border-light bg-pb-surface";
+
   // Empty state
   if (problems.length === 0) {
     return (
-      <main className="mx-auto flex w-full max-w-[1200px] flex-col px-5 pb-8 pt-6 md:px-8">
-        <div className="rounded-[10px] border border-pb-border bg-pb-surface px-6 py-12 text-center">
-          <img src="/favicon-32.png" alt="" className="mx-auto mb-4 h-12 w-12 rounded-lg" />
-          <h2 className="mb-2 text-lg font-semibold text-pb-text">
+      <main className={pageClass}>
+        <h1 className="m-0 text-[32px] font-bold leading-tight tracking-tight text-pb-text">All Problems</h1>
+        <div className={`${panelClass} mt-6 px-6 py-10`}>
+          <h2 className="m-0 text-lg font-semibold text-pb-text">
             No problems yet
           </h2>
-          <p className="mb-5 text-sm text-pb-text-muted">
+          <p className="mb-5 mt-1.5 text-sm text-pb-text-muted">
             Add your first LeetCode problem to start tracking.
           </p>
-          <button
-            onClick={onAddClick}
-            className="cursor-pointer rounded-lg border-none bg-pb-accent px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-85"
-          >
-            + Add Problem
+          <button type="button" onClick={onAddClick} className={buttonClass("primary")}>
+            <Icon name="plus" />
+            Add Problem
           </button>
         </div>
       </main>
@@ -152,44 +155,32 @@ export default function AllProblemsView({ problems, onEdit, onDelete, onToggleEx
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col px-5 pb-8 pt-6 md:px-8">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+    <main className={pageClass}>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[30px] font-semibold leading-tight tracking-normal text-pb-text">All Problems</h1>
+          <h1 className="m-0 text-[32px] font-bold leading-tight tracking-tight text-pb-text">All Problems</h1>
           <p className="mt-1 text-sm text-pb-text-muted">
-            Browse and maintain your library — <strong className="font-semibold text-pb-text">{problems.length} problem{problems.length !== 1 ? "s" : ""}</strong>
+            Browse and maintain your library of <strong className="font-semibold text-pb-text">{problems.length} problem{problems.length !== 1 ? "s" : ""}</strong>.
           </p>
         </div>
-        <button
-          onClick={onAddClick}
-          className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-pb-accent/45 bg-pb-accent-subtle px-4 text-[13px] font-semibold text-pb-accent transition-colors hover:bg-pb-accent hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-        >
-          <span aria-hidden="true" className="-mt-px text-[15px] leading-none">+</span>
-          <span>Add Problem</span>
+        <button type="button" onClick={onAddClick} className={buttonClass("primary")}>
+          <Icon name="plus" />
+          Add Problem
         </button>
       </div>
 
       {/* Search */}
       <div className="relative mb-3">
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-pb-text-dim"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="M21 21l-4.3-4.3" />
-        </svg>
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-pb-text-dim">
+          <Icon name="search" />
+        </span>
         <input
           type="text"
+          aria-label="Search problems"
           placeholder="Search by title, number, or notes…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-[42px] w-full rounded-[10px] border border-pb-border bg-pb-surface pr-3.5 pl-10 text-sm text-pb-text outline-none transition-colors duration-150 placeholder:text-pb-text-dim focus:border-pb-accent/50 focus:bg-pb-surface-2"
+          className="h-10 w-full rounded-lg border border-pb-border bg-pb-surface pr-3.5 pl-10 text-sm text-pb-text outline-none transition-colors duration-150 placeholder:text-pb-text-dim focus:border-pb-accent"
         />
       </div>
 
@@ -233,33 +224,30 @@ export default function AllProblemsView({ problems, onEdit, onDelete, onToggleEx
       </div>
 
       {/* Results count */}
-      <div className="mb-3.5 flex items-center justify-between px-0.5 pt-1 text-xs text-pb-text-muted">
+      <div className="mb-3 flex min-h-7 items-center justify-between px-0.5 text-xs text-pb-text-muted">
         <span>
-          Showing <strong className="font-semibold text-pb-text">{sorted.length}</strong> of <strong className="font-semibold text-pb-text">{problems.length}</strong> problem
+          Showing <strong className="font-semibold tabular-nums text-pb-text">{sorted.length}</strong> of <strong className="font-semibold tabular-nums text-pb-text">{problems.length}</strong> problem
           {problems.length !== 1 ? "s" : ""}
         </span>
         {hasActiveFilters && (
-          <button
-            onClick={clearFilters}
-            className="cursor-pointer border-none bg-transparent px-1 py-0.5 text-xs font-medium text-pb-accent transition-colors hover:text-pb-accent-hover hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-          >
-            Clear filters ×
+          <button type="button" onClick={clearFilters} className={buttonClass("ghost", "sm")}>
+            Clear filters
           </button>
         )}
       </div>
 
       {/* Problem list or no results */}
       {sorted.length === 0 ? (
-        <div className="rounded-[10px] border border-pb-border bg-pb-surface px-5 py-8 text-center">
-          <div className="mb-1 text-sm font-medium text-pb-text">
+        <div className={`${panelClass} px-5 py-7`}>
+          <div className="text-sm font-semibold text-pb-text">
             No problems match your filters
           </div>
-          <div className="text-[13px] text-pb-text-muted">
+          <div className="mt-1 text-[13px] text-pb-text-muted">
             Try adjusting your search or filter criteria.
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <div className={`${panelClass} overflow-hidden`}>
           {sorted.map((problem) => (
             <ProblemCard
               key={problem.id}
