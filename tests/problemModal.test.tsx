@@ -120,6 +120,12 @@ describe("ProblemModal dialog semantics", () => {
     expect(screen.getByRole("dialog", { name: "Problem Details" })).toBeTruthy();
   });
 
+  it("takes focus when it opens, so the keyboard is inside the modal it announces", () => {
+    renderModal();
+
+    expect(document.activeElement).toBe(screen.getByRole("dialog"));
+  });
+
   it("is not in the tree when closed", () => {
     renderModal({ isOpen: false });
 

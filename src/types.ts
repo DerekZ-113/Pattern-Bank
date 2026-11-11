@@ -14,7 +14,6 @@ export type {
   LeetCodeSyncStatus,
   LeetCodeSyncSummary,
   ListSummary,
-  PatternColor,
   PendingLeetCodeImport,
   Problem,
   ProblemList,

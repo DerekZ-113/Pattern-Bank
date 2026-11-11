@@ -1,3 +1,4 @@
+import Icon from "./components/Icon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import qrCode from "./assets/qr-appstore.png";
 import LandingProjection from "./components/LandingProjection";
@@ -240,9 +241,9 @@ function IOSPopover({ open, onClose }: { open: boolean; onClose: () => void }) {
           type="button"
           aria-label="Close App Store QR code"
           onClick={onClose}
-          className="absolute right-3 top-3 rounded-lg p-2 text-lg leading-none text-pb-text-muted transition-colors hover:text-pb-text"
+          className="absolute right-3 top-3 cursor-pointer rounded-lg border-none bg-transparent p-2 text-pb-text-muted transition-colors hover:text-pb-text"
         >
-          ×
+          <Icon name="close" />
         </button>
 
         <div className="mb-5 text-base font-semibold text-pb-text">Get PatternBank on iOS</div>
@@ -328,9 +329,9 @@ function LeetCodePreviewCard({
       <button
         type="button"
         aria-label={`Dismiss ${problem.title}`}
-        className="absolute right-3 top-3 rounded-lg px-1.5 text-lg leading-none text-pb-text-dim transition-colors hover:text-pb-text"
+        className="absolute right-3 top-3 rounded-lg border-none bg-transparent p-1 text-pb-text-dim transition-colors hover:text-pb-text"
       >
-        ×
+        <Icon name="close" />
       </button>
 
       <div className="pr-8">

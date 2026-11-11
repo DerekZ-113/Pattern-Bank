@@ -71,7 +71,8 @@ test.describe("All Problems View", () => {
     await card.getByRole("button", { name: "Done" }).click();
 
     // Same toast as a Today review, and the card leaves the due state.
-    await expect(page.getByText(/1 of \d+ done/)).toBeVisible();
+    // The toast, not the Today goal meter, which uses the same wording.
+    await expect(page.getByRole("status").getByText(/1 of \d+ done/)).toBeVisible();
     await expect(card.getByText(/Next review:/)).toBeVisible();
     await expect(card.getByRole("button", { name: "Review", exact: true })).toHaveCount(0);
 

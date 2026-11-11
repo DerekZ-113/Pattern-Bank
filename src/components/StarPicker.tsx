@@ -171,6 +171,9 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
             role="radio"
             aria-checked={star === recorded}
             aria-label={getStarLabel(star)}
+            // A star's consequence is its description: read when the star is
+            // focused, silent while a pointer merely passes over it.
+            title={props.mode === "select" ? props.describe?.(star) : undefined}
             aria-disabled={disabled}
             onMouseEnter={() => setPreview(star)}
             onFocus={() => setPreview(star)}
@@ -194,10 +197,7 @@ function InteractiveStarPicker(props: SelectProps | CommitProps) {
         );
       })}
       {props.mode === "select" && (
-        <span
-          className={`text-xs text-pb-text-muted ${props.describe ? "" : "ml-1.5"}`}
-          aria-live={props.describe ? "polite" : undefined}
-        >
+        <span className={`text-xs text-pb-text-muted ${props.describe ? "" : "ml-1.5"}`}>
           {props.describe && shown > 0 ? props.describe(shown as Confidence) : `${shown}/5`}
         </span>
       )}

@@ -173,7 +173,8 @@ describe("AllProblemsView", () => {
     const { onEdit } = renderAllProblems();
 
     const title = screen.getByRole("button", { name: "Two Sum" });
-    expect(title.closest("h3")).not.toBeNull();
+    // h2: rows sit directly under the page's h1.
+    expect(title.closest("h2")).not.toBeNull();
     fireEvent.click(title);
 
     expect(onEdit).toHaveBeenCalledTimes(1);
@@ -186,6 +187,19 @@ describe("AllProblemsView", () => {
     for (const problem of problems) {
       expect(screen.getByRole("button", { name: problem.title })).toBeTruthy();
     }
+  });
+
+  // The row is one visual line (problem, confidence, status, actions), so the
+  // controls must come in that order in the DOM for Tab to follow the eye.
+  it("orders a row's controls the way they read: title, Review, then row actions", () => {
+    renderAllProblems();
+
+    const dueRow = screen.getByText("Number of Islands").closest("article")!;
+    const names = within(dueRow)
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label") ?? button.textContent);
+
+    expect(names).toEqual(["Number of Islands", "Review", "Exclude from review", "Delete problem"]);
   });
 
   it("keeps card edit, exclude, and delete interactions isolated", () => {

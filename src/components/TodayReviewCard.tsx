@@ -88,7 +88,9 @@ export default function TodayReviewCard({
           <StarPicker mode="display" size="md" value={problem.confidence} />
           <span className="text-xs text-pb-text-dim">{lastReviewedText}</span>
         </div>
-        {!reviewing && (
+        {/* The notes toggle stays while rating: notes are what you check
+            before deciding how well you knew it. */}
+        {(!reviewing || !notesRevealed) && (
           <div className="flex flex-wrap items-center gap-2 max-sm:w-full">
             {!notesRevealed && (
               <button type="button" onClick={() => setNotesRevealed(true)} className={buttonClass("ghost")}>
@@ -96,27 +98,31 @@ export default function TodayReviewCard({
                 {problem.notes ? "Show notes" : "Add notes"}
               </button>
             )}
-            <button type="button" onClick={() => onDismiss(problem.id)} className={buttonClass("ghost")}>
-              Dismiss
-            </button>
-            {problem.url && (
-              <a
-                href={problem.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonClass("outline")}
-              >
-                Open
-                <Icon name="external" className="h-3.5 w-3.5" />
-              </a>
+            {!reviewing && (
+              <>
+                <button type="button" onClick={() => onDismiss(problem.id)} className={buttonClass("ghost")}>
+                  Dismiss
+                </button>
+                {problem.url && (
+                  <a
+                    href={problem.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonClass("outline")}
+                  >
+                    Open
+                    <Icon name="external" className="h-3.5 w-3.5" />
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setReviewing(true)}
+                  className={`${buttonClass("soft")} max-sm:flex-1`}
+                >
+                  Review Now
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              onClick={() => setReviewing(true)}
-              className={`${buttonClass("soft")} max-sm:flex-1`}
-            >
-              Review Now
-            </button>
           </div>
         )}
       </div>

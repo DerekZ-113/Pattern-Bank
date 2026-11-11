@@ -1,3 +1,4 @@
+import useDialogFocus from "../hooks/useDialogFocus";
 import { useEffect } from "react";
 import { INTERVALS } from "@patternbank/core";
 import { EXTRA_PATTERNS } from "../utils/constants";
@@ -5,15 +6,6 @@ import StarPicker from "./StarPicker";
 import Icon from "./Icon";
 import { iconButtonClass } from "../utils/buttonStyles";
 import type { Confidence } from "../types";
-
-// The confidence scale's own hues, so each row matches its stars elsewhere.
-const CONF_TEXT: Record<Confidence, string> = {
-  1: "text-pb-conf-1",
-  2: "text-pb-conf-2",
-  3: "text-pb-conf-3",
-  4: "text-pb-conf-4",
-  5: "text-pb-conf-5",
-};
 
 interface Props {
   isOpen: boolean;
@@ -28,6 +20,8 @@ export default function HelpModal({ isOpen, onClose }: Props) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [isOpen, onClose]);
 
+  const panelRef = useDialogFocus<HTMLDivElement>(isOpen);
+
   if (!isOpen) return null;
 
   return (
@@ -35,7 +29,7 @@ export default function HelpModal({ isOpen, onClose }: Props) {
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div role="dialog" aria-modal="true" aria-labelledby="help-modal-title" className="max-h-[90vh] w-full max-w-[360px] overflow-y-auto rounded-xl border border-pb-border bg-pb-surface">
+      <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="help-modal-title" className="outline-none max-h-[90vh] w-full max-w-[360px] overflow-y-auto rounded-xl border border-pb-border bg-pb-surface">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-pb-border px-6 py-4">
           <h2 id="help-modal-title" className="text-base font-semibold text-pb-text">Help</h2>
@@ -68,7 +62,7 @@ export default function HelpModal({ isOpen, onClose }: Props) {
                 return (
                   <div key={stars} className="flex items-center justify-between">
                     <StarPicker mode="display" size="sm" value={stars} />
-                    <span className={`text-[13px] tabular-nums ${CONF_TEXT[stars]}`}>
+                    <span className="text-[13px] tabular-nums text-pb-text-muted">
                       <span className="inline-block w-[18px] text-right">{days}</span> day{days !== 1 ? "s" : ""}
                     </span>
                   </div>

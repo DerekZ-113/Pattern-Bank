@@ -1076,3 +1076,32 @@ describe("TodayView goal meter", () => {
     expect(screen.queryByRole("img", { name: /reviews done today/ })).toBeNull();
   });
 });
+
+describe("TodayView notes while rating", () => {
+  // Notes are what you check before deciding how well you knew it, so opening
+  // the rating panel must not take the notes toggle away.
+  it("keeps the notes toggle available after Review Now", () => {
+    renderTodayView({
+      problems: [makeProblem({ notes: "Use a hash map for complements." })],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Review Now" }));
+    expect(screen.getByRole("radiogroup", { name: "Rate Two Sum confidence" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show notes" }));
+    expect((screen.getByPlaceholderText("Add notes...") as HTMLTextAreaElement).value).toBe(
+      "Use a hash map for complements.",
+    );
+    // Still rating.
+    expect(screen.getByRole("radiogroup", { name: "Rate Two Sum confidence" })).toBeTruthy();
+  });
+
+  it("hides Dismiss and Review Now while the rating panel is open", () => {
+    renderTodayView();
+
+    fireEvent.click(screen.getByRole("button", { name: "Review Now" }));
+
+    expect(screen.queryByRole("button", { name: "Review Now" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Dismiss" })).toBeNull();
+  });
+});

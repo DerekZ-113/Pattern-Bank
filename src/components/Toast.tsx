@@ -27,6 +27,7 @@ export default function Toast({ message, isVisible, onDone, action, variant = "s
 
   return (
     <div
+      role={isError ? "alert" : "status"}
       className={`fixed top-5 left-1/2 z-[2000] flex max-w-[90vw] items-center gap-2.5 rounded-xl border bg-pb-surface px-5 py-3 shadow-[0_8px_32px_var(--color-pb-shadow)] ${
         isError ? "border-pb-error" : "border-pb-success"
       }`}

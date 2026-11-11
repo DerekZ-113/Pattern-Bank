@@ -34,7 +34,6 @@ const ICONS = {
   ),
   check: <path d="M5 12.5 9.5 17 19 7.5" />,
   chevronDown: <path d="m6 9 6 6 6-6" />,
-  chevronRight: <path d="m9 6 6 6-6 6" />,
   plus: <path d="M12 5v14M5 12h14" />,
   search: (
     <>

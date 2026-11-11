@@ -117,29 +117,28 @@ html.light {
   --color-pb-heatmap-empty: rgba(188, 183, 202, 0.35);
 }
 
-* {
-  box-sizing: border-box;
-}
+/* These sit in Tailwind's base layer on purpose. Unlayered CSS beats every
+   utility whatever its specificity, so an unlayered focus ring would make
+   `outline-none` (and every outline utility) powerless. */
+@layer base {
+  body {
+    background-color: var(--color-pb-bg);
+    color: var(--color-pb-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 
-body {
-  margin: 0;
-  background-color: var(--color-pb-bg);
-  color: var(--color-pb-text);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+  /* One focus ring for every control. Text fields opt out with outline-none
+     and show focus on their border instead. */
+  :focus-visible {
+    outline: 2px solid var(--color-pb-accent);
+    outline-offset: 2px;
+  }
 
-/* One focus ring for every control. Text fields opt out with outline-none
-   and show focus on their border instead. */
-:focus-visible {
-  outline: 2px solid var(--color-pb-accent);
-  outline-offset: 2px;
-}
-
-::selection {
-  background-color: color-mix(in oklab, var(--color-pb-accent-solid) 45%, transparent);
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-pb-accent-solid) 45%, transparent);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

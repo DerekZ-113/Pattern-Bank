@@ -43,6 +43,8 @@ React app for tracking LeetCode problems with spaced repetition. localStorage-fi
 - **Buttons** take their classes from `src/utils/buttonStyles.ts` (`buttonClass(variant, size)`, `iconButtonClass`); text fields from `src/utils/fieldStyles.ts`; icons from `src/components/Icon.tsx`. No text glyphs as icons (× ↗ ✓ ▸) — stars (★/☆) are the one exception. A glyph-free icon button needs an `aria-label`.
 - **Type**: Atkinson Hyperlegible Next + Mono, self-hosted via fontsource (imported in `main.tsx`). Nothing under 12px, no uppercase letter-spaced labels, sentence case. Mono is for problem numbers and notes only.
 - **Navigation** is one `NavBar` element rendered by `Header` through its `nav` prop: a fixed bottom bar below `md`, header tabs from `md` up. `Header` must not get a transform, filter or backdrop-filter (it would capture the fixed bar). Tests that stub `Header` and need the tabs must pass `nav` through.
+- **Modals** are `role="dialog"` + `aria-modal` panels that use `src/hooks/useDialogFocus.ts` (focus moves in, stays in, and returns to the opener). Toasts are `role="status"` / `role="alert"`.
+- **Global CSS goes in `@layer base`** in `src/index.css`. Unlayered rules beat every Tailwind utility regardless of specificity — an unlayered focus ring silently defeats `outline-none`. To override a colour that `buttonClass` already sets, use the important modifier (`hover:text-pb-error!`); two plain utilities for the same property resolve by Tailwind's emit order, not by the order you wrote them.
 - The page background is duplicated in `THEME_COLORS` (`src/utils/theme.ts`) and `index.html` for the browser-chrome colour; `tests/theme.test.ts` keeps the three in step.
 
 ## Key Rules
