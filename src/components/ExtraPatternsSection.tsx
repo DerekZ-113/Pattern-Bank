@@ -1,4 +1,4 @@
-import { EXTRA_PATTERNS } from "../utils/constants";
+import { EXTRA_PATTERNS, PATTERN_COLORS } from "../utils/constants";
 
 interface Props {
   enabledExtraPatterns: string[];
@@ -30,7 +30,10 @@ export default function ExtraPatternsSection({ enabledExtraPatterns, onToggle, h
               onClick={() => onToggle(pattern)}
               className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-pb-border bg-transparent px-3 py-2 text-left transition-colors duration-150 hover:border-pb-text-muted"
             >
-              <span className={`text-sm font-medium ${enabled ? "text-pb-text" : "text-pb-text-muted"}`}>
+              <span
+                className={`text-sm font-medium ${enabled ? "text-pb-text" : "text-pb-text-muted"}`}
+                style={enabled && PATTERN_COLORS[pattern] ? { color: PATTERN_COLORS[pattern].text } : undefined}
+              >
                 {pattern}
               </span>
               <span

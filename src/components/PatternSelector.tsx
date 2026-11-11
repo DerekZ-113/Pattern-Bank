@@ -1,4 +1,4 @@
-import { groupPatternsByCategory, getVisiblePatterns } from "../utils/constants";
+import { groupPatternsByCategory, PATTERN_COLORS, getVisiblePatterns } from "../utils/constants";
 import InlineError from "./InlineError";
 
 interface Props {
@@ -25,15 +25,24 @@ export default function PatternSelector({ selected, onChange, error, enabledExtr
 
   const renderButton = (p: string) => {
     const active = selected.includes(p);
+    const color = PATTERN_COLORS[p];
     return (
       <button
         key={p}
         type="button"
         aria-pressed={active}
         onClick={() => toggle(p)}
+        // A selected pattern wears its own colour; custom ones use the accent.
+        style={
+          active && color
+            ? { borderColor: color.text, backgroundColor: color.bg, color: color.text }
+            : undefined
+        }
         className={`cursor-pointer rounded-md border px-2.5 py-1.5 text-left text-xs font-medium transition-colors duration-150 ${
           active
-            ? "border-pb-accent/60 bg-pb-accent-subtle text-pb-accent"
+            ? color
+              ? ""
+              : "border-pb-accent/60 bg-pb-accent-subtle text-pb-accent"
             : `bg-transparent text-pb-text-muted hover:border-pb-border-strong hover:text-pb-text ${
                 error ? "border-pb-error/40" : "border-pb-border"
               }`

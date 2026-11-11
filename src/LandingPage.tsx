@@ -1,8 +1,9 @@
+import PatternTag from "./components/PatternTag";
 import Icon from "./components/Icon";
 import { useCallback, useEffect, useRef, useState } from "react";
 import qrCode from "./assets/qr-appstore.png";
 import LandingProjection from "./components/LandingProjection";
-import { tileColor } from "./utils/confidence";
+import { confidenceTextColor, confidenceTileStyle } from "./utils/confidence";
 import type { ReactNode, RefObject } from "react";
 
 interface LandingPageProps {
@@ -283,13 +284,16 @@ function HeroConfidenceCard() {
         {HERO_PATTERNS.map((pattern) => (
           <div
             key={pattern.name}
-            className="flex min-h-[76px] flex-col justify-between rounded-[10px] p-3 text-pb-tile-ink"
-            style={{ backgroundColor: tileColor(pattern.confidence) }}
+            className="flex min-h-[76px] flex-col justify-between rounded-[10px] border p-3"
+            style={confidenceTileStyle(pattern.confidence)}
           >
-            <div className="truncate text-[13px] font-bold">{pattern.name}</div>
+            <div className="truncate text-[13px] font-semibold text-pb-text">{pattern.name}</div>
             <div className="flex items-end justify-between gap-2">
-              <span className="text-xs tabular-nums opacity-75">{pattern.count} problems</span>
-              <span className="text-[17px] font-bold leading-none tabular-nums">
+              <span className="text-xs tabular-nums text-pb-text-muted">{pattern.count} problems</span>
+              <span
+                className="text-[15px] font-bold leading-none tabular-nums"
+                style={{ color: confidenceTextColor(pattern.confidence) }}
+              >
                 {pattern.confidence.toFixed(1)}
               </span>
             </div>
@@ -342,12 +346,7 @@ function LeetCodePreviewCard({
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className="mr-1 text-xs font-semibold text-pb-medium">{problem.difficulty}</span>
           {problem.patterns.map((pattern) => (
-            <span
-              key={pattern}
-              className="rounded-md bg-pb-surface-hover px-2 py-1 text-xs font-medium leading-none text-pb-text-muted"
-            >
-              {pattern}
-            </span>
+            <PatternTag key={pattern} name={pattern} />
           ))}
         </div>
       </div>

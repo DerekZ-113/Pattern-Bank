@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
-import { getVisiblePatterns } from "../utils/constants";
+import { PATTERN_COLORS, getVisiblePatterns } from "../utils/constants";
 import { calculateStreak } from "../utils/storage";
 import { todayStr, addDays, formatLocalDate } from "@patternbank/core";
 import {
@@ -448,7 +448,11 @@ function ConfidenceTrend({
     avg: number;
   }[];
 
-  const lineColor = "var(--color-pb-accent)";
+  // A single pattern's trend is drawn in that pattern's colour.
+  const lineColor =
+    selectedPattern !== "all" && PATTERN_COLORS[selectedPattern]
+      ? PATTERN_COLORS[selectedPattern].text
+      : "var(--color-pb-accent)";
 
   const hasEnoughData = dataPoints.length >= 2;
   const showInfoBanner =
@@ -723,7 +727,7 @@ function TopPatterns({ problems }: { problems: Problem[] }) {
                     className="absolute inset-y-0 left-0 rounded-full"
                     style={{
                       width: `${pct}%`,
-                      background: "var(--color-pb-text-dim)",
+                      background: PATTERN_COLORS[pattern]?.text ?? "var(--color-pb-text-dim)",
                       transition: "width 0.3s ease",
                     }}
                   />

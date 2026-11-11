@@ -377,7 +377,7 @@ describe("TodayView", () => {
     expect(title.className).toContain("text-[15px]");
     expect(problemNumber.className).toContain("text-[13px]");
     expect(within(leetcodeSection).getByText("Hash Table").className).toContain("rounded-md");
-    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("bg-pb-surface-hover");
+    expect(within(leetcodeSection).getByText("Hash Table").style.color).toBe("var(--color-pattern-hash-table-text)");
     expect(within(leetcodeSection).getByText("Easy").className).toContain("text-pb-easy");
     expect(within(leetcodeSection).queryByText("LEETCODE")).toBeNull();
     expect(within(leetcodeSection).queryByText("Review due")).toBeNull();
@@ -842,7 +842,7 @@ describe("TodayView", () => {
 
     const reviewsSection = screen.getByText("Reviews due").closest("section")!;
     expect(within(reviewsSection).getByText("Hash Table").className).toContain("rounded-md");
-    expect(within(reviewsSection).getByText("Hash Table").className).toContain("bg-pb-surface-hover");
+    expect(within(reviewsSection).getByText("Hash Table").style.color).toBe("var(--color-pattern-hash-table-text)");
     expect(within(reviewsSection).getByText("Easy").className).toContain("text-pb-easy");
     expect(within(reviewsSection).getByText("Solved on LC today")).toBeTruthy();
   });

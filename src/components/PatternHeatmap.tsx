@@ -1,5 +1,5 @@
 import { getVisiblePatterns } from "../utils/constants";
-import { tileColor } from "../utils/confidence";
+import { confidenceTextColor, confidenceTileStyle } from "../utils/confidence";
 import type { Problem } from "../types";
 
 interface Props {
@@ -43,23 +43,26 @@ export default function PatternHeatmap({ problems, onPatternClick, enabledExtraP
               type="button"
               aria-label={`${pattern}: ${data.count} ${problemLabel}, ${confidenceLabel}`}
               onClick={() => onPatternClick(pattern)}
-              style={hasProblems ? { backgroundColor: tileColor(avgConf) } : undefined}
+              style={hasProblems ? confidenceTileStyle(avgConf) : undefined}
               className={`flex min-h-[76px] w-full cursor-pointer appearance-none flex-col justify-between rounded-[10px] border p-3 text-left font-[inherit] ${
                 hasProblems
-                  ? "border-transparent text-pb-tile-ink transition-[filter] hover:brightness-110"
+                  ? "text-pb-text transition-[filter] hover:brightness-110"
                   : "border-pb-border-light bg-transparent text-pb-text-dim transition-colors hover:border-pb-border-strong hover:text-pb-text-muted"
               }`}
             >
-              <span className={`text-[13px] leading-tight ${hasProblems ? "font-bold" : "font-medium"}`}>
+              <span className={`text-[13px] leading-tight ${hasProblems ? "font-semibold" : "font-medium"}`}>
                 {pattern}
               </span>
               {hasProblems && (
                 <span className="flex items-end justify-between gap-2">
-                  <span className="text-xs tabular-nums opacity-75">
+                  <span className="text-xs tabular-nums text-pb-text-muted">
                     {data.count}
                     <span className="max-sm:hidden"> {problemLabel}</span>
                   </span>
-                  <span className="text-[17px] font-bold leading-none tabular-nums">
+                  <span
+                    className="text-[15px] font-bold leading-none tabular-nums"
+                    style={{ color: confidenceTextColor(avgConf) }}
+                  >
                     {avgConf.toFixed(1)}
                   </span>
                 </span>

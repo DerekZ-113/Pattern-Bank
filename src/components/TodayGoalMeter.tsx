@@ -6,9 +6,9 @@ interface Props {
 }
 
 /**
- * Today's goal as a row of tiles: violet while a review is still to do, green
- * once it is banked — the app icon in miniature. It is also the only place
- * the daily goal is visible outside Settings.
+ * Today's goal as a row of tiles: accent while a review is still to do, green
+ * once it is done. It is also the only place the daily goal is visible
+ * outside Settings.
  */
 export default function TodayGoalMeter({ reviewedToday, effectiveGoal, totalDueCount }: Props) {
   if (effectiveGoal <= 0) return null;
@@ -30,7 +30,7 @@ export default function TodayGoalMeter({ reviewedToday, effectiveGoal, totalDueC
             key={index}
             data-done={index < done}
             className={`h-3.5 w-3.5 rounded-[4px] transition-colors duration-300 ${
-              index < done ? "bg-pb-conf-5" : "bg-pb-conf-1/35"
+              index < done ? "bg-pb-success" : "bg-pb-accent/30"
             }`}
           />
         ))}

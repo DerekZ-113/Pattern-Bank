@@ -1,10 +1,12 @@
+import type { CSSProperties } from "react";
 import type { Confidence } from "../types";
 
 /**
- * The one confidence scale. Every surface that colours by confidence — pattern
- * tiles, the spread bars, the projection chart — reads from here, so a 2 is
- * the same violet and a 5 the same green wherever it appears. The values are
- * CSS variables, so they follow the theme.
+ * The one confidence scale, weak to strong: red, orange, amber, blue, green.
+ * Every surface that colours by confidence — pattern tiles, the spread bars,
+ * the projection chart — reads from here, so a 2 is the same orange and a 5
+ * the same green wherever it appears. The values are CSS variables, so they
+ * follow the theme.
  */
 export const CONFIDENCE_COLORS: Record<Confidence, string> = {
   1: "var(--color-pb-conf-1)",
@@ -15,16 +17,15 @@ export const CONFIDENCE_COLORS: Record<Confidence, string> = {
 };
 
 /**
- * Fills for pattern tiles: the same scale at full strength. Unlike
- * CONFIDENCE_COLORS these do not change with the theme, and text on them is
- * always --color-pb-tile-ink.
+ * The same hues tuned to be read as text. Use these for a number or label in
+ * a confidence colour; the fills above do not clear 4.5:1 in every theme.
  */
-export const TILE_COLORS: Record<Confidence, string> = {
-  1: "var(--color-pb-tile-1)",
-  2: "var(--color-pb-tile-2)",
-  3: "var(--color-pb-tile-3)",
-  4: "var(--color-pb-tile-4)",
-  5: "var(--color-pb-tile-5)",
+export const CONFIDENCE_TEXT_COLORS: Record<Confidence, string> = {
+  1: "var(--color-pb-conf-text-1)",
+  2: "var(--color-pb-conf-text-2)",
+  3: "var(--color-pb-conf-text-3)",
+  4: "var(--color-pb-conf-text-4)",
+  5: "var(--color-pb-conf-text-5)",
 };
 
 export const CONFIDENCE_LEVELS: readonly Confidence[] = [1, 2, 3, 4, 5];
@@ -42,6 +43,19 @@ export function confidenceColor(average: number): string {
   return CONFIDENCE_COLORS[confidenceLevel(average)];
 }
 
-export function tileColor(average: number): string {
-  return TILE_COLORS[confidenceLevel(average)];
+export function confidenceTextColor(average: number): string {
+  return CONFIDENCE_TEXT_COLORS[confidenceLevel(average)];
+}
+
+/**
+ * A tile tinted by confidence: a soft wash of the colour with an edge in the
+ * same hue. Shared by the Progress pattern grid and the landing page's sample
+ * of it. The element needs a `border` class for the edge to show.
+ */
+export function confidenceTileStyle(average: number): CSSProperties {
+  const color = confidenceColor(average);
+  return {
+    backgroundColor: `color-mix(in oklab, ${color} 20%, var(--color-pb-surface))`,
+    borderColor: `color-mix(in oklab, ${color} 58%, transparent)`,
+  };
 }

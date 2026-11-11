@@ -3,11 +3,12 @@
 /*
  * PatternBank design tokens.
  *
- * Colour carries meaning in exactly three places, and nowhere else:
+ * Colour has four jobs, each with its own tokens:
  *   - accent (violet): things to act on — due reviews, primary actions
- *   - confidence (violet → amber → green): how well something is banked,
- *     the same three hues as the app icon's tiles
+ *   - confidence (red → orange → amber → blue → green): how well something
+ *     is known, one scale shared by tiles, bars and charts
  *   - difficulty (teal / orange / red): LeetCode's own convention
+ *   - pattern (one hue per pattern): identity, the same hues as the iOS app
  * Everything else is graphite. Dark is the default; html.light overrides.
  */
 @theme {
@@ -38,23 +39,19 @@
   --color-pb-accent-solid-hover: #7867f0;
   --color-pb-accent-subtle: rgba(138, 122, 250, 0.14);
 
-  /* Confidence 1–5: learning (violet) → familiar (amber) → mastered (green) */
-  --color-pb-conf-1: #7b69f2;
-  --color-pb-conf-2: #ab9efc;
-  --color-pb-conf-3: #e8b84a;
-  --color-pb-conf-4: #9bd884;
-  --color-pb-conf-5: #4cc985;
-
-  /* Pattern tiles — the confidence scale at full strength, and the one loud
-     thing in the product: a bank of tiles like the app icon. Deliberately not
-     overridden in the light theme: a tile is the same bright chip on either
-     page and always carries the same dark ink (every pair clears 4.5:1). */
-  --color-pb-tile-1: #8f7ff8;
-  --color-pb-tile-2: #b9aefd;
-  --color-pb-tile-3: #edbe55;
-  --color-pb-tile-4: #a8dd92;
-  --color-pb-tile-5: #58cf8e;
-  --color-pb-tile-ink: #17151d;
+  /* Confidence 1–5, weak to strong. `conf-N` is for fills, edges and chart
+     lines; `conf-text-N` is the same hue tuned to read as text on a tinted
+     tile or a card (the fills alone do not clear 4.5:1 everywhere). */
+  --color-pb-conf-1: #f76060;
+  --color-pb-conf-2: #fb923c;
+  --color-pb-conf-3: #f5b942;
+  --color-pb-conf-4: #60a5fa;
+  --color-pb-conf-5: #4ade80;
+  --color-pb-conf-text-1: #ff7a7a;
+  --color-pb-conf-text-2: #ffad5c;
+  --color-pb-conf-text-3: #ffd35f;
+  --color-pb-conf-text-4: #7cbbff;
+  --color-pb-conf-text-5: #67ee98;
 
   --color-pb-star: #e8b84a;
   --color-pb-star-empty: #3f3a4b;
@@ -69,6 +66,64 @@
 
   --color-pb-shadow: rgba(0, 0, 0, 0.55);
   --color-pb-heatmap-empty: rgba(75, 70, 88, 0.3);
+
+  /* Pattern colors — text */
+  --color-pattern-array-text: #7ee2e8;
+  --color-pattern-math-text: #ab7ee8;
+  --color-pattern-two-pointers-text: #7ee8c7;
+  --color-pattern-hash-table-text: #e8a87e;
+  --color-pattern-sliding-window-text: #7ecbe8;
+  --color-pattern-binary-search-text: #e8c77e;
+  --color-pattern-sorting-text: #a0a8e8;
+  --color-pattern-linked-list-text: #48d4b8;
+  --color-pattern-stack-text: #7ea8e8;
+  --color-pattern-queue-text: #8eaee8;
+  --color-pattern-tree-text: #7ee89c;
+  --color-pattern-bfs-text: #e87e7e;
+  --color-pattern-dfs-text: #e8607e;
+  --color-pattern-heap-text: #e8987e;
+  --color-pattern-greedy-text: #b8e87e;
+  --color-pattern-backtracking-text: #e8e07e;
+  --color-pattern-graph-text: #e87eb8;
+  --color-pattern-union-find-text: #d4a8e8;
+  --color-pattern-trie-text: #8ce87e;
+  --color-pattern-dp-text: #c57ee8;
+  --color-pattern-intervals-text: #e88ea8;
+  --color-pattern-mono-stack-text: #8b8ee8;
+  --color-pattern-prefix-sum-text: #e87ed8;
+  --color-pattern-bit-text: #d8e87e;
+  --color-pattern-system-design-text: #78b8a8;
+  --color-pattern-ood-text: #c89078;
+  --color-pattern-database-text: #a3b8cc;
+
+  /* Pattern colors — background */
+  --color-pattern-array-bg: rgba(126,226,232,0.12);
+  --color-pattern-math-bg: rgba(171,126,232,0.12);
+  --color-pattern-two-pointers-bg: rgba(126,232,199,0.12);
+  --color-pattern-hash-table-bg: rgba(232,168,126,0.12);
+  --color-pattern-sliding-window-bg: rgba(126,203,232,0.12);
+  --color-pattern-binary-search-bg: rgba(232,199,126,0.12);
+  --color-pattern-sorting-bg: rgba(160,168,232,0.12);
+  --color-pattern-linked-list-bg: rgba(72,212,184,0.12);
+  --color-pattern-stack-bg: rgba(126,168,232,0.12);
+  --color-pattern-queue-bg: rgba(142,174,232,0.12);
+  --color-pattern-tree-bg: rgba(126,232,156,0.12);
+  --color-pattern-bfs-bg: rgba(232,126,126,0.12);
+  --color-pattern-dfs-bg: rgba(232,96,126,0.12);
+  --color-pattern-heap-bg: rgba(232,152,126,0.12);
+  --color-pattern-greedy-bg: rgba(184,232,126,0.12);
+  --color-pattern-backtracking-bg: rgba(232,224,126,0.12);
+  --color-pattern-graph-bg: rgba(232,126,184,0.12);
+  --color-pattern-union-find-bg: rgba(212,168,232,0.12);
+  --color-pattern-trie-bg: rgba(140,232,126,0.12);
+  --color-pattern-dp-bg: rgba(197,126,232,0.12);
+  --color-pattern-intervals-bg: rgba(232,142,168,0.12);
+  --color-pattern-mono-stack-bg: rgba(139,142,232,0.12);
+  --color-pattern-prefix-sum-bg: rgba(232,126,216,0.12);
+  --color-pattern-bit-bg: rgba(216,232,126,0.12);
+  --color-pattern-system-design-bg: rgba(120,184,168,0.12);
+  --color-pattern-ood-bg: rgba(200,144,120,0.12);
+  --color-pattern-database-bg: rgba(163,184,204,0.12);
 }
 
 html {
@@ -96,11 +151,16 @@ html.light {
   --color-pb-accent-solid-hover: #4733c4;
   --color-pb-accent-subtle: rgba(90, 69, 222, 0.09);
 
-  --color-pb-conf-1: #5a45de;
-  --color-pb-conf-2: #8f81ee;
-  --color-pb-conf-3: #c08a12;
-  --color-pb-conf-4: #5fa648;
-  --color-pb-conf-5: #1b8a4c;
+  --color-pb-conf-1: #dc4545;
+  --color-pb-conf-2: #df741a;
+  --color-pb-conf-3: #c4900e;
+  --color-pb-conf-4: #3b82f6;
+  --color-pb-conf-5: #22a35a;
+  --color-pb-conf-text-1: #b42318;
+  --color-pb-conf-text-2: #a34a00;
+  --color-pb-conf-text-3: #7a5600;
+  --color-pb-conf-text-4: #1d4ed8;
+  --color-pb-conf-text-5: #146c36;
 
   --color-pb-star: #b97f0a;
   --color-pb-star-empty: #d3cfdd;
@@ -115,6 +175,64 @@ html.light {
 
   --color-pb-shadow: rgba(28, 26, 34, 0.12);
   --color-pb-heatmap-empty: rgba(188, 183, 202, 0.35);
+
+  /* Pattern colors — text (darker for white bg contrast) */
+  --color-pattern-array-text: #148490;
+  --color-pattern-math-text: #6b3ac0;
+  --color-pattern-two-pointers-text: #0f7b6f;
+  --color-pattern-hash-table-text: #a85d2a;
+  --color-pattern-sliding-window-text: #1a7a9e;
+  --color-pattern-binary-search-text: #9e7a1a;
+  --color-pattern-sorting-text: #4a52b0;
+  --color-pattern-linked-list-text: #1a8a74;
+  --color-pattern-stack-text: #2a5ea8;
+  --color-pattern-queue-text: #3a62a0;
+  --color-pattern-tree-text: #1a8a3e;
+  --color-pattern-bfs-text: #b83a3a;
+  --color-pattern-dfs-text: #b82a52;
+  --color-pattern-heap-text: #a85a2a;
+  --color-pattern-greedy-text: #5a8a1a;
+  --color-pattern-backtracking-text: #8a7a1a;
+  --color-pattern-graph-text: #a82a72;
+  --color-pattern-union-find-text: #7a4aa0;
+  --color-pattern-trie-text: #2a8a1a;
+  --color-pattern-dp-text: #8a2ab0;
+  --color-pattern-intervals-text: #a83a5e;
+  --color-pattern-mono-stack-text: #3a3eb0;
+  --color-pattern-prefix-sum-text: #a82a8a;
+  --color-pattern-bit-text: #7a8a1a;
+  --color-pattern-system-design-text: #2a7a68;
+  --color-pattern-ood-text: #8a5a3a;
+  --color-pattern-database-text: #4b6377;
+
+  /* Pattern colors — background (higher alpha for white bg) */
+  --color-pattern-array-bg: rgba(20,132,144,0.08);
+  --color-pattern-math-bg: rgba(107,58,192,0.08);
+  --color-pattern-two-pointers-bg: rgba(15,123,111,0.08);
+  --color-pattern-hash-table-bg: rgba(168,93,42,0.08);
+  --color-pattern-sliding-window-bg: rgba(26,122,158,0.08);
+  --color-pattern-binary-search-bg: rgba(158,122,26,0.08);
+  --color-pattern-sorting-bg: rgba(74,82,176,0.08);
+  --color-pattern-linked-list-bg: rgba(26,138,116,0.08);
+  --color-pattern-stack-bg: rgba(42,94,168,0.08);
+  --color-pattern-queue-bg: rgba(58,98,160,0.08);
+  --color-pattern-tree-bg: rgba(26,138,62,0.08);
+  --color-pattern-bfs-bg: rgba(184,58,58,0.08);
+  --color-pattern-dfs-bg: rgba(184,42,82,0.08);
+  --color-pattern-heap-bg: rgba(168,90,42,0.08);
+  --color-pattern-greedy-bg: rgba(90,138,26,0.08);
+  --color-pattern-backtracking-bg: rgba(138,122,26,0.08);
+  --color-pattern-graph-bg: rgba(168,42,114,0.08);
+  --color-pattern-union-find-bg: rgba(122,74,160,0.08);
+  --color-pattern-trie-bg: rgba(42,138,26,0.08);
+  --color-pattern-dp-bg: rgba(138,42,176,0.08);
+  --color-pattern-intervals-bg: rgba(168,58,94,0.08);
+  --color-pattern-mono-stack-bg: rgba(58,62,176,0.08);
+  --color-pattern-prefix-sum-bg: rgba(168,42,138,0.08);
+  --color-pattern-bit-bg: rgba(122,138,26,0.08);
+  --color-pattern-system-design-bg: rgba(42,122,104,0.08);
+  --color-pattern-ood-bg: rgba(138,90,58,0.08);
+  --color-pattern-database-bg: rgba(75,99,119,0.08);
 }
 
 /* These sit in Tailwind's base layer on purpose. Unlayered CSS beats every
