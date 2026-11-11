@@ -105,3 +105,24 @@ describe("ProblemModal stale form state (F-22)", () => {
     expect(titleInput().value).toBe("");
   });
 });
+
+describe("ProblemModal dialog semantics", () => {
+  it("is announced as a modal dialog named by its heading", () => {
+    renderModal();
+
+    const dialog = screen.getByRole("dialog", { name: "Add New Problem" });
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+  });
+
+  it("takes its name from the edit heading when editing", () => {
+    renderModal({ initialData: makeProblem() });
+
+    expect(screen.getByRole("dialog", { name: "Problem Details" })).toBeTruthy();
+  });
+
+  it("is not in the tree when closed", () => {
+    renderModal({ isOpen: false });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

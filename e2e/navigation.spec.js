@@ -42,6 +42,7 @@ test.describe("Navigation & Modals", () => {
   test("settings modal opens and closes", async ({ page }) => {
     await page.getByRole("button", { name: "Settings" }).click();
     await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
 
     await page.keyboard.press("Escape");
     await expect(page.getByRole("heading", { name: "Settings" })).not.toBeVisible();

@@ -35,10 +35,10 @@ export default function HelpModal({ isOpen, onClose }: Props) {
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="max-h-[90vh] w-full max-w-[360px] overflow-y-auto rounded-xl border border-pb-border bg-pb-surface">
+      <div role="dialog" aria-modal="true" aria-labelledby="help-modal-title" className="max-h-[90vh] w-full max-w-[360px] overflow-y-auto rounded-xl border border-pb-border bg-pb-surface">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-pb-border px-6 py-4">
-          <h2 className="text-base font-semibold text-pb-text">Help</h2>
+          <h2 id="help-modal-title" className="text-base font-semibold text-pb-text">Help</h2>
           <button
             type="button"
             onClick={onClose}

@@ -61,10 +61,13 @@ test.describe("Add Problem", () => {
     await page.getByRole("button", { name: /Problems/i }).click();
     await page.getByRole("button", { name: "Add Problem" }).click();
     await page.getByPlaceholder(/type number or title/i).fill("1");
-    await page.getByRole("button", { name: /Two Sum/i }).first().click();
-    await page.getByRole("button", { name: "Hash Table" }).click();
+    // Scope to the dialog: the Problems list behind it now has its own
+    // "Two Sum" title button.
+    const dialog = page.getByRole("dialog", { name: "Add New Problem" });
+    await dialog.getByRole("button", { name: /Two Sum/i }).first().click();
+    await dialog.getByRole("button", { name: "Hash Table" }).click();
 
-    await expect(page.getByRole("button", { name: "Save Problem" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Save Problem" })).toBeDisabled();
   });
 
   test("validates required fields", async ({ page }) => {

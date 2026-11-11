@@ -172,10 +172,10 @@ export default function ProblemModal({ isOpen, onClose, onSave, initialData, exi
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-[520px] overflow-y-auto rounded-xl border border-pb-border bg-pb-surface max-sm:h-screen max-sm:max-h-screen max-sm:max-w-full max-sm:rounded-none sm:max-h-[90vh]">
+      <div role="dialog" aria-modal="true" aria-labelledby="problem-modal-title" className="w-full max-w-[520px] overflow-y-auto rounded-xl border border-pb-border bg-pb-surface max-sm:h-screen max-sm:max-h-screen max-sm:max-w-full max-sm:rounded-none sm:max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-pb-border px-6 py-4">
-          <h2 className="text-base font-semibold text-pb-text">
+          <h2 id="problem-modal-title" className="text-base font-semibold text-pb-text">
             {isEdit ? "Problem Details" : "Add New Problem"}
           </h2>
           <button
