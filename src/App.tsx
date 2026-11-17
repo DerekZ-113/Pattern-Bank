@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { exportData, loadReviewLog, loadReviewEvents } from "./utils/storage";
-import { rateLeetCodeReviewLocallyFirst, respreadScheduledProblems, todayStr, type LeetCodeCompletionIdentity } from "@patternbank/core";
+import { getUpcomingScheduleInfo, rateLeetCodeReviewLocallyFirst, todayStr, type LeetCodeCompletionIdentity } from "@patternbank/core";
 
 import useAuth from "./hooks/useAuth";
 import useUI from "./hooks/useUI";
@@ -110,21 +110,10 @@ export default function App() {
   // goal paced. Drives the Settings reschedule affordance; pace is display-only.
   // Null when a re-spread would be a no-op, so the affordance can't re-arm on
   // an already-goal-paced schedule.
-  const upcomingScheduleInfo = useMemo(() => {
-    const today = todayStr();
-    const upcoming = problems.filter(
-      (p) => p.lastReviewed === null && !p.excludeFromReview && p.nextReviewDate > today,
-    );
-    if (upcoming.length === 0) return null;
-    const { changedCount } = respreadScheduledProblems(problems, {
-      dailyGoal: preferences.dailyReviewGoal,
-      today,
-      now: "1970-01-01T00:00:00.000Z",
-    });
-    if (changedCount === 0) return null;
-    const distinctDays = new Set(upcoming.map((p) => p.nextReviewDate)).size;
-    return { count: upcoming.length, currentPace: Math.ceil(upcoming.length / distinctDays) };
-  }, [problems, preferences.dailyReviewGoal]);
+  const upcomingScheduleInfo = useMemo(
+    () => getUpcomingScheduleInfo(problems, { dailyGoal: preferences.dailyReviewGoal, today: todayStr() }),
+    [problems, preferences.dailyReviewGoal],
+  );
 
   const handleRateLeetCodeReview = useCallback(async (
     submissionDbId: string,

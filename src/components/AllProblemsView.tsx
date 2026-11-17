@@ -4,7 +4,9 @@ import ProblemCard from "./ProblemCard";
 import FilterSelect from "./FilterSelect";
 import Icon from "./Icon";
 import { buttonClass } from "../utils/buttonStyles";
-import type { Confidence, Problem } from "../types";
+import { hasActiveProblemFilters, queryProblems } from "@patternbank/core";
+import type { ProblemQuery, ProblemReviewStatusFilter } from "@patternbank/core";
+import type { Confidence, Difficulty, Problem } from "../types";
 import { DEFAULT_ALL_PROBLEMS_SORT, isAllProblemsSort } from "../utils/uiState";
 import type { AllProblemsSort } from "../utils/uiState";
 
@@ -70,52 +72,18 @@ export default function AllProblemsView({ problems, onEdit, onDelete, onToggleEx
     { value: "nextReview", label: "Next Review (Soonest)" },
   ];
 
-  const filtered = problems.filter((p) => {
-    const s = search.toLowerCase().trim();
-    if (
-      s &&
-      !p.title.toLowerCase().includes(s) &&
-      !(p.notes && p.notes.toLowerCase().includes(s)) &&
-      !(p.leetcodeNumber && String(p.leetcodeNumber).includes(s))
-    )
-      return false;
-    if (filterPattern !== "all" && !p.patterns.includes(filterPattern))
-      return false;
-    if (filterDifficulty !== "all" && p.difficulty !== filterDifficulty)
-      return false;
-    if (
-      filterConfidence !== "all" &&
-      p.confidence !== parseInt(filterConfidence, 10)
-    )
-      return false;
-    if (filterReviewStatus === "active" && p.excludeFromReview) return false;
-    if (filterReviewStatus === "excluded" && !p.excludeFromReview) return false;
-    return true;
-  });
+  const query: ProblemQuery = {
+    search,
+    pattern: filterPattern === "all" ? null : filterPattern,
+    difficulty: filterDifficulty === "all" ? null : (filterDifficulty as Difficulty),
+    confidence: filterConfidence === "all" ? null : (parseInt(filterConfidence, 10) as Confidence),
+    reviewStatus: filterReviewStatus as ProblemReviewStatusFilter,
+    sortBy,
+  };
+  // Search, filter and sort live in core, shared with the iOS app.
+  const sorted = queryProblems(problems, query);
 
-  const sorted = [...filtered].sort((a, b) => {
-    if (sortBy === "dateAdded")
-      return b.dateAdded > a.dateAdded ? 1 : -1;
-    if (sortBy === "confidence") return a.confidence - b.confidence;
-    if (sortBy === "nextReview")
-      return a.nextReviewDate > b.nextReviewDate ? 1 : -1;
-    if (sortBy === "leetcodeNumber") {
-      if (a.leetcodeNumber == null && b.leetcodeNumber == null) return 0;
-      if (a.leetcodeNumber == null) return 1;
-      if (b.leetcodeNumber == null) return -1;
-      return a.leetcodeNumber - b.leetcodeNumber;
-    }
-    return 0;
-  });
-
-  const hasActiveFilters = Boolean(
-    search ||
-    filterPattern !== "all" ||
-    filterDifficulty !== "all" ||
-    filterConfidence !== "all" ||
-    filterReviewStatus !== "all"
-  );
-
+  const hasActiveFilters = hasActiveProblemFilters(query);
   const clearFilters = () => {
     setSearch("");
     setFilterPattern("all");

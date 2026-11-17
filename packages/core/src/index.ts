@@ -15,6 +15,7 @@ export * from "./spacedRepetition";
 export * from "./progressVisuals";
 export * from "./progressUtils";
 export * from "./preferences";
+export * from "./problemQuery";
 export * from "./problemTransforms";
 export * from "./projectionEngine";
 export * from "./sync/fullSync";

@@ -3,6 +3,7 @@ import {
   filterExistingProblems,
   interleaveByDifficulty,
   buildNewProblems,
+  getUpcomingScheduleInfo,
   respreadScheduledProblems,
   mergeImportedProblems,
   computeReviewProgress,
@@ -749,5 +750,61 @@ describe("computeNextReviewDate", () => {
       nextReviewDate: "2020-01-01",
     } as Problem;
     expect(computeNextReviewDate(initial, 2 as Confidence, today)).toBe("2020-01-01");
+  });
+});
+
+// The same cases are in PatternBankKit's ProblemTransformsTests.swift.
+describe("getUpcomingScheduleInfo", () => {
+  const today = "2026-03-13";
+  const scheduled = (id: string, nextReviewDate: string, overrides: Partial<Problem> = {}): Problem =>
+    ({
+      id,
+      title: id,
+      leetcodeNumber: null,
+      url: null,
+      difficulty: "Medium",
+      patterns: [],
+      confidence: 1,
+      notes: "",
+      excludeFromReview: false,
+      dateAdded: "2026-03-01",
+      lastReviewed: null,
+      nextReviewDate,
+      updatedAt: "2026-03-01T00:00:00.000Z",
+      ...overrides,
+    }) as Problem;
+
+  it("is null when no never-reviewed problem is scheduled after today", () => {
+    const problems = [
+      scheduled("due", "2026-03-13"),
+      scheduled("reviewed", "2026-03-20", { lastReviewed: "2026-03-10" }),
+      scheduled("excluded", "2026-03-20", { excludeFromReview: true }),
+    ];
+    expect(getUpcomingScheduleInfo(problems, { dailyGoal: 5, today })).toBeNull();
+  });
+
+  it("counts the upcoming problems and their current pace per day", () => {
+    const problems = [
+      scheduled("a", "2026-03-14"),
+      scheduled("b", "2026-03-15"),
+      scheduled("c", "2026-03-16"),
+      scheduled("d", "2026-03-17"),
+      scheduled("e", "2026-03-17"),
+    ];
+    // 5 problems over 4 days: 1.25 a day, shown rounded up.
+    expect(getUpcomingScheduleInfo(problems, { dailyGoal: 5, today })).toEqual({ count: 5, currentPace: 2 });
+  });
+
+  it("is null when rescheduling at the goal would move nothing", () => {
+    const problems = [scheduled("a", "2026-03-13"), scheduled("b", "2026-03-14")];
+    // Goal 1: today's slot is taken by "a", and "b" already sits on tomorrow.
+    expect(getUpcomingScheduleInfo(problems, { dailyGoal: 1, today })).toBeNull();
+  });
+
+  it("leaves the problems untouched", () => {
+    const problems = [scheduled("a", "2026-03-20"), scheduled("b", "2026-03-21")];
+    const before = JSON.stringify(problems);
+    getUpcomingScheduleInfo(problems, { dailyGoal: 5, today });
+    expect(JSON.stringify(problems)).toBe(before);
   });
 });

@@ -269,3 +269,36 @@ export function computeNextReviewDate(
   }
   return initialData.nextReviewDate;
 }
+
+export interface UpcomingScheduleInfo {
+  /** Never-reviewed, non-excluded problems scheduled after today. */
+  count: number;
+  /** How many of them fall on a day now, on average, rounded up. */
+  currentPace: number;
+}
+
+/**
+ * The numbers shown beside the daily goal when upcoming imports could be
+ * rescheduled: how many never-reviewed problems are scheduled after today and
+ * the pace they are spread at. Null when there are none, or when
+ * respreadScheduledProblems at this goal would move nothing, so the offer
+ * cannot come back on a schedule that is already paced at the goal.
+ */
+export function getUpcomingScheduleInfo(
+  problems: Problem[],
+  { dailyGoal, today }: { dailyGoal: number; today: string },
+): UpcomingScheduleInfo | null {
+  const upcoming = problems.filter(
+    (p) => p.lastReviewed === null && !p.excludeFromReview && p.nextReviewDate > today,
+  );
+  if (upcoming.length === 0) return null;
+  // `now` only stamps rows that move; the result is discarded here.
+  const { changedCount } = respreadScheduledProblems(problems, {
+    dailyGoal,
+    today,
+    now: "1970-01-01T00:00:00.000Z",
+  });
+  if (changedCount === 0) return null;
+  const distinctDays = new Set(upcoming.map((p) => p.nextReviewDate)).size;
+  return { count: upcoming.length, currentPace: Math.ceil(upcoming.length / distinctDays) };
+}
