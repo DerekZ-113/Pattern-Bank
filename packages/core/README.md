@@ -53,7 +53,7 @@ Everything exports from the barrel (`import { … } from "@patternbank/core"`).
 
 | Area | Modules | Highlights |
 |---|---|---|
-| Spaced repetition | `spacedRepetition` | Confidence 1–5 → 1/2/5/10/30-day intervals; repeated 5★ reviews graduate 60→120→240→365d; daily-cap priority sort (lowest confidence → most overdue → stable daily hash) |
+| Spaced repetition | `spacedRepetition` | Confidence 1–5 → 1/2/5/10/30-day intervals; repeated 5★ reviews graduate 60→120→240→365d; daily-cap priority sort (lowest confidence → overdue before due today → daily rotation, so cards inside a level take turns) |
 | Domain transforms | `problemTransforms`, `todayView`, `projectionEngine`, `progressUtils`, `progressVisuals`, `preferences` | Import merge with canonical-id remapping (no duplicates on cross-device restore), Today feed builders, 30-day projection engine |
 | Sync | `sync/fullSync`, `sync/merge`, `sync/reviewEvents` | `performFullSync` (fail-closed orchestration), `mergeProblems` / `mergeReviewLog` / `mergeReviewEvents` / `mergeProblemTombstones` (LWW), reset-marker + tombstone filters |
 | Supabase | `supabase/mapping`, `supabase/data` | camelCase ↔ snake_case mapping, `createCloudData` (21 CRUD functions, injected client, per-op timeouts), `createLeetCodeActivityData` (11 functions) |
@@ -83,12 +83,14 @@ Core is platform-free. Each app injects four things:
 
 ## Cross-platform parity fixtures
 
-Two JSON fixtures under `tests/fixtures/` are the executable cross-platform contract, byte-identical with the copies in the iOS repo (`src/__tests__/fixtures/`) and consumed by **three runners**: this package's vitest suites (date-shifted), the React Native jest suites (pinned-today), and PatternBankKit's Swift Testing suites (date-shifted, digest-guarded):
+Three JSON fixtures under `tests/fixtures/` are the executable cross-platform contract, byte-identical with the copies in the iOS repo (`src/__tests__/fixtures/`) and consumed by **three runners**: this package's vitest suites, the React Native jest suites, and PatternBankKit's Swift Testing suites (digest-guarded). The first two fixtures are date-shifted when loaded (pinned-today in jest); the third is loaded as written:
 
 - `crossPlatformReviewParity.json` (v1, bytes FROZEN) — intervals, five-star graduation, Today due-state, Done-Today feed, LeetCode completion identity.
 - `crossPlatformSyncParity.json` (v2) — mergeProblems newest-wins (incl. malformed-timestamp losers), review-event merge (5s drift window, date+confidence gates, prune watermark), tombstone LWW, data-reset filters, respread idempotency, mapping round-trips. This closed the sync-parity gap: the full sync engine is now proven behavior-identical across TS and Swift.
 
-**Fixture changes must land in all three places** (this repo, the iOS repo's fixtures dir, and a Swift digest update) in lockstep — the Swift suite byte-guards both files. Never hardcode new dates; the date-shift layers keep the suites green forever.
+- `crossPlatformQueueRotation.json` (v1) — the Today queue's turn-taking: `ringPosition`, `dayNumber`, `rotationPointer` and `rotationKey` reference values, and `prioritizeProblems` orders on fixed dates (a backlog on three consecutive days, overdue against due today, a dismissed card the next day, ids outside ASCII). **Not date-shifted**: the expected order depends on the absolute date, so each case carries its own `today`.
+
+**Fixture changes must land in all three places** (this repo, the iOS repo's fixtures dir, and a Swift digest update) in lockstep — the Swift suite byte-guards all three files. Never hardcode new dates in the two date-shifted fixtures; their date-shift layers keep the suites green forever.
 
 ## Versioning
 

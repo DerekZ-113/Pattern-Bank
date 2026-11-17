@@ -26,7 +26,7 @@ The gap isn't tracking. It's retention. PatternBank fills that gap with spaced r
 
 **The review loop**
 - **Spaced repetition** — confidence ratings schedule reviews at 1, 2, 5, 10, or 30 days; repeated 5-star reviews graduate to 60, 120, 240, then 365 days
-- **Smart daily cap** — set a daily goal (1–20); the priority algorithm surfaces your weakest, most overdue problems first. Never says "overdue" or "behind"
+- **Smart daily cap** — set a daily goal (1–20); the priority algorithm surfaces your weakest problems first, and inside a confidence level the cards take turns from day to day, so a backlog never shows the same handful every morning. Never says "overdue" or "behind"
 - **Today workflow** — action-focused queue: reviews due, LeetCode activity, pending imports, Done today
 - **Active recall** — notes hidden by default; optional "hide patterns during review" to test pattern recognition
 
@@ -75,7 +75,7 @@ Every action writes locally first (instant UI), then syncs to the cloud in the b
 - **Text primary keys** instead of UUIDs — matches existing localStorage IDs, zero migration friction on first sign-in
 - **Fire-and-forget sync** — cloud writes never block the UI; sign-in runs a full fail-closed reconcile (`performFullSync`): any error returns the untouched local snapshot
 - **Timestamp-based conflict resolution** — newest `updatedAt` wins for problems, tombstones (last-write-wins deletes), and preferences
-- **Daily cap with priority queue** — three-tier sort (lowest confidence → most overdue → stable daily random) prevents the unbounded-queue anxiety that kills spaced repetition apps
+- **Daily cap with priority queue** — lowest confidence first, then overdue before due today, then a daily rotation so every card in a backlog gets its turn; this prevents the unbounded-queue anxiety that kills spaced repetition apps
 
 ### The core extraction
 
@@ -115,11 +115,11 @@ V2 confidence-based intervals with 5-star graduation:
 
 Repeated 5-star reviews graduate to longer intervals: 30, 60, 120, 240, then 365 days.
 
-When more problems are due than the daily goal allows, a three-tier priority sort determines which surface first:
+When more problems are due than the daily goal allows, the queue decides which surface first:
 
 1. **Lowest confidence** — weakest problems always come first
-2. **Most days overdue** — among equal confidence, longest-waiting wins
-3. **Stable daily random** — deterministic hash prevents the same subset repeating
+2. **Overdue before due today** — so a card you dismissed yesterday waits behind the ones still waiting
+3. **Taking turns** — inside a level the cards rotate from day to day, so a backlog larger than your goal shows different cards each morning instead of the same handful. The order is fixed within a day: reviewing one card moves no other
 
 ---
 

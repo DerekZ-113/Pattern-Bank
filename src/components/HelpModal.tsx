@@ -77,8 +77,9 @@ export default function HelpModal({ isOpen, onClose }: Props) {
               How reviews are prioritized
             </h3>
             <p className="text-[13px] leading-relaxed text-pb-text-muted">
-              Reviews are ordered by confidence (lowest first), then by how overdue they are.
-              A daily random tiebreaker ensures variety.
+              Reviews are ordered by confidence, weakest first. When more are due than your daily goal,
+              the cards inside a confidence level take turns from day to day, so a backlog does not show
+              the same few every morning.
             </p>
           </div>
 

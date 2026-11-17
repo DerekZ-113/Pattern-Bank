@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "note": "Queue rotation contract shared by web, React Native and Swift. Loaded as written: dates are NOT shifted, because the expected order depends on the absolute date. Each case passes its own `today` to prioritizeProblems.",
+  "ringPositions": [
+    { "id": "a", "value": 444641715 },
+    { "id": "abc", "value": 482950588 },
+    { "id": "weak-overdue", "value": 3920010620 },
+    { "id": "3f2c1e0a-1b2c-4d5e-8f90-123456789abc", "value": 2622137607 },
+    { "id": "题目-1", "value": 1855853268 },
+    { "id": "😀-4", "value": 1125504694 },
+    { "id": "", "value": 2872998923 }
+  ],
+  "days": [
+    { "date": "1970-01-01", "dayNumber": 0, "rotationPointer": 0 },
+    { "date": "2026-11-16", "dayNumber": 20773, "rotationPointer": 1804083389 },
+    { "date": "2026-11-17", "dayNumber": 20774, "rotationPointer": 163551862 },
+    { "date": "2026-11-18", "dayNumber": 20775, "rotationPointer": 2817987631 },
+    { "date": "2027-01-01", "dayNumber": 20819, "rotationPointer": 3649044475 }
+  ],
+  "rotationKeys": [
+    { "id": "a", "today": "2026-11-16", "value": 2935525622 },
+    { "id": "weak-overdue", "today": "2026-11-16", "value": 2115927231 },
+    { "id": "题目-1", "today": "2027-01-01", "value": 2501776089 }
+  ],
+  "cases": [
+    {
+      "name": "backlog of 12 at one level, day 1",
+      "today": "2026-11-16",
+      "limit": 5,
+      "problems": [
+        { "id": "backlog-01", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-02", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-03", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-04", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-05", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-06", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-07", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-08", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-09", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-10", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-11", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-12", "confidence": 2, "nextReviewDate": "2026-10-01" }
+      ],
+      "expectedIds": ["backlog-09", "backlog-04", "backlog-11", "backlog-05", "backlog-10"]
+    },
+    {
+      "name": "backlog of 12 at one level, day 2",
+      "today": "2026-11-17",
+      "limit": 5,
+      "problems": [
+        { "id": "backlog-01", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-02", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-03", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-04", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-05", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-06", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-07", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-08", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-09", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-10", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-11", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-12", "confidence": 2, "nextReviewDate": "2026-10-01" }
+      ],
+      "expectedIds": ["backlog-03", "backlog-12", "backlog-02", "backlog-01", "backlog-08"]
+    },
+    {
+      "name": "backlog of 12 at one level, day 3",
+      "today": "2026-11-18",
+      "limit": 5,
+      "problems": [
+        { "id": "backlog-01", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-02", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-03", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-04", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-05", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-06", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-07", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-08", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-09", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-10", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-11", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-12", "confidence": 2, "nextReviewDate": "2026-10-01" }
+      ],
+      "expectedIds": ["backlog-05", "backlog-10", "backlog-06", "backlog-07", "backlog-03"]
+    },
+    {
+      "name": "day 1 again after its first card was reviewed: the rest keep their places",
+      "today": "2026-11-16",
+      "limit": 5,
+      "problems": [
+        { "id": "backlog-01", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-02", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-03", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-04", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-05", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-06", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-07", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-08", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-10", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-11", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-12", "confidence": 2, "nextReviewDate": "2026-10-01" }
+      ],
+      "expectedIds": ["backlog-04", "backlog-11", "backlog-05", "backlog-10", "backlog-06"]
+    },
+    {
+      "name": "overdue before due today inside one level",
+      "today": "2026-11-16",
+      "limit": 4,
+      "problems": [
+        { "id": "due-today-a", "confidence": 3, "nextReviewDate": "2026-11-16" },
+        { "id": "overdue-yesterday", "confidence": 3, "nextReviewDate": "2026-11-15" },
+        { "id": "due-today-b", "confidence": 3, "nextReviewDate": "2026-11-16" },
+        { "id": "overdue-long", "confidence": 3, "nextReviewDate": "2026-01-01" }
+      ],
+      "expectedIds": ["overdue-long", "overdue-yesterday", "due-today-a", "due-today-b"]
+    },
+    {
+      "name": "the weaker level fills the limit before a stronger level gets a slot",
+      "today": "2026-11-16",
+      "limit": 3,
+      "problems": [
+        { "id": "strong-overdue-1", "confidence": 2, "nextReviewDate": "2026-01-01" },
+        { "id": "weak-today-1", "confidence": 1, "nextReviewDate": "2026-11-16" },
+        { "id": "weak-today-2", "confidence": 1, "nextReviewDate": "2026-11-16" },
+        { "id": "strong-overdue-2", "confidence": 2, "nextReviewDate": "2026-01-01" },
+        { "id": "weak-today-3", "confidence": 1, "nextReviewDate": "2026-11-16" },
+        { "id": "weak-overdue", "confidence": 1, "nextReviewDate": "2026-11-10" }
+      ],
+      "expectedIds": ["weak-overdue", "weak-today-3", "weak-today-1"]
+    },
+    {
+      "name": "a limit larger than the due set returns every card in order",
+      "today": "2026-11-16",
+      "limit": 20,
+      "problems": [
+        { "id": "five", "confidence": 5, "nextReviewDate": "2026-10-01" },
+        { "id": "one", "confidence": 1, "nextReviewDate": "2026-11-16" },
+        { "id": "three-b", "confidence": 3, "nextReviewDate": "2026-11-01" },
+        { "id": "three-a", "confidence": 3, "nextReviewDate": "2026-11-01" },
+        { "id": "four", "confidence": 4, "nextReviewDate": "2026-11-16" }
+      ],
+      "expectedIds": ["one", "three-b", "three-a", "four", "five"]
+    },
+    {
+      "name": "a card dismissed yesterday waits behind the overdue cards of its level",
+      "today": "2026-11-17",
+      "limit": 2,
+      "problems": [
+        { "id": "dismissed-yesterday", "confidence": 2, "nextReviewDate": "2026-11-17" },
+        { "id": "overdue-1", "confidence": 2, "nextReviewDate": "2026-11-10" },
+        { "id": "overdue-2", "confidence": 2, "nextReviewDate": "2026-11-12" }
+      ],
+      "expectedIds": ["overdue-2", "overdue-1"]
+    },
+    {
+      "name": "ids outside ASCII are hashed by UTF-16 code unit",
+      "today": "2026-11-16",
+      "limit": 4,
+      "problems": [
+        { "id": "题目-1", "confidence": 3, "nextReviewDate": "2026-11-01" },
+        { "id": "题目-2", "confidence": 3, "nextReviewDate": "2026-11-01" },
+        { "id": "problème-3", "confidence": 3, "nextReviewDate": "2026-11-01" },
+        { "id": "😀-4", "confidence": 3, "nextReviewDate": "2026-11-01" },
+        { "id": "plain-5", "confidence": 3, "nextReviewDate": "2026-11-01" }
+      ],
+      "expectedIds": ["题目-1", "题目-2", "problème-3", "😀-4"]
+    },
+    {
+      "name": "the turn moves across a year boundary",
+      "today": "2027-01-01",
+      "limit": 5,
+      "problems": [
+        { "id": "backlog-01", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-02", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-03", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-04", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-05", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-06", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-07", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-08", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-09", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-10", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-11", "confidence": 2, "nextReviewDate": "2026-10-01" },
+        { "id": "backlog-12", "confidence": 2, "nextReviewDate": "2026-10-01" }
+      ],
+      "expectedIds": ["backlog-07", "backlog-03", "backlog-12", "backlog-02", "backlog-01"]
+    }
+  ]
+}

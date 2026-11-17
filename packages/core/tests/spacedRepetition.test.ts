@@ -8,7 +8,11 @@ import {
   getNextFiveStarStreak,
   getPreviousFiveStarStreak,
   getReviewIntervalDays,
+  dayNumber,
   prioritizeProblems,
+  ringPosition,
+  rotationKey,
+  rotationPointer,
 } from "../src/spacedRepetition";
 import type { Confidence, Problem } from "../src/types";
 
@@ -113,16 +117,93 @@ describe("prioritizeProblems", () => {
     expect(result[2].id).toBe("high");
   });
 
-  it("sorts most overdue first when confidence is equal", () => {
+  it("puts overdue cards before cards due today inside one level", () => {
+    const today = "2026-11-16";
     const problems = [
-      { id: "recent", confidence: 3, nextReviewDate: "2026-03-11" },
-      { id: "old", confidence: 3, nextReviewDate: "2026-01-01" },
-      { id: "medium", confidence: 3, nextReviewDate: "2026-02-01" },
+      { id: "due-today-a", confidence: 3, nextReviewDate: "2026-11-16" },
+      { id: "overdue-a", confidence: 3, nextReviewDate: "2026-11-15" },
+      { id: "due-today-b", confidence: 3, nextReviewDate: "2026-11-16" },
+      { id: "overdue-b", confidence: 3, nextReviewDate: "2026-01-01" },
     ] as Problem[];
-    const result = prioritizeProblems(problems, 3);
-    // Most overdue (oldest nextReviewDate) should come first
-    expect(result[0].id).toBe("old");
-    expect(result[1].id).toBe("medium");
+    const ids = prioritizeProblems(problems, 4, today).map((p) => p.id);
+    expect([...ids.slice(0, 2)].sort()).toEqual(["overdue-a", "overdue-b"]);
+    expect([...ids.slice(2)].sort()).toEqual(["due-today-a", "due-today-b"]);
+  });
+
+  it("orders overdue cards of one level by the day's rotation key, not by how long they have waited", () => {
+    const today = "2026-11-16";
+    const problems = [
+      { id: "recent", confidence: 3, nextReviewDate: "2026-11-11" },
+      { id: "old", confidence: 3, nextReviewDate: "2026-01-01" },
+      { id: "medium", confidence: 3, nextReviewDate: "2026-06-01" },
+    ] as Problem[];
+    const expected = ["recent", "old", "medium"].sort(
+      (a, b) => rotationKey(a, today) - rotationKey(b, today),
+    );
+    expect(prioritizeProblems(problems, 3, today).map((p) => p.id)).toEqual(expected);
+  });
+
+  it("fills the limit from the weaker level before a stronger level gets a slot", () => {
+    const today = "2026-11-16";
+    const weak = ["w1", "w2", "w3", "w4"].map((id) => ({ id, confidence: 1, nextReviewDate: today }));
+    const strong = ["s1", "s2"].map((id) => ({ id, confidence: 2, nextReviewDate: "2026-01-01" }));
+    const result = prioritizeProblems([...strong, ...weak] as Problem[], 3, today);
+    expect(result.every((p) => p.confidence === 1)).toBe(true);
+  });
+
+  it("leaves the rest of the day's order in place when the first card is removed", () => {
+    const today = "2026-11-16";
+    const problems = Array.from({ length: 9 }, (_, i) => ({
+      id: `card-${i}`,
+      confidence: 3,
+      nextReviewDate: "2026-11-01",
+    })) as Problem[];
+    const full = prioritizeProblems(problems, 9, today).map((p) => p.id);
+    const withoutFirst = prioritizeProblems(
+      problems.filter((p) => p.id !== full[0]),
+      9,
+      today,
+    ).map((p) => p.id);
+    expect(withoutFirst).toEqual(full.slice(1));
+  });
+
+  it("takes turns: a level larger than the limit shows different cards on consecutive days", () => {
+    const problems = Array.from({ length: 12 }, (_, i) => ({
+      id: `backlog-${i}`,
+      confidence: 2,
+      nextReviewDate: "2026-10-01",
+    })) as Problem[];
+    const shown = ["2026-11-16", "2026-11-17", "2026-11-18"].map((day) =>
+      prioritizeProblems(problems, 5, day)
+        .map((p) => p.id)
+        .sort()
+        .join(","),
+    );
+    expect(new Set(shown).size).toBeGreaterThanOrEqual(2);
+    const onAllThree = shown[0].split(",").filter((id) => shown[1].includes(id) && shown[2].includes(id));
+    expect(onAllThree.length).toBeLessThan(5);
+  });
+
+  it("puts a card dismissed yesterday behind the overdue cards of its level", () => {
+    // Dismiss sets nextReviewDate to tomorrow, so on that day it is "due today".
+    const today = "2026-11-17";
+    const problems = [
+      { id: "dismissed-yesterday", confidence: 2, nextReviewDate: "2026-11-17" },
+      { id: "overdue-1", confidence: 2, nextReviewDate: "2026-11-10" },
+      { id: "overdue-2", confidence: 2, nextReviewDate: "2026-11-12" },
+    ] as Problem[];
+    const ids = prioritizeProblems(problems, 2, today).map((p) => p.id);
+    expect(ids).not.toContain("dismissed-yesterday");
+  });
+
+  it("breaks a rotation-key collision by id", () => {
+    const today = "2026-11-16";
+    const problems = [
+      { id: "same", confidence: 3, nextReviewDate: "2026-11-01", title: "second" },
+      { id: "same", confidence: 3, nextReviewDate: "2026-11-01", title: "first" },
+    ] as Problem[];
+    // Equal ids are the only practical collision; the sort must stay stable.
+    expect(prioritizeProblems(problems, 2, today).map((p) => p.title)).toEqual(["second", "first"]);
   });
 
   it("respects limit parameter", () => {
@@ -165,5 +246,40 @@ describe("prioritizeProblems", () => {
     const result = prioritizeProblems(problems, 2);
     expect(result[0].id).toBe("low");
     expect(result[1].id).toBe("no-conf");
+  });
+});
+
+describe("queue rotation keys", () => {
+  it("ringPosition matches the reference values", () => {
+    expect(ringPosition("a")).toBe(444641715);
+    expect(ringPosition("abc")).toBe(482950588);
+    expect(ringPosition("weak-overdue")).toBe(3920010620);
+    expect(ringPosition("3f2c1e0a-1b2c-4d5e-8f90-123456789abc")).toBe(2622137607);
+    expect(ringPosition("题目-1")).toBe(1855853268);
+  });
+
+  it("dayNumber counts whole days from 1970-01-01", () => {
+    expect(dayNumber("1970-01-01")).toBe(0);
+    expect(dayNumber("1970-01-02")).toBe(1);
+    expect(dayNumber("2026-11-16")).toBe(20773);
+  });
+
+  it("rotationPointer matches the reference values", () => {
+    expect(rotationPointer("2026-11-16")).toBe(1804083389);
+    expect(rotationPointer("2026-11-17")).toBe(163551862);
+    expect(rotationPointer("2026-11-18")).toBe(2817987631);
+    expect(rotationPointer("2027-01-01")).toBe(3649044475);
+  });
+
+  it("rotationKey is the distance from the day's pointer to the card, wrapping at 2^32", () => {
+    // 444641715 - 1804083389 wraps to 2935525622.
+    expect(rotationKey("a", "2026-11-16")).toBe(2935525622);
+    // 3920010620 - 1804083389 does not wrap.
+    expect(rotationKey("weak-overdue", "2026-11-16")).toBe(2115927231);
+  });
+
+  it("an unreadable date counts as day 0 instead of producing NaN", () => {
+    expect(dayNumber("not-a-date")).toBe(0);
+    expect(rotationPointer("")).toBe(0);
   });
 });
