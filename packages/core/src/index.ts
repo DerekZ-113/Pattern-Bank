@@ -8,6 +8,7 @@
 
 export * from "./types";
 export * from "./constants";
+export * from "./designTokens";
 export * from "./dateHelpers";
 export * from "./hooks";
 export * from "./spacedRepetition";
