@@ -109,7 +109,7 @@ export default function HelpModal({ isOpen, onClose }: Props) {
                 <span className="sr-only">the exclude icon</span>{" "}
                 on any problem to exclude it from reviews
               </li>
-              <li>Due problems can also be reviewed from All Problems</li>
+              <li>Due problems can also be reviewed from Problems</li>
               <li>Enable {EXTRA_PATTERNS.length} additional patterns in Settings</li>
             </ul>
           </div>

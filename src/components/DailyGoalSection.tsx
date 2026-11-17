@@ -99,7 +99,7 @@ export default function DailyGoalSection({
       <p className="mt-2 text-xs leading-relaxed text-pb-text-dim">
         Caps how many reviews appear on Today each day, and sets the pace for
         bulk imports — new lists are spread at this rate. You can always
-        review more from All Problems.
+        review more from Problems.
       </p>
       {showRespread && (
         <div className="mt-3 rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3">
