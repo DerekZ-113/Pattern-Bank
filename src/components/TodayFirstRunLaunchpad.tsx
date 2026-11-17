@@ -106,12 +106,14 @@ export default function TodayFirstRunLaunchpad({
           <p className="m-0 ml-auto text-xs text-pb-text-dim">Solved on LC today</p>
         </div>
         <div className="rounded-xl border border-pb-border-light bg-pb-surface p-4">
-          <div className="flex items-baseline gap-2">
-            <p className="m-0 text-[15px] font-semibold text-pb-text">Two Sum</p>
-            <span className="font-mono text-[13px] text-pb-text-dim">#1</span>
+          <div className="flex items-baseline justify-between gap-4">
+            <div className="flex items-baseline gap-2">
+              <p className="m-0 text-[15px] font-semibold text-pb-text">Two Sum</p>
+              <span className="font-mono text-[13px] text-pb-text-dim">#1</span>
+            </div>
+            <DifficultyBadge difficulty="Easy" className="shrink-0" />
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <DifficultyBadge difficulty="Easy" />
             <PatternTag name="Hash Table" />
           </div>
           <div className="mt-3.5 flex items-center justify-between gap-3 border-t border-pb-border-light pt-3.5">

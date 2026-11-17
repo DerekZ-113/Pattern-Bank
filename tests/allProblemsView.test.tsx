@@ -202,6 +202,32 @@ describe("AllProblemsView", () => {
     expect(names).toEqual(["Number of Islands", "Review", "Exclude from review", "Delete problem"]);
   });
 
+  // Difficulty is a column of its own beside the stars (the way LeetCode's
+  // list shows it), not the first chip in the tag line.
+  it("gives difficulty its own cell ahead of the stars, once per row", () => {
+    renderAllProblems();
+
+    const row = screen.getByText("Two Sum").closest("article")!;
+    const difficulty = within(row).getAllByText("Easy");
+    expect(difficulty).toHaveLength(1);
+
+    const stars = within(row).getByRole("img", { name: /out of 5 stars/ });
+    expect(difficulty[0].compareDocumentPosition(stars) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const tag = within(row).getByText("Hash Table");
+    expect(tag.parentElement).not.toBe(difficulty[0].parentElement);
+    expect(difficulty[0].className).toContain("md:col-start-2");
+  });
+
+  it("keeps difficulty a plain coloured word, unlike the bordered pattern tags", () => {
+    renderAllProblems();
+
+    const row = screen.getByText("Two Sum").closest("article")!;
+    expect(within(row).getByText("Easy").className).toContain("text-pb-easy");
+    expect(within(row).getByText("Easy").className).not.toMatch(/\bborder\b|\bbg-/);
+    expect(within(row).getByText("Hash Table").className).toMatch(/\bborder\b/);
+  });
+
   it("keeps card edit, exclude, and delete interactions isolated", () => {
     const { onEdit, onDelete, onToggleExclude } = renderAllProblems();
 

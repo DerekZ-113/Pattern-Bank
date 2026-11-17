@@ -44,29 +44,32 @@ export default function TodayReviewCard({
 
   return (
     <article className="rounded-xl border border-pb-border-light bg-pb-surface p-4 sm:px-5">
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <h3 className="m-0 text-[15px] font-semibold leading-snug text-pb-text">
-          {onOpenDetails ? (
-            <button
-              type="button"
-              onClick={() => onOpenDetails(problem)}
-              className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-snug text-pb-text transition-colors duration-150 hover:text-pb-accent"
-            >
-              {problem.title}
-            </button>
-          ) : (
-            problem.title
+      {/* Title line: what the problem is on the left, how hard on the right. */}
+      <div className="flex items-baseline justify-between gap-4">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <h3 className="m-0 text-[15px] font-semibold leading-snug text-pb-text">
+            {onOpenDetails ? (
+              <button
+                type="button"
+                onClick={() => onOpenDetails(problem)}
+                className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-snug text-pb-text transition-colors duration-150 hover:text-pb-accent"
+              >
+                {problem.title}
+              </button>
+            ) : (
+              problem.title
+            )}
+          </h3>
+          {problem.leetcodeNumber && (
+            <span className="font-mono text-[13px] leading-tight text-pb-text-dim">
+              #{problem.leetcodeNumber}
+            </span>
           )}
-        </h3>
-        {problem.leetcodeNumber && (
-          <span className="font-mono text-[13px] leading-tight text-pb-text-dim">
-            #{problem.leetcodeNumber}
-          </span>
-        )}
+        </div>
+        <DifficultyBadge difficulty={problem.difficulty} className="shrink-0" />
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <DifficultyBadge difficulty={problem.difficulty} />
         {solvedOnLeetCodeToday && (
           <span className="text-xs font-semibold text-pb-accent">Solved on LC today</span>
         )}

@@ -82,35 +82,52 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
         isExcluded ? "opacity-60" : ""
       }`}
     >
-      {/* One aligned row from md up: problem | confidence | status | actions.
-          Below md the problem takes the first line and the rest share the
-          second. DOM order is reading order at every width, so Tab follows
-          the eye. */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-2.5 md:grid-cols-[minmax(0,1fr)_92px_176px_60px] md:gap-x-4">
-        <div className="col-span-3 min-w-0 md:col-span-1">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h2 className="m-0 text-[15px] font-semibold leading-snug text-pb-text">
-              <button
-                type="button"
-                onClick={handleOpen}
-                className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-snug text-pb-text transition-colors duration-150 hover:text-pb-accent"
-              >
-                {problem.title}
-              </button>
-            </h2>
-            {problem.leetcodeNumber && (
-              <span className="font-mono text-[13px] text-pb-text-dim">#{problem.leetcodeNumber}</span>
-            )}
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <DifficultyBadge difficulty={problem.difficulty} />
+      {/* One aligned row from md up:
+            problem | difficulty | confidence | status | actions
+          with the title and its tags stacked in the first column. Below md
+          the title takes the first line, difficulty and tags the second, and
+          the rest share the third. DOM order is reading order at every
+          width, so Tab follows the eye.
+
+          Each row is its own grid, so the columns only line up down the list
+          because their widths are fixed. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 md:grid-cols-[minmax(0,1fr)_60px_92px_176px_60px] md:gap-x-4">
+        <div className="col-span-3 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 md:col-span-1 md:col-start-1 md:row-start-1">
+          <h2 className="m-0 text-[15px] font-semibold leading-snug text-pb-text">
+            <button
+              type="button"
+              onClick={handleOpen}
+              className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-snug text-pb-text transition-colors duration-150 hover:text-pb-accent"
+            >
+              {problem.title}
+            </button>
+          </h2>
+          {problem.leetcodeNumber && (
+            <span className="font-mono text-[13px] text-pb-text-dim">#{problem.leetcodeNumber}</span>
+          )}
+        </div>
+
+        {/* On phones difficulty leads the tag line. From md this wrapper
+            dissolves (`contents`): difficulty becomes its own column beside
+            the stars, like LeetCode's list, and the tags sit under the title. */}
+        <div className="col-span-3 flex min-w-0 items-center gap-x-2 md:contents">
+          <DifficultyBadge
+            difficulty={problem.difficulty}
+            className="shrink-0 md:col-start-2 md:row-span-2 md:row-start-1 md:justify-self-end"
+          />
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 md:col-start-1 md:row-start-2">
             <PatternTagList patterns={problem.patterns} />
           </div>
         </div>
 
-        <StarPicker mode="display" size="md" value={problem.confidence} className="justify-self-start" />
+        <StarPicker
+          mode="display"
+          size="md"
+          value={problem.confidence}
+          className="justify-self-start max-md:mt-1 md:col-start-3 md:row-span-2 md:row-start-1"
+        />
 
-        <div className="flex items-center justify-end gap-2.5">
+        <div className="flex items-center justify-end gap-2.5 max-md:mt-1 md:col-start-4 md:row-span-2 md:row-start-1">
           <span
             className={`inline-flex items-center gap-1.5 text-xs ${
               isExcluded
@@ -141,7 +158,7 @@ export default function ProblemCard({ problem, onEdit, onDelete, onToggleExclude
 
         {/* The trailing `!` makes these win over the ghost variant's own text
             colours; plain utilities would depend on Tailwind's emit order. */}
-        <div className="-mr-1.5 flex shrink-0 items-center justify-end gap-0.5 md:mr-0">
+        <div className="-mr-1.5 flex shrink-0 items-center justify-end gap-0.5 max-md:mt-1 md:col-start-5 md:row-span-2 md:row-start-1 md:mr-0">
           {onToggleExclude && (
             <button
               type="button"

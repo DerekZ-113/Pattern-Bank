@@ -41,43 +41,46 @@ export default function TodayLeetCodeCard({ item, onConfirm, onIgnore, onRateKno
 
   return (
     <article className="rounded-xl border border-pb-border-light bg-pb-surface p-4 sm:px-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <h3 className="m-0 text-[15px] font-semibold leading-snug text-pb-text">
-              {detailsProblemId ? (
-                <button
-                  type="button"
-                  onClick={() => onOpenProblemDetails!(detailsProblemId)}
-                  className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-snug text-pb-text transition-colors duration-150 hover:text-pb-accent"
-                >
-                  {item.title}
-                </button>
-              ) : (
-                item.title
-              )}
-            </h3>
-            {item.leetcodeNumber && (
-              <span className="font-mono text-[13px] leading-tight text-pb-text-dim">
-                #{item.leetcodeNumber}
-              </span>
+      {/* Same title line as a review card: problem on the left, difficulty on
+          the right (ahead of the ignore button on a pending import). */}
+      <div className="flex items-baseline justify-between gap-4">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <h3 className="m-0 text-[15px] font-semibold leading-snug text-pb-text">
+            {detailsProblemId ? (
+              <button
+                type="button"
+                onClick={() => onOpenProblemDetails!(detailsProblemId)}
+                className="cursor-pointer border-none bg-transparent p-0 text-left text-[15px] font-semibold leading-snug text-pb-text transition-colors duration-150 hover:text-pb-accent"
+              >
+                {item.title}
+              </button>
+            ) : (
+              item.title
             )}
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <DifficultyBadge difficulty={item.difficulty ?? "Medium"} />
-            <PatternTagList patterns={item.suggestedPatterns} />
-          </div>
+          </h3>
+          {item.leetcodeNumber && (
+            <span className="font-mono text-[13px] leading-tight text-pb-text-dim">
+              #{item.leetcodeNumber}
+            </span>
+          )}
         </div>
-        {isPending && (
-          <button
-            type="button"
-            aria-label={`Ignore ${item.title}`}
-            onClick={() => onIgnore(item)}
-            className={`${iconButtonClass("sm")} -mr-1.5 -mt-1`}
-          >
-            <Icon name="close" />
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <DifficultyBadge difficulty={item.difficulty ?? "Medium"} />
+          {isPending && (
+            <button
+              type="button"
+              aria-label={`Ignore ${item.title}`}
+              onClick={() => onIgnore(item)}
+              className={`${iconButtonClass("sm")} -my-1 -mr-1.5`}
+            >
+              <Icon name="close" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <PatternTagList patterns={item.suggestedPatterns} />
       </div>
 
       {isPending && (

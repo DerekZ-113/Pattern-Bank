@@ -1105,3 +1105,43 @@ describe("TodayView notes while rating", () => {
     expect(screen.queryByRole("button", { name: "Dismiss" })).toBeNull();
   });
 });
+
+describe("TodayView difficulty placement", () => {
+  it("puts a review card's difficulty on the title line, apart from the pattern tags", () => {
+    renderTodayView();
+
+    const reviewsSection = screen.getByText("Reviews due").closest("section")!;
+    const title = within(reviewsSection).getByRole("heading", { name: "Two Sum" });
+    const difficulty = within(reviewsSection).getByText("Easy");
+    const tag = within(reviewsSection).getByText("Hash Table");
+
+    // The title line holds the title block on the left and difficulty on the right.
+    expect(difficulty.parentElement).toBe(title.parentElement!.parentElement);
+    expect(tag.parentElement).not.toBe(difficulty.parentElement);
+    // Read after the title: "Two Sum, #1, Easy".
+    expect(title.compareDocumentPosition(difficulty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(difficulty.compareDocumentPosition(tag) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("does the same on a From LeetCode card, ahead of the ignore button", () => {
+    renderTodayView({ pendingLeetCodeImports: [makePendingImport()] });
+
+    const section = screen.getByText("From LeetCode").closest("section")!;
+    const title = within(section).getByRole("heading", { name: "Number of Islands" });
+    const difficulty = within(section).getByText("Medium");
+    const ignore = within(section).getByRole("button", { name: "Ignore Number of Islands" });
+
+    expect(difficulty.parentElement).toBe(ignore.parentElement);
+    expect(title.compareDocumentPosition(difficulty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(difficulty.compareDocumentPosition(ignore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows difficulty once per card", () => {
+    renderTodayView({ pendingLeetCodeImports: [makePendingImport()] });
+
+    const reviewsSection = screen.getByText("Reviews due").closest("section")!;
+    const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
+    expect(within(reviewsSection).getAllByText("Easy")).toHaveLength(1);
+    expect(within(leetcodeSection).getAllByText("Medium")).toHaveLength(1);
+  });
+});
