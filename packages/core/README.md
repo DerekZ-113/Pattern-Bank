@@ -94,7 +94,7 @@ Three JSON fixtures under `tests/fixtures/` are the executable cross-platform co
 
 ## Versioning
 
-Semver from `0.1.0`. Releases are tagged `core-v*` in the [Pattern-Bank repo](https://github.com/DerekZ-113/Pattern-Bank); the package directory is `packages/core`. Notable: `0.1.1` fixed same-day re-rates being collapsed by the 5-second drift window; `0.4.0` added `Database` to `EXTRA_PATTERNS` (opt-in, filed under strategies).
+Semver from `0.1.0`. Releases are tagged `core-v*` in the [Pattern-Bank repo](https://github.com/DerekZ-113/Pattern-Bank); the package directory is `packages/core`. Notable: `0.1.1` fixed same-day re-rates being collapsed by the 5-second drift window; `0.4.0` added `Database` to `EXTRA_PATTERNS` (opt-in, filed under strategies). `0.5.0` changes the Today queue so cards inside a confidence level take turns from day to day (`prioritizeProblems`; `ringPosition`, `dayNumber`, `rotationPointer`, `rotationKey` are exported), and adds `DESIGN_TOKENS` / `patternTokenSlug`, the colour palette for both themes.
 
 ## License
 
