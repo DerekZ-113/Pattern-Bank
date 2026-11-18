@@ -63,6 +63,22 @@ describe("TodayReviewCard actions", () => {
     }
   });
 
+  it("gives the notes button the same width whichever label it shows, so Dismiss lines up down the page", () => {
+    const withoutNotes = renderCard();
+    const add = within(withoutNotes.container).getByRole("button", { name: "Add notes" });
+    // The label it is not showing is still laid out, unseen and unspoken, so
+    // the button is as wide as its longer label.
+    const addReserve = add.querySelector<HTMLElement>("[data-reserves-width]");
+    expect(addReserve?.textContent).toBe("Show notes");
+    expect(addReserve?.getAttribute("aria-hidden")).toBe("true");
+    expect(addReserve?.className).toContain("invisible");
+    withoutNotes.unmount();
+
+    const withNotes = renderCard({ notes: "Expand around each centre." });
+    const show = within(withNotes.container).getByRole("button", { name: "Show notes" });
+    expect(show.querySelector("[data-reserves-width]")?.textContent).toBe("Add notes");
+  });
+
   it("still dismisses, opens notes and starts a review", () => {
     const { onDismiss } = renderCard();
 

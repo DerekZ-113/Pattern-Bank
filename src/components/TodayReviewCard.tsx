@@ -113,7 +113,21 @@ export default function TodayReviewCard({
                   className={`${buttonClass("ghost")} px-2.5!`}
                 >
                   <Icon name="note" className="h-3.5 w-3.5" />
-                  {problem.notes ? "Show notes" : "Add notes"}
+                  {/* Both labels are laid out and only one is shown, so the
+                      button is as wide as the longer one and Dismiss starts
+                      in the same place on every card. */}
+                  <span className="grid text-left">
+                    <span className="col-start-1 row-start-1">
+                      {problem.notes ? "Show notes" : "Add notes"}
+                    </span>
+                    <span
+                      data-reserves-width
+                      aria-hidden="true"
+                      className="invisible col-start-1 row-start-1"
+                    >
+                      {problem.notes ? "Add notes" : "Show notes"}
+                    </span>
+                  </span>
                 </button>
               )}
               {!reviewing && (
