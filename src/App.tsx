@@ -295,6 +295,7 @@ export default function App() {
           showWhatsNew={showWhatsNew}
           showWhatsNewLeetCodeCta={showWhatsNewLeetCodeCta}
           signedIn={Boolean(user)}
+          leetcodeConnected={Boolean(leetcodeActivity.connection)}
           onOpenLeetCodeSettings={() => ui.setSettingsOpen(true)}
           onDismissWhatsNew={ui.dismissWhatsNew}
           onEditProblem={ui.handleEdit}

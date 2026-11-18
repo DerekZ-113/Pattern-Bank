@@ -54,6 +54,8 @@ interface Props {
   showWhatsNew?: boolean;
   showWhatsNewLeetCodeCta?: boolean;
   signedIn?: boolean;
+  /** A LeetCode username is connected, so solves log themselves. */
+  leetcodeConnected?: boolean;
   onOpenLeetCodeSettings?: () => void;
   onDismissWhatsNew?: () => void;
   onEditProblem?: (problem: Problem) => void;
@@ -81,6 +83,7 @@ export default function TodayView({
   showWhatsNew = false,
   showWhatsNewLeetCodeCta = false,
   signedIn = false,
+  leetcodeConnected = false,
   onOpenLeetCodeSettings,
   onDismissWhatsNew,
   onEditProblem,
@@ -91,6 +94,7 @@ export default function TodayView({
     totalDueCount,
     reviewedToday,
     effectiveGoal,
+    remainingSlots,
   } = buildTodayReviewState(problems, dailyGoal, today);
   const doneTodayItems = buildTodayActivityFeedItems({
     problems,
@@ -180,6 +184,34 @@ export default function TodayView({
   const emptyStateClass =
     "rounded-xl border border-pb-border-light bg-pb-surface px-5 py-7";
   const hasLog = doneTodayItems.length > 0 || earlierLeetCodeDays.length > 0;
+  // Done today doubles as the goal, opened up: a row for each review done and
+  // an empty slot for each one left, so the column is never blank and fills
+  // as the cards beside it are rated.
+  const showsDoneSection = doneTodayItems.length > 0 || remainingSlots > 0;
+  const goalMet = effectiveGoal > 0 && reviewedToday >= effectiveGoal;
+  const doneCount = effectiveGoal === 0
+    ? doneTodayItems.length
+    : goalMet
+      ? `Goal met · ${doneTodayItems.length}`
+      : `${reviewedToday} of ${effectiveGoal}`;
+  const slotsNote = doneTodayItems.length === 0 && remainingSlots > 0 ? (
+    leetcodeConnected ? (
+      "Rate a review, or solve on LeetCode, and it lands here."
+    ) : (
+      <>
+        Rate a review and it lands here.
+        {onOpenLeetCodeSettings && (
+          <button
+            type="button"
+            onClick={onOpenLeetCodeSettings}
+            className="mt-1 block cursor-pointer border-none bg-transparent p-0 text-left text-xs font-semibold text-pb-accent transition-colors duration-150 hover:text-pb-accent-hover"
+          >
+            {signedIn ? "Connect LeetCode to log solves too" : "Sign in to log LeetCode solves too"}
+          </button>
+        )}
+      </>
+    )
+  ) : null;
 
   return (
     <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-7 md:px-8">
@@ -322,20 +354,32 @@ export default function TodayView({
             </section>
           </div>
 
-          {hasLog && (
-            <div className="flex min-w-0 flex-col gap-8">
-              {doneTodayItems.length > 0 && (
-                <section aria-labelledby="done-today-title">
+          {(hasLog || showsDoneSection) && (
+            // Stays in view while the reviews scroll, so a slot is seen to
+            // fill as each card is rated; scrolls by itself if it is ever
+            // taller than the window.
+            <div
+              className={`flex min-w-0 flex-col gap-8 lg:sticky lg:top-[4.5rem] lg:max-h-[calc(100dvh-5.5rem)] lg:self-start lg:overflow-y-auto ${
+                hasLog ? "" : "max-lg:hidden"
+              }`}
+            >
+              {showsDoneSection && (
+                <section
+                  aria-labelledby="done-today-title"
+                  className={doneTodayItems.length === 0 ? "max-lg:hidden" : undefined}
+                >
                   <TodaySectionHeader
                     id="done-today-title"
                     title="Done today"
-                    count={doneTodayItems.length}
-                    subcopy="Newest first"
+                    count={doneCount}
+                    subcopy={doneTodayItems.length > 0 ? "Newest first" : undefined}
                   />
                   <TodayDoneFeed
                     items={doneTodayItems}
                     onRateLeetCodeReview={onRateLeetCodeReview}
                     onOpenProblemDetails={openDetailsById}
+                    emptySlots={remainingSlots}
+                    note={slotsNote}
                   />
                 </section>
               )}

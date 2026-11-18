@@ -18,7 +18,7 @@ test.describe("Today", () => {
     await seedProblems(page, problems);
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
     await expect(page.getByText("Reviews due")).toBeVisible();
     await expect(page.getByText("Alpha Problem")).toBeVisible();
     await expect(page.getByText("Beta Problem")).toBeVisible();
