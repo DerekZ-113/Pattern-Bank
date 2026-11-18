@@ -101,14 +101,17 @@ export function respreadScheduledProblems(
   const slotsUsedToday = problems.filter(
     (p) => !p.excludeFromReview && (p.nextReviewDate <= today || p.lastReviewed === today),
   ).length;
-  const remainingToday = Math.max(0, dailyGoal - slotsUsedToday);
+  // A goal below 1 paces as 1, as it does on iOS. The app keeps the goal
+  // between 1 and 20; this is for a value that got past it.
+  const perDay = dailyGoal >= 1 ? dailyGoal : 1;
+  const remainingToday = Math.max(0, perDay - slotsUsedToday);
 
   const ordered = [...candidates].sort((a, b) =>
     a.nextReviewDate < b.nextReviewDate ? -1 : a.nextReviewDate > b.nextReviewDate ? 1 : 0,
   );
   const newDateById = new Map<string, string>();
   ordered.forEach((p, i) => {
-    const day = i < remainingToday ? 0 : Math.floor((i - remainingToday) / dailyGoal) + 1;
+    const day = i < remainingToday ? 0 : Math.floor((i - remainingToday) / perDay) + 1;
     newDateById.set(p.id, addDays(today, day));
   });
 

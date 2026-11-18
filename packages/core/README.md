@@ -94,7 +94,16 @@ Three JSON fixtures under `tests/fixtures/` are the executable cross-platform co
 
 ## Versioning
 
-Semver from `0.1.0`. Releases are tagged `core-v*` in the [Pattern-Bank repo](https://github.com/DerekZ-113/Pattern-Bank); the package directory is `packages/core`. Notable: `0.1.1` fixed same-day re-rates being collapsed by the 5-second drift window; `0.4.0` added `Database` to `EXTRA_PATTERNS` (opt-in, filed under strategies). `0.5.0` changes the Today queue so cards inside a confidence level take turns from day to day (`prioritizeProblems`; `ringPosition`, `dayNumber`, `rotationPointer`, `rotationKey` are exported), and adds `DESIGN_TOKENS` / `patternTokenSlug`, the colour palette for both themes.
+Semver from `0.1.0`. Releases are tagged `core-v*` in the [Pattern-Bank repo](https://github.com/DerekZ-113/Pattern-Bank); the package directory is `packages/core`. Notable: `0.1.1` fixed same-day re-rates being collapsed by the 5-second drift window.
+
+`0.5.0` is the first release on npm since `0.3.1`: `0.4.0` was tagged in the repository but never published, so its one change arrives here too. Moving from `0.3.1` to `0.5.0` brings:
+
+- **`Database` in `EXTRA_PATTERNS`** (the `0.4.0` change): opt-in, filed under strategies.
+- **A new Today queue order.** Cards inside a confidence level take turns from day to day instead of the same ones always leading (`prioritizeProblems`; its signature is unchanged). Lowest confidence still comes first, and overdue cards still come before cards due today. `ringPosition`, `dayNumber`, `rotationPointer` and `rotationKey` are exported so other platforms can be checked against them; `dayNumber` reads only `YYYY-MM-DD` and returns 0 for anything else.
+- **`DESIGN_TOKENS` and `patternTokenSlug`**: the colour palette for both themes.
+- **`queryProblems`** and its types: the Problems list's search, filters and sort as one function.
+- **`getUpcomingScheduleInfo`**: the numbers behind the offer to respread scheduled problems.
+- **`respreadScheduledProblems`** paces a daily goal below 1 as 1. It used to produce invalid dates for a goal of 0.
 
 ## License
 

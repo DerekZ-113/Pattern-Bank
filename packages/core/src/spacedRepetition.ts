@@ -61,9 +61,16 @@ export function ringPosition(id: string): number {
   return h >>> 0;
 }
 
+// A date-only string, four-digit year first. Years under 1000 are left out
+// because `Date.UTC` reads 0 to 99 as 1900 to 1999.
+const DATE_ONLY = /^[1-9]\d{3}-\d{2}-\d{2}$/;
+
 // Whole days from 1970-01-01 to `today`, reading the date-only string as UTC
-// midnight. A string that is not a date counts as day 0.
+// midnight. Anything that is not `YYYY-MM-DD` counts as day 0: JavaScript and
+// Swift each forgive different malformed strings, and this rule has to give
+// the same answer in both.
 export function dayNumber(today: string): number {
+  if (!DATE_ONLY.test(today)) return 0;
   const ms = dateOnlyToUtcMs(today);
   return Number.isFinite(ms) ? Math.floor(ms / MS_PER_DAY) : 0;
 }

@@ -754,6 +754,35 @@ describe("computeNextReviewDate", () => {
 });
 
 // The same cases are in PatternBankKit's ProblemTransformsTests.swift.
+describe("a daily goal below 1", () => {
+  // The app and the database keep the goal between 1 and 20. A value that
+  // got past both must not turn into dates like "NaN-NaN-NaN"; it paces at
+  // one a day, as the iOS app does.
+  const today = "2026-03-13";
+  const now = "2026-03-13T12:00:00.000Z";
+  const scheduled = (id: string, nextReviewDate: string): Problem =>
+    makeProblem({ id, leetcodeNumber: null, lastReviewed: null, nextReviewDate });
+  const library = [
+    scheduled("a", "2026-03-20"),
+    scheduled("b", "2026-03-20"),
+    scheduled("c", "2026-03-21"),
+  ];
+
+  it.each([0, -3])("respreads at one a day when the goal is %i", (dailyGoal) => {
+    const { problems } = respreadScheduledProblems(library, { dailyGoal, today, now });
+    const paced = respreadScheduledProblems(library, { dailyGoal: 1, today, now });
+
+    expect(problems.map((p) => p.nextReviewDate)).toEqual(paced.problems.map((p) => p.nextReviewDate));
+    for (const problem of problems) expect(problem.nextReviewDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("describes the schedule as it does for a goal of 1", () => {
+    expect(getUpcomingScheduleInfo(library, { dailyGoal: 0, today })).toEqual(
+      getUpcomingScheduleInfo(library, { dailyGoal: 1, today }),
+    );
+  });
+});
+
 describe("getUpcomingScheduleInfo", () => {
   const today = "2026-03-13";
   const scheduled = (id: string, nextReviewDate: string, overrides: Partial<Problem> = {}): Problem =>

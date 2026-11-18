@@ -8,7 +8,9 @@
     { "id": "3f2c1e0a-1b2c-4d5e-8f90-123456789abc", "value": 2622137607 },
     { "id": "题目-1", "value": 1855853268 },
     { "id": "😀-4", "value": 1125504694 },
-    { "id": "", "value": 2872998923 }
+    { "id": "", "value": 2872998923 },
+    { "id": "p-139599", "value": 2276179588 },
+    { "id": "p-322382", "value": 2276179588 }
   ],
   "days": [
     { "date": "1970-01-01", "dayNumber": 0, "rotationPointer": 0 },
@@ -142,15 +144,25 @@
       "expectedIds": ["one", "three-b", "three-a", "four", "five"]
     },
     {
-      "name": "a card dismissed yesterday waits behind the overdue cards of its level",
-      "today": "2026-11-17",
+      "name": "a card dismissed yesterday waits behind the overdue cards of its level, even when the day's turn would start with it",
+      "today": "2026-11-07",
       "limit": 2,
       "problems": [
-        { "id": "dismissed-yesterday", "confidence": 2, "nextReviewDate": "2026-11-17" },
-        { "id": "overdue-1", "confidence": 2, "nextReviewDate": "2026-11-10" },
-        { "id": "overdue-2", "confidence": 2, "nextReviewDate": "2026-11-12" }
+        { "id": "dismissed-yesterday", "confidence": 2, "nextReviewDate": "2026-11-07" },
+        { "id": "overdue-1", "confidence": 2, "nextReviewDate": "2026-10-31" },
+        { "id": "overdue-2", "confidence": 2, "nextReviewDate": "2026-11-02" }
       ],
       "expectedIds": ["overdue-2", "overdue-1"]
+    },
+    {
+      "name": "two ids on the same ring position are ordered by id, whatever order they arrive in",
+      "today": "2026-11-16",
+      "limit": 2,
+      "problems": [
+        { "id": "p-322382", "confidence": 3, "nextReviewDate": "2026-11-01" },
+        { "id": "p-139599", "confidence": 3, "nextReviewDate": "2026-11-01" }
+      ],
+      "expectedIds": ["p-139599", "p-322382"]
     },
     {
       "name": "ids outside ASCII are hashed by UTF-16 code unit",

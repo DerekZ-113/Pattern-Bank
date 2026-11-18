@@ -198,12 +198,28 @@ describe("prioritizeProblems", () => {
 
   it("breaks a rotation-key collision by id", () => {
     const today = "2026-11-16";
+    // Two different ids on one ring position (2276179588). Among 3,846 ids
+    // the chance of some pair doing this is about 1 in 600, and without the
+    // id rule their order would follow the order they were stored in, which
+    // differs between the web app and the iOS app.
+    expect(ringPosition("p-139599")).toBe(ringPosition("p-322382"));
+    const pair = [
+      { id: "p-322382", confidence: 3, nextReviewDate: "2026-11-01" },
+      { id: "p-139599", confidence: 3, nextReviewDate: "2026-11-01" },
+    ] as Problem[];
+    expect(prioritizeProblems(pair, 2, today).map((p) => p.id)).toEqual(["p-139599", "p-322382"]);
+    expect(prioritizeProblems([...pair].reverse(), 2, today).map((p) => p.id)).toEqual([
+      "p-139599",
+      "p-322382",
+    ]);
+  });
+
+  it("keeps cards with the same id in the order they came", () => {
     const problems = [
       { id: "same", confidence: 3, nextReviewDate: "2026-11-01", title: "second" },
       { id: "same", confidence: 3, nextReviewDate: "2026-11-01", title: "first" },
     ] as Problem[];
-    // Equal ids are the only practical collision; the sort must stay stable.
-    expect(prioritizeProblems(problems, 2, today).map((p) => p.title)).toEqual(["second", "first"]);
+    expect(prioritizeProblems(problems, 2, "2026-11-16").map((p) => p.title)).toEqual(["second", "first"]);
   });
 
   it("respects limit parameter", () => {
@@ -280,6 +296,34 @@ describe("queue rotation keys", () => {
 
   it("an unreadable date counts as day 0 instead of producing NaN", () => {
     expect(dayNumber("not-a-date")).toBe(0);
+  });
+
+  // Only `YYYY-MM-DD` is a date here. JavaScript and Swift each forgive
+  // different malformed strings (an empty part, a space, an exponent, a year
+  // under 100), so anything else is day 0 on both.
+  it.each([
+    "2026--17",
+    "2026-11-",
+    " 2026-11-17",
+    "2026-1e1-17",
+    "2026-11-17.5",
+    "2026-11-17T00:00:00.000Z",
+    "26-11-17",
+    "0099-01-01",
+    "0000-01-01",
+    "-0001-01-01",
+    "275761-01-01",
+    "2026-1-7",
+    "",
+  ])("dayNumber(%j) is 0", (text) => {
+    expect(dayNumber(text)).toBe(0);
+  });
+
+  it("dayNumber keeps reading well-formed dates the calendar does not have", () => {
+    // The month and the day roll over, the same way on every platform.
+    expect(dayNumber("2026-13-01")).toBe(dayNumber("2027-01-01"));
+    expect(dayNumber("2027-02-29")).toBe(dayNumber("2027-03-01"));
+    expect(dayNumber("1969-12-31")).toBe(-1);
     expect(rotationPointer("")).toBe(0);
   });
 });
