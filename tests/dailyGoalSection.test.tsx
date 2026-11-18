@@ -107,9 +107,9 @@ describe("DailyGoalSection", () => {
 
   it("steppers still adjust the goal by one", () => {
     const { onUpdatePreferences } = renderSection({ goal: 5 });
-    fireEvent.click(screen.getByRole("button", { name: "+" }));
+    fireEvent.click(screen.getByRole("button", { name: "Increase daily goal" }));
     expect(onUpdatePreferences).toHaveBeenCalledWith({ dailyReviewGoal: 6 });
-    fireEvent.click(screen.getByRole("button", { name: "−" }));
+    fireEvent.click(screen.getByRole("button", { name: "Decrease daily goal" }));
     expect(onUpdatePreferences).toHaveBeenCalledWith({ dailyReviewGoal: 4 });
   });
 

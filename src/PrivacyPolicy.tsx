@@ -1,7 +1,7 @@
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-pb-bg text-pb-text">
-      <div className="mx-auto max-w-2xl px-6 py-12">
+      <div className="mx-auto max-w-prose px-6 py-12 sm:py-16">
         <a
           href="/"
           className="mb-8 inline-flex items-center gap-2 text-sm text-pb-text-muted transition-colors hover:text-pb-accent"
@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
           ← Back to PatternBank
         </a>
 
-        <h1 className="mb-2 text-2xl font-bold tracking-tight">
+        <h1 className="mb-2 text-[28px] font-bold leading-tight tracking-tight">
           Privacy Policy
         </h1>
         <p className="mb-10 text-sm text-pb-text-muted">
@@ -118,7 +118,7 @@ export default function PrivacyPolicy() {
           </section>
         </div>
 
-        <div className="mt-12 border-t border-pb-border pt-6 text-center text-xs text-pb-text-dim">
+        <div className="mt-12 border-t border-pb-border-light pt-6 text-xs text-pb-text-dim">
           © 2026 PatternBank
         </div>
       </div>

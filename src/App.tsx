@@ -192,7 +192,7 @@ export default function App() {
   }, [handleClearAllData, hasLeetCodeActivityState, leetcodeActivity, signOut, ui, user]);
 
   return (
-    <div className="min-h-screen bg-pb-bg pb-[70px]">
+    <div className="min-h-screen bg-pb-bg pb-[72px] md:pb-10">
       <Toast
         message={ui.toast.message}
         isVisible={ui.toast.visible}
@@ -270,6 +270,7 @@ export default function App() {
               }
             : undefined
         }
+        nav={<NavBar activeTab={ui.activeTab} onTabChange={handleTabChange} />}
       />
 
       {ui.activeTab === "dashboard" && (
@@ -323,10 +324,6 @@ export default function App() {
         />
       )}
 
-      <NavBar
-        activeTab={ui.activeTab}
-        onTabChange={handleTabChange}
-      />
       <ProblemModal
         isOpen={ui.modalOpen}
         onClose={ui.closeModal}

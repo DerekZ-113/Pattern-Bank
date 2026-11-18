@@ -376,9 +376,9 @@ describe("TodayView", () => {
     expect(titleRowText.indexOf("Two Sum")).toBeLessThan(titleRowText.indexOf("#1"));
     expect(title.className).toContain("text-[15px]");
     expect(problemNumber.className).toContain("text-[13px]");
-    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("rounded-full");
-    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("border");
-    expect(within(leetcodeSection).getByText("Easy").className).toContain("border");
+    expect(within(leetcodeSection).getByText("Hash Table").className).toContain("rounded-md");
+    expect(within(leetcodeSection).getByText("Hash Table").style.color).toBe("var(--color-pattern-hash-table-text)");
+    expect(within(leetcodeSection).getByText("Easy").className).toContain("text-pb-easy");
     expect(within(leetcodeSection).queryByText("LEETCODE")).toBeNull();
     expect(within(leetcodeSection).queryByText("Review due")).toBeNull();
     expect(within(leetcodeSection).queryByRole("radio", { name: "Import Two Sum with 4-star confidence" })).toBeNull();
@@ -841,9 +841,9 @@ describe("TodayView", () => {
     });
 
     const reviewsSection = screen.getByText("Reviews due").closest("section")!;
-    expect(within(reviewsSection).getByText("Hash Table").className).toContain("rounded-full");
-    expect(within(reviewsSection).getByText("Hash Table").className).toContain("border");
-    expect(within(reviewsSection).getByText("Easy").className).toContain("border");
+    expect(within(reviewsSection).getByText("Hash Table").className).toContain("rounded-md");
+    expect(within(reviewsSection).getByText("Hash Table").style.color).toBe("var(--color-pattern-hash-table-text)");
+    expect(within(reviewsSection).getByText("Easy").className).toContain("text-pb-easy");
     expect(within(reviewsSection).getByText("Solved on LC today")).toBeTruthy();
   });
 
@@ -1044,5 +1044,104 @@ describe("TodayView opens Problem Details from Today surfaces", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show" }));
     fireEvent.click(screen.getByRole("button", { name: "Two Sum" }));
     expect(onEditProblem).toHaveBeenCalledWith(expect.objectContaining({ id: "p1" }));
+  });
+});
+
+describe("TodayView goal meter", () => {
+  it("shows today's goal as tiles: reviewed ones filled, due ones waiting", () => {
+    renderTodayView({
+      problems: [
+        makeProblem({ id: "done", title: "Done One", lastReviewed: "2026-05-14", nextReviewDate: "2026-05-19" }),
+        makeProblem({ id: "due-1", title: "Due One", leetcodeNumber: 2 }),
+        makeProblem({ id: "due-2", title: "Due Two", leetcodeNumber: 3 }),
+      ],
+    });
+
+    // Goal is 5, but only 3 problems are reviewable today, so the meter has 3 tiles.
+    expect(screen.getByRole("img", { name: "1 of 3 reviews done today" })).toBeTruthy();
+  });
+
+  it("has no meter when nothing is due and nothing was reviewed", () => {
+    renderTodayView({
+      problems: [makeProblem({ nextReviewDate: "2026-06-01" })],
+    });
+
+    expect(screen.queryByRole("img", { name: /reviews done today/ })).toBeNull();
+    expect(screen.getByText("No reviews due")).toBeTruthy();
+  });
+
+  it("has no meter on the first-run screen", () => {
+    renderTodayView({ problems: [] });
+
+    expect(screen.queryByRole("img", { name: /reviews done today/ })).toBeNull();
+  });
+});
+
+describe("TodayView notes while rating", () => {
+  // Notes are what you check before deciding how well you knew it, so opening
+  // the rating panel must not take the notes toggle away.
+  it("keeps the notes toggle available after Review Now", () => {
+    renderTodayView({
+      problems: [makeProblem({ notes: "Use a hash map for complements." })],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Review Now" }));
+    expect(screen.getByRole("radiogroup", { name: "Rate Two Sum confidence" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show notes" }));
+    expect((screen.getByPlaceholderText("Add notes...") as HTMLTextAreaElement).value).toBe(
+      "Use a hash map for complements.",
+    );
+    // Still rating.
+    expect(screen.getByRole("radiogroup", { name: "Rate Two Sum confidence" })).toBeTruthy();
+  });
+
+  it("hides Dismiss and Review Now while the rating panel is open", () => {
+    renderTodayView();
+
+    fireEvent.click(screen.getByRole("button", { name: "Review Now" }));
+
+    expect(screen.queryByRole("button", { name: "Review Now" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Dismiss" })).toBeNull();
+  });
+});
+
+describe("TodayView difficulty placement", () => {
+  it("puts a review card's difficulty on the title line, apart from the pattern tags", () => {
+    renderTodayView();
+
+    const reviewsSection = screen.getByText("Reviews due").closest("section")!;
+    const title = within(reviewsSection).getByRole("heading", { name: "Two Sum" });
+    const difficulty = within(reviewsSection).getByText("Easy");
+    const tag = within(reviewsSection).getByText("Hash Table");
+
+    // The title line holds the title block on the left and difficulty on the right.
+    expect(difficulty.parentElement).toBe(title.parentElement!.parentElement);
+    expect(tag.parentElement).not.toBe(difficulty.parentElement);
+    // Read after the title: "Two Sum, #1, Easy".
+    expect(title.compareDocumentPosition(difficulty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(difficulty.compareDocumentPosition(tag) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("does the same on a From LeetCode card, ahead of the ignore button", () => {
+    renderTodayView({ pendingLeetCodeImports: [makePendingImport()] });
+
+    const section = screen.getByText("From LeetCode").closest("section")!;
+    const title = within(section).getByRole("heading", { name: "Number of Islands" });
+    const difficulty = within(section).getByText("Medium");
+    const ignore = within(section).getByRole("button", { name: "Ignore Number of Islands" });
+
+    expect(difficulty.parentElement).toBe(ignore.parentElement);
+    expect(title.compareDocumentPosition(difficulty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(difficulty.compareDocumentPosition(ignore) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("shows difficulty once per card", () => {
+    renderTodayView({ pendingLeetCodeImports: [makePendingImport()] });
+
+    const reviewsSection = screen.getByText("Reviews due").closest("section")!;
+    const leetcodeSection = screen.getByText("From LeetCode").closest("section")!;
+    expect(within(reviewsSection).getAllByText("Easy")).toHaveLength(1);
+    expect(within(leetcodeSection).getAllByText("Medium")).toHaveLength(1);
   });
 });

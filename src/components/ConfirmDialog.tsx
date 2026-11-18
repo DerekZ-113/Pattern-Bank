@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { buttonClass } from "../utils/buttonStyles";
 
 interface Props {
   isOpen: boolean;
@@ -41,7 +42,7 @@ export default function ConfirmDialog({
       className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/70 p-4"
       onClick={(e) => e.target === e.currentTarget && onCancel()}
     >
-      <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" className="w-full max-w-[380px] rounded-[14px] border border-pb-border bg-pb-surface">
+      <div role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" className="w-full max-w-[380px] rounded-xl border border-pb-border bg-pb-surface">
         <div className="px-6 py-5">
           <h3 id="confirm-title" className="mb-2 text-base font-semibold text-pb-text">{title}</h3>
           <p className="text-sm leading-relaxed text-pb-text-muted">{message}</p>
@@ -49,16 +50,16 @@ export default function ConfirmDialog({
         <div className="flex justify-end gap-2.5 border-t border-pb-border px-6 py-3.5">
           <button
             ref={cancelRef}
+            type="button"
             onClick={onCancel}
-            className="cursor-pointer rounded-lg border border-pb-border bg-transparent px-[18px] py-2 text-[13px] font-semibold text-pb-text-muted hover:border-pb-text-muted"
+            className={buttonClass("outline")}
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={onConfirm}
-            className={`cursor-pointer rounded-lg border-none px-[18px] py-2 text-[13px] font-semibold text-white hover:opacity-85 ${
-              destructive ? "bg-pb-hard" : "bg-pb-accent"
-            }`}
+            className={buttonClass(destructive ? "danger" : "primary")}
           >
             {confirmLabel}
           </button>

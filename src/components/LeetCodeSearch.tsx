@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { searchProblems, buildLeetCodeUrl } from "@patternbank/core";
 import type { LeetCodeProblem, Difficulty } from "../types";
+import DifficultyBadge from "./DifficultyBadge";
+import { fieldClass } from "../utils/fieldStyles";
 
 interface Props {
   onSelect: (selected: { title: string; leetcodeNumber: number; difficulty: Difficulty; url: string }) => void;
@@ -65,12 +67,10 @@ export default function LeetCodeSearch({ onSelect }: Props) {
     }
   };
 
-  const diffColor: Record<Difficulty, string> = { Easy: "text-pb-easy", Medium: "text-pb-medium", Hard: "text-pb-hard" };
-
   return (
     <div ref={containerRef} className="relative">
-      <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-        Search LeetCode Problem
+      <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
+        Search LeetCode problem
       </label>
       <input
         ref={inputRef}
@@ -80,7 +80,7 @@ export default function LeetCodeSearch({ onSelect }: Props) {
         onKeyDown={handleKeyDown}
         onFocus={() => setDropdownClosed(false)}
         placeholder="Type number or title... e.g. '1' or 'two sum'"
-        className="w-full rounded-lg border border-pb-border bg-pb-bg px-3 py-2.5 text-sm text-pb-text outline-none transition-colors duration-150 focus:border-pb-accent"
+        className={fieldClass()}
       />
 
       {isOpen && (
@@ -88,6 +88,7 @@ export default function LeetCodeSearch({ onSelect }: Props) {
           {results.map((problem, i) => (
             <button
               key={problem.n}
+              type="button"
               onClick={() => handleSelect(problem)}
               onMouseEnter={() => setHighlightIndex(i)}
               className={`flex w-full cursor-pointer items-center gap-3 border-none px-3 py-2.5 text-left text-sm transition-colors duration-75 ${
@@ -102,9 +103,7 @@ export default function LeetCodeSearch({ onSelect }: Props) {
               <span className="flex-1 truncate text-pb-text">
                 {problem.t}
               </span>
-              <span className={`text-[11px] font-semibold uppercase ${diffColor[problem.d] || ""}`}>
-                {problem.d}
-              </span>
+              <DifficultyBadge difficulty={problem.d} />
             </button>
           ))}
         </div>

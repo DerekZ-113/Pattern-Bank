@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
 import { getProblemByNumber } from "@patternbank/core";
 import type { Difficulty, LeetCodeProblem } from "../types";
+import Icon from "./Icon";
+import { buttonClass, iconButtonClass } from "../utils/buttonStyles";
 
-const DIFF_COLORS: Record<Difficulty, string> = { Easy: "#3fb950", Medium: "#d29922", Hard: "#f85149" };
+const DIFF_TEXT: Record<Difficulty, string> = { Easy: "text-pb-easy", Medium: "text-pb-medium", Hard: "text-pb-hard" };
 
 interface Chip {
   num: number;
@@ -94,10 +96,11 @@ export default function BulkAddSection({ onBulkAdd, existingIds }: Props) {
   if (!isOpen) {
     return (
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
-        className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-pb-border bg-transparent px-3.5 py-2.5 text-[13px] font-medium text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text"
+        className={`${buttonClass("outline")} w-full`}
       >
-        <span className="text-sm">+</span>
+        <Icon name="plus" />
         Bulk Add Problems
       </button>
     );
@@ -110,10 +113,12 @@ export default function BulkAddSection({ onBulkAdd, existingIds }: Props) {
           Enter LeetCode problem numbers
         </label>
         <button
+          type="button"
           onClick={() => { setIsOpen(false); clearAll(); }}
-          className="cursor-pointer border-none bg-transparent px-1 text-xs text-pb-text-dim hover:text-pb-text-muted"
+          aria-label="Close bulk add"
+          className={iconButtonClass("sm")}
         >
-          ✕
+          <Icon name="close" />
         </button>
       </div>
 
@@ -124,79 +129,44 @@ export default function BulkAddSection({ onBulkAdd, existingIds }: Props) {
       >
         {chips.map((chip) => {
           const isNotFound = !chip.problem;
-          const isExisting = chip.problem && chip.exists;
-          const diffColor = chip.problem ? DIFF_COLORS[chip.problem.d] : null;
+          const isExisting = !!chip.problem && chip.exists;
 
-          let borderColor, bgColor, textColor;
-          if (isNotFound) {
-            borderColor = "rgba(248,81,73,0.4)";
-            bgColor = "rgba(248,81,73,0.1)";
-            textColor = "#f85149";
-          } else if (isExisting) {
-            borderColor = "rgba(139,148,158,0.3)";
-            bgColor = "rgba(139,148,158,0.08)";
-            textColor = "#8b949e";
-          } else {
-            borderColor = "rgba(63,185,80,0.3)";
-            bgColor = "rgba(63,185,80,0.08)";
-            textColor = "#e6edf3";
-          }
+          const chipTone = isNotFound
+            ? "border-pb-error/40 bg-pb-error/10"
+            : isExisting
+              ? "border-pb-border bg-pb-surface-2"
+              : "border-pb-success/30 bg-pb-success/10";
+          const numTone = isNotFound ? "text-pb-error" : isExisting ? "text-pb-text-dim" : "text-pb-text";
 
           return (
             <div
               key={chip.num}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "3px 8px",
-                borderRadius: 6,
-                border: `1px solid ${borderColor}`,
-                backgroundColor: bgColor,
-                fontSize: 12,
-                lineHeight: 1.4,
-                maxWidth: "100%",
-              }}
+              className={`inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs leading-snug ${chipTone}`}
             >
-              <span style={{ color: textColor, fontWeight: 600, flexShrink: 0 }}>
+              <span className={`shrink-0 font-mono font-semibold ${numTone}`}>
                 #{chip.num}
               </span>
               {chip.problem ? (
                 <>
                   <span
-                    style={{
-                      color: isExisting ? "#8b949e" : "#e6edf3",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      textDecoration: isExisting ? "line-through" : "none",
-                    }}
+                    className={`truncate ${isExisting ? "text-pb-text-dim line-through" : "text-pb-text"}`}
                   >
                     {chip.problem.t}
                   </span>
-                  <span style={{ color: diffColor ?? undefined, fontWeight: 600, fontSize: 10, flexShrink: 0 }}>
+                  <span className={`shrink-0 text-xs font-semibold ${DIFF_TEXT[chip.problem.d]}`}>
                     {chip.problem.d[0]}
                   </span>
                 </>
               ) : (
-                <span style={{ color: "#f85149", fontStyle: "italic" }}>Not found</span>
+                <span className="italic text-pb-error">Not found</span>
               )}
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); removeChip(chip.num); }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#484f58",
-                  cursor: "pointer",
-                  padding: "0 2px",
-                  fontSize: 11,
-                  lineHeight: 1,
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.color = "#e6edf3")}
-                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.color = "#484f58")}
+                aria-label={`Remove #${chip.num}`}
+                className="inline-flex shrink-0 cursor-pointer items-center rounded border-none bg-transparent p-0.5 text-pb-text-dim transition-colors duration-150 hover:text-pb-text"
               >
-                ✕
+                <Icon name="close" className="h-3 w-3" />
               </button>
             </div>
           );
@@ -209,36 +179,28 @@ export default function BulkAddSection({ onBulkAdd, existingIds }: Props) {
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={chips.length === 0 ? "1, 15, 56, 146..." : ""}
-          style={{
-            flex: 1,
-            minWidth: 80,
-            border: "none",
-            outline: "none",
-            backgroundColor: "transparent",
-            color: "#e6edf3",
-            fontSize: 13,
-            padding: "2px 0",
-          }}
+          className="min-w-[80px] flex-1 border-none bg-transparent py-0.5 text-[13px] text-pb-text outline-none placeholder:text-pb-text-dim"
         />
       </div>
 
       {/* Status line */}
       {chips.length > 0 && (
-        <div className="mt-2 flex items-center justify-between text-[11px]">
+        <div className="mt-2 flex items-center justify-between text-xs">
           <div className="flex gap-3">
             {validCount > 0 && (
-              <span style={{ color: "#3fb950" }}>{validCount} ready</span>
+              <span className="text-pb-success">{validCount} ready</span>
             )}
             {existsCount > 0 && (
-              <span style={{ color: "#8b949e" }}>{existsCount} already added</span>
+              <span className="text-pb-text-dim">{existsCount} already added</span>
             )}
             {notFoundCount > 0 && (
-              <span style={{ color: "#f85149" }}>{notFoundCount} not found</span>
+              <span className="text-pb-error">{notFoundCount} not found</span>
             )}
           </div>
           <button
+            type="button"
             onClick={clearAll}
-            className="cursor-pointer border-none bg-transparent text-[11px] text-pb-text-dim hover:text-pb-text-muted"
+            className={buttonClass("ghost", "sm")}
           >
             Clear
           </button>
@@ -246,7 +208,7 @@ export default function BulkAddSection({ onBulkAdd, existingIds }: Props) {
       )}
 
       {/* Hint text */}
-      <p className="mt-2 text-[11px] leading-relaxed text-pb-text-dim">
+      <p className="mt-2 text-xs leading-relaxed text-pb-text-dim">
         Type or paste LeetCode numbers. Press Enter after each.
         Problems arrive with no patterns — tag them during review.
       </p>
@@ -254,8 +216,9 @@ export default function BulkAddSection({ onBulkAdd, existingIds }: Props) {
       {/* Add button */}
       {validCount > 0 && (
         <button
+          type="button"
           onClick={handleAdd}
-          className="mt-3 w-full cursor-pointer rounded-lg border-none bg-pb-accent py-2.5 text-[13px] font-semibold text-white transition-opacity duration-150 hover:opacity-85"
+          className={`${buttonClass("primary")} mt-3 w-full`}
         >
           Add {validCount} Problem{validCount !== 1 ? "s" : ""}
         </button>

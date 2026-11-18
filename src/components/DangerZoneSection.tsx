@@ -1,3 +1,5 @@
+import { buttonClass } from "../utils/buttonStyles";
+
 interface Props {
   onSetAllDue: () => void;
   onRequestClearData: () => void;
@@ -8,20 +10,22 @@ export default function DangerZoneSection({ onSetAllDue, onRequestClearData, hid
   return (
     <div>
       {!hideLabel && (
-        <label className="mb-2 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-          Danger Zone
+        <label className="mb-2 block text-[13px] font-semibold text-pb-text-muted">
+          Danger zone
         </label>
       )}
       <div className="flex flex-col gap-2">
         <button
+          type="button"
           onClick={onSetAllDue}
-          className="w-full cursor-pointer rounded-lg border border-dashed border-[rgba(248,81,73,0.4)] bg-transparent px-3 py-2.5 text-sm text-[rgba(248,81,73,0.6)] transition-colors duration-150 hover:border-[rgba(248,81,73,0.6)] hover:text-[rgba(248,81,73,0.8)]"
+          className={`${buttonClass("danger")} w-full`}
         >
           Set all problems due today
         </button>
         <button
+          type="button"
           onClick={onRequestClearData}
-          className="w-full cursor-pointer rounded-lg border border-dashed border-[rgba(248,81,73,0.4)] bg-transparent px-3 py-2.5 text-sm text-[rgba(248,81,73,0.6)] transition-colors duration-150 hover:border-[rgba(248,81,73,0.6)] hover:text-[rgba(248,81,73,0.8)]"
+          className={`${buttonClass("danger")} w-full`}
         >
           Clear all data
         </button>

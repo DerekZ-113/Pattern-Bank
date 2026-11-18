@@ -197,6 +197,46 @@ describe("StarPicker commit mode", () => {
     expect(filledFlags()).toEqual([false, false, false, false, false]);
   });
 
+  it("swaps the n/5 readout for a caller's description, which follows hover", () => {
+    render(
+      <StarPicker
+        mode="select"
+        value={2}
+        onChange={vi.fn()}
+        describe={(value) => `level ${value}`}
+      />
+    );
+
+    expect(screen.getByText("level 2")).toBeTruthy();
+    expect(screen.queryByText("2/5")).toBeNull();
+
+    fireEvent.mouseEnter(screen.getByRole("radio", { name: "4 stars" }));
+    expect(screen.getByText("level 4")).toBeTruthy();
+  });
+
+  // The consequence of each star is exposed as that star's description (read
+  // on focus), not through a live region that would speak on every hover.
+  it("describes each star to assistive tech without a live region", () => {
+    const { container } = render(
+      <StarPicker
+        mode="select"
+        value={2}
+        onChange={vi.fn()}
+        describe={(value) => `level ${value}`}
+      />
+    );
+
+    expect(screen.getByRole("radio", { name: "1 star" }).getAttribute("title")).toBe("level 1");
+    expect(screen.getByRole("radio", { name: "5 stars" }).getAttribute("title")).toBe("level 5");
+    expect(container.querySelector("[aria-live]")).toBeNull();
+  });
+
+  it("adds no descriptions when the caller gives none", () => {
+    render(<StarPicker mode="select" value={2} onChange={vi.fn()} />);
+
+    expect(screen.getByRole("radio", { name: "3 stars" }).hasAttribute("title")).toBe(false);
+  });
+
   it("keeps the pinned lg geometry classes", () => {
     render(<StarPicker mode="commit" value={null} onCommit={vi.fn()} />);
 

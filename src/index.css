@@ -1,28 +1,71 @@
 @import "tailwindcss";
 
+/*
+ * PatternBank design tokens.
+ *
+ * Colour has four jobs, each with its own tokens:
+ *   - accent (violet): things to act on — due reviews, primary actions
+ *   - confidence (red → orange → amber → blue → green): how well something
+ *     is known, one scale shared by tiles, bars and charts
+ *   - difficulty (teal / orange / red): LeetCode's own convention
+ *   - pattern (one hue per pattern): identity, the same hues as the iOS app
+ * Everything else is graphite. Dark is the default; html.light overrides.
+ */
 @theme {
-  --color-pb-bg: #0d1117;
-  --color-pb-surface: #161b22;
-  --color-pb-surface-2: #15151e;
-  --color-pb-surface-hover: #1c2129;
-  --color-pb-border: #30363d;
-  --color-pb-border-strong: #3d444d;
-  --color-pb-border-light: #21262d;
-  --color-pb-text: #e6edf3;
-  --color-pb-text-muted: #8b949e;
-  --color-pb-text-dim: #484f58;
-  --color-pb-accent: #7c6bf5;
-  --color-pb-accent-hover: #9080f5;
-  --color-pb-accent-subtle: rgba(124, 107, 245, 0.12);
-  --color-pb-easy: #3fb950;
-  --color-pb-medium: #d29922;
-  --color-pb-hard: #f85149;
-  --color-pb-star: #e3b341;
-  --color-pb-star-empty: #30363d;
-  --color-pb-success: #3fb950;
-  --color-pb-error: #f85149;
-  --color-pb-shadow: rgba(0,0,0,0.5);
-  --color-pb-heatmap-empty: rgba(48,54,61,0.4);
+  --font-sans: "Atkinson Hyperlegible Next Variable", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono Variable", ui-monospace, "SF Mono",
+    SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Surfaces — graphite with a trace of the brand violet */
+  --color-pb-bg: #121116;
+  --color-pb-surface: #1a181f;
+  --color-pb-surface-2: #211f28;
+  --color-pb-surface-hover: #272430;
+  --color-pb-border-light: #27242e;
+  --color-pb-border: #353140;
+  --color-pb-border-strong: #4b4658;
+
+  /* Text — every step clears 4.5:1 on bg and surface */
+  --color-pb-text: #efedf3;
+  --color-pb-text-muted: #aba6b7;
+  --color-pb-text-dim: #8a8597;
+
+  /* Accent — `accent` is for text and icons, `accent-solid` for fills that
+     carry white text (one value cannot clear AA in both roles on dark). */
+  --color-pb-accent: #9a8cfa;
+  --color-pb-accent-hover: #b3a8fc;
+  --color-pb-accent-solid: #6a57ee;
+  --color-pb-accent-solid-hover: #7867f0;
+  --color-pb-accent-subtle: rgba(138, 122, 250, 0.14);
+
+  /* Confidence 1–5, weak to strong. `conf-N` is for fills, edges and chart
+     lines; `conf-text-N` is the same hue tuned to read as text on a tinted
+     tile or a card (the fills alone do not clear 4.5:1 everywhere). */
+  --color-pb-conf-1: #f76060;
+  --color-pb-conf-2: #fb923c;
+  --color-pb-conf-3: #f5b942;
+  --color-pb-conf-4: #60a5fa;
+  --color-pb-conf-5: #4ade80;
+  --color-pb-conf-text-1: #ff7a7a;
+  --color-pb-conf-text-2: #ffad5c;
+  --color-pb-conf-text-3: #ffd35f;
+  --color-pb-conf-text-4: #7cbbff;
+  --color-pb-conf-text-5: #67ee98;
+
+  --color-pb-star: #e8b84a;
+  --color-pb-star-empty: #3f3a4b;
+
+  --color-pb-easy: #3fc9b0;
+  --color-pb-medium: #f0a440;
+  --color-pb-hard: #f4707f;
+
+  --color-pb-success: #4cc985;
+  --color-pb-warning: #f0a440;
+  --color-pb-error: #f4707f;
+
+  --color-pb-shadow: rgba(0, 0, 0, 0.55);
+  --color-pb-heatmap-empty: rgba(75, 70, 88, 0.3);
 
   /* Pattern colors — text */
   --color-pattern-array-text: #7ee2e8;
@@ -83,78 +126,55 @@
   --color-pattern-database-bg: rgba(163,184,204,0.12);
 }
 
-@keyframes toast-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-@keyframes sync-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
 html {
-  scroll-behavior: smooth;
-}
-
-@keyframes landing-orb1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-25px, 18px) scale(1.04); }
-  66% { transform: translate(18px, -14px) scale(0.97); }
-}
-
-@keyframes landing-orb2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  45% { transform: translate(22px, -16px) scale(1.03); }
-  75% { transform: translate(-14px, 12px) scale(0.98); }
-}
-
-@keyframes landing-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background-color: var(--color-pb-bg);
-  color: var(--color-pb-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
-    Helvetica, Arial, sans-serif;
+  color-scheme: dark;
 }
 
 html.light {
-  --color-pb-bg: #ffffff;
-  --color-pb-surface: #f6f8fa;
-  --color-pb-surface-2: #ffffff;
-  --color-pb-surface-hover: #eef1f4;
-  --color-pb-border: #d0d7de;
-  --color-pb-border-strong: #afb8c1;
-  --color-pb-border-light: #e8ecef;
-  --color-pb-text: #1f2328;
-  --color-pb-text-muted: #656d76;
-  --color-pb-text-dim: #8b949e;
-  --color-pb-accent: #7c6bf5;
-  --color-pb-accent-hover: #6856e0;
-  --color-pb-accent-subtle: rgba(124, 107, 245, 0.08);
-  --color-pb-easy: #1a7f37;
-  --color-pb-medium: #9a6700;
-  --color-pb-hard: #cf222e;
-  --color-pb-star: #b08800;
-  --color-pb-star-empty: #d0d7de;
-  --color-pb-success: #1a7f37;
-  --color-pb-error: #cf222e;
-  --color-pb-shadow: rgba(0,0,0,0.1);
-  --color-pb-heatmap-empty: rgba(200,205,215,0.25);
+  color-scheme: light;
+
+  --color-pb-bg: #f6f5f9;
+  --color-pb-surface: #ffffff;
+  --color-pb-surface-2: #faf9fc;
+  --color-pb-surface-hover: #f0eef5;
+  --color-pb-border-light: #eae8f0;
+  --color-pb-border: #dbd8e3;
+  --color-pb-border-strong: #bcb7ca;
+
+  --color-pb-text: #1c1a22;
+  --color-pb-text-muted: #5b5769;
+  --color-pb-text-dim: #6c6980;
+
+  --color-pb-accent: #5a45de;
+  --color-pb-accent-hover: #4733c4;
+  --color-pb-accent-solid: #5a45de;
+  --color-pb-accent-solid-hover: #4733c4;
+  --color-pb-accent-subtle: rgba(90, 69, 222, 0.09);
+
+  --color-pb-conf-1: #dc4545;
+  --color-pb-conf-2: #df741a;
+  --color-pb-conf-3: #c4900e;
+  --color-pb-conf-4: #3b82f6;
+  --color-pb-conf-5: #22a35a;
+  --color-pb-conf-text-1: #b42318;
+  --color-pb-conf-text-2: #a34a00;
+  --color-pb-conf-text-3: #7a5600;
+  --color-pb-conf-text-4: #1d4ed8;
+  --color-pb-conf-text-5: #146c36;
+
+  --color-pb-star: #b97f0a;
+  --color-pb-star-empty: #d3cfdd;
+
+  --color-pb-easy: #0a7968;
+  --color-pb-medium: #99590a;
+  --color-pb-hard: #cc2f47;
+
+  --color-pb-success: #177a43;
+  --color-pb-warning: #99590a;
+  --color-pb-error: #cc2f47;
+
+  --color-pb-shadow: rgba(28, 26, 34, 0.12);
+  --color-pb-heatmap-empty: rgba(188, 183, 202, 0.35);
 
   /* Pattern colors — text (darker for white bg contrast) */
   --color-pattern-array-text: #148490;
@@ -213,4 +233,60 @@ html.light {
   --color-pattern-system-design-bg: rgba(42,122,104,0.08);
   --color-pattern-ood-bg: rgba(138,90,58,0.08);
   --color-pattern-database-bg: rgba(75,99,119,0.08);
+}
+
+/* These sit in Tailwind's base layer on purpose. Unlayered CSS beats every
+   utility whatever its specificity, so an unlayered focus ring would make
+   `outline-none` (and every outline utility) powerless. */
+@layer base {
+  body {
+    background-color: var(--color-pb-bg);
+    color: var(--color-pb-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* One focus ring for every control. Text fields opt out with outline-none
+     and show focus on their border instead. */
+  :focus-visible {
+    outline: 2px solid var(--color-pb-accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-pb-accent-solid) 45%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }

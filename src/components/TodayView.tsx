@@ -3,10 +3,12 @@ import CollapsingListItem from "./CollapsingListItem";
 import TodayDoneFeed from "./TodayDoneFeed";
 import TodayEarlierLeetCodeActivity from "./TodayEarlierLeetCodeActivity";
 import TodayFirstRunLaunchpad from "./TodayFirstRunLaunchpad";
+import TodayGoalMeter from "./TodayGoalMeter";
 import WhatsNewBanner from "./WhatsNewBanner";
 import TodayLeetCodeCard from "./TodayLeetCodeCard";
 import TodayReviewCard from "./TodayReviewCard";
 import TodaySectionHeader from "./TodaySectionHeader";
+import { buttonClass } from "../utils/buttonStyles";
 import { formatDisplayDate, todayStr, utcToLocalDateStr } from "@patternbank/core";
 import {
   buildEarlierLeetCodeActivity,
@@ -175,13 +177,26 @@ export default function TodayView({
     return onRateLeetCodeReview?.(item.submissionDbId, item.matchedProblemId, confidence, item);
   }, [onRateLeetCodeReview]);
 
+  const emptyStateClass =
+    "rounded-xl border border-pb-border-light bg-pb-surface px-5 py-7";
+  const hasLog = doneTodayItems.length > 0 || earlierLeetCodeDays.length > 0;
+
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-6 md:px-8">
-      <header className="pt-1">
-        <h1 className="m-0 text-[30px] font-semibold leading-tight tracking-normal text-pb-text">
+    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-7 px-5 pb-8 pt-7 md:px-8">
+      <header>
+        <h1 className="m-0 text-[32px] font-bold leading-tight tracking-tight text-pb-text">
           Today
         </h1>
         <p className="mt-1 text-sm text-pb-text-muted">{formatDisplayDate(today)}</p>
+        {!shouldShowFirstRunLaunchpad && effectiveGoal > 0 && (
+          <div className="mt-4">
+            <TodayGoalMeter
+              reviewedToday={reviewedToday}
+              effectiveGoal={effectiveGoal}
+              totalDueCount={totalDueCount}
+            />
+          </div>
+        )}
       </header>
 
       {showWhatsNew && !shouldShowFirstRunLaunchpad && (
@@ -202,128 +217,133 @@ export default function TodayView({
           existingProblemNumbers={existingProblemNumbers}
         />
       ) : (
-        <>
-          {shouldShowLeetCodeSection && (
-            <section aria-labelledby="today-leetcode-title">
-              <TodaySectionHeader
-                id="today-leetcode-title"
-                title="From LeetCode"
-                count={leetcodeSectionItems.length}
-                subcopy="Solved on LC today"
-                accent
-              />
-              {hasLeetCodeSectionRows && (
-                <div className="flex flex-col gap-2.5">
-                  {leetcodeSectionItems.map((item) => (
-                    <TodayLeetCodeCard
-                      key={item.submissionDbId}
-                      item={item}
-                      onConfirm={handleConfirmLeetCodeImport}
-                      onIgnore={(pendingItem) => onIgnoreLeetCodeImport?.(pendingItem)}
-                      onRateKnown={handleRateKnownLeetCodeItem}
-                      onOpenProblemDetails={openDetailsById}
-                    />
-                  ))}
-                  {exitingLeetCodeItems.map(({ key, item }) => (
-                    <CollapsingListItem
-                      key={`exiting-${key}`}
-                      onExited={() => handleLeetCodeExitComplete(key)}
-                    >
+        // What to do sits in the main column; the log of what is done sits
+        // beside it on wide screens and below it on narrow ones.
+        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="flex min-w-0 max-w-[780px] flex-col gap-8">
+            {shouldShowLeetCodeSection && (
+              <section aria-labelledby="today-leetcode-title">
+                <TodaySectionHeader
+                  id="today-leetcode-title"
+                  title="From LeetCode"
+                  count={leetcodeSectionItems.length}
+                  subcopy="Solved on LC today"
+                />
+                {hasLeetCodeSectionRows && (
+                  <div className="flex flex-col gap-2.5">
+                    {leetcodeSectionItems.map((item) => (
                       <TodayLeetCodeCard
+                        key={item.submissionDbId}
                         item={item}
-                        onConfirm={() => undefined}
-                        onIgnore={() => undefined}
-                        onRateKnown={() => undefined}
+                        onConfirm={handleConfirmLeetCodeImport}
+                        onIgnore={(pendingItem) => onIgnoreLeetCodeImport?.(pendingItem)}
+                        onRateKnown={handleRateKnownLeetCodeItem}
+                        onOpenProblemDetails={openDetailsById}
                       />
-                    </CollapsingListItem>
+                    ))}
+                    {exitingLeetCodeItems.map(({ key, item }) => (
+                      <CollapsingListItem
+                        key={`exiting-${key}`}
+                        onExited={() => handleLeetCodeExitComplete(key)}
+                      >
+                        <TodayLeetCodeCard
+                          item={item}
+                          onConfirm={() => undefined}
+                          onIgnore={() => undefined}
+                          onRateKnown={() => undefined}
+                        />
+                      </CollapsingListItem>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
+            <section aria-labelledby="today-reviews-title">
+              <TodaySectionHeader
+                id="today-reviews-title"
+                title="Reviews due"
+                count={totalDueCount}
+                subcopy="Weakest first"
+              />
+
+              {todaysReviews.length === 0 ? (
+                <div className={emptyStateClass}>
+                  {reviewedToday >= effectiveGoal && totalDueCount > 0 ? (
+                    <>
+                      <div className="text-sm font-semibold text-pb-text">
+                        Daily review goal complete
+                      </div>
+                      <div className="mt-1 text-[13px] text-pb-text-muted">
+                        You completed {effectiveGoal} review{effectiveGoal !== 1 ? "s" : ""} today.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-sm font-semibold text-pb-text">
+                        No reviews due
+                      </div>
+                      <div className="mt-1 text-[13px] text-pb-text-muted">
+                        All scheduled reviews are set for later.
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {todaysReviews.map((problem) => (
+                    <TodayReviewCard
+                      key={problem.id}
+                      problem={problem}
+                      hidePatterns={hidePatterns}
+                      solvedOnLeetCodeToday={
+                        solvedOnLeetCodeToday.problemIds.has(problem.id)
+                        || (typeof problem.leetcodeNumber === "number"
+                          && solvedOnLeetCodeToday.leetcodeNumbers.has(problem.leetcodeNumber))
+                      }
+                      onReview={onReview}
+                      onDismiss={onDismiss}
+                      onUpdateNotes={onUpdateNotes}
+                      onOpenDetails={onEditProblem}
+                    />
                   ))}
                 </div>
               )}
+
+              {totalDueCount > todaysReviews.length && totalDueCount > 0 && (
+                <button
+                  type="button"
+                  onClick={onViewAllDue}
+                  className={`${buttonClass("ghost")} mt-2 w-full`}
+                >
+                  See all {totalDueCount} due
+                </button>
+              )}
             </section>
-          )}
+          </div>
 
-          <section aria-labelledby="today-reviews-title">
-            <TodaySectionHeader
-              id="today-reviews-title"
-              title="Reviews due"
-              count={totalDueCount}
-              subcopy="Spaced repetition — rate after reviewing"
-            />
-
-            {todaysReviews.length === 0 ? (
-              <div className="rounded-[10px] border border-pb-border bg-pb-surface px-5 py-8 text-center">
-                {reviewedToday >= effectiveGoal && totalDueCount > 0 ? (
-                  <>
-                    <div className="mb-2 text-xl font-semibold text-pb-success">✓</div>
-                    <div className="mb-1 text-sm font-medium text-pb-text">
-                      Daily review goal complete
-                    </div>
-                    <div className="text-[13px] text-pb-text-muted">
-                      You completed {effectiveGoal} review{effectiveGoal !== 1 ? "s" : ""} today.
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="mb-2 text-xl font-semibold text-pb-success">✓</div>
-                    <div className="mb-1 text-sm font-medium text-pb-text">
-                      No reviews due
-                    </div>
-                    <div className="text-[13px] text-pb-text-muted">
-                      All scheduled reviews are set for later.
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2.5">
-                {todaysReviews.map((problem) => (
-                  <TodayReviewCard
-                    key={problem.id}
-                    problem={problem}
-                    hidePatterns={hidePatterns}
-                    solvedOnLeetCodeToday={
-                      solvedOnLeetCodeToday.problemIds.has(problem.id)
-                      || (typeof problem.leetcodeNumber === "number"
-                        && solvedOnLeetCodeToday.leetcodeNumbers.has(problem.leetcodeNumber))
-                    }
-                    onReview={onReview}
-                    onDismiss={onDismiss}
-                    onUpdateNotes={onUpdateNotes}
-                    onOpenDetails={onEditProblem}
+          {hasLog && (
+            <div className="flex min-w-0 flex-col gap-8">
+              {doneTodayItems.length > 0 && (
+                <section aria-labelledby="done-today-title">
+                  <TodaySectionHeader
+                    id="done-today-title"
+                    title="Done today"
+                    count={doneTodayItems.length}
+                    subcopy="Newest first"
                   />
-                ))}
-              </div>
-            )}
+                  <TodayDoneFeed
+                    items={doneTodayItems}
+                    onRateLeetCodeReview={onRateLeetCodeReview}
+                    onOpenProblemDetails={openDetailsById}
+                  />
+                </section>
+              )}
 
-            {totalDueCount > todaysReviews.length && totalDueCount > 0 && (
-              <button
-                onClick={onViewAllDue}
-                className="mt-2 w-full cursor-pointer border-none bg-transparent py-2 text-center text-[13px] font-medium text-pb-text-dim transition-colors hover:text-pb-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pb-accent"
-              >
-                See all {totalDueCount} due →
-              </button>
-            )}
-          </section>
-
-          {doneTodayItems.length > 0 && (
-            <section aria-labelledby="done-today-title">
-              <TodaySectionHeader
-                id="done-today-title"
-                title="Done today"
-                count={doneTodayItems.length}
-                subcopy="Reverse chronological"
-                accent
-              />
-              <TodayDoneFeed
-                items={doneTodayItems}
-                onRateLeetCodeReview={onRateLeetCodeReview}
-                onOpenProblemDetails={openDetailsById}
-              />
-            </section>
+              <TodayEarlierLeetCodeActivity days={earlierLeetCodeDays} onOpenProblemDetails={openDetailsById} />
+            </div>
           )}
-
-          <TodayEarlierLeetCodeActivity days={earlierLeetCodeDays} onOpenProblemDetails={openDetailsById} />
-        </>
+        </div>
       )}
     </main>
   );

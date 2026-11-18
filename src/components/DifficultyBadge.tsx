@@ -1,21 +1,24 @@
 import type { Difficulty } from "../types";
 
 const COLOR_MAP: Record<Difficulty, string> = {
-  Easy: "border-pb-easy/20 bg-pb-easy/10 text-pb-easy",
-  Medium: "border-pb-medium/25 bg-pb-medium/10 text-pb-medium",
-  Hard: "border-pb-hard/25 bg-pb-hard/10 text-pb-hard",
+  Easy: "text-pb-easy",
+  Medium: "text-pb-medium",
+  Hard: "text-pb-hard",
 };
 
 interface Props {
   difficulty: Difficulty;
+  /** Placement only (alignment, grid cell); the look is fixed here. */
+  className?: string;
 }
 
-export default function DifficultyBadge({ difficulty }: Props) {
+// A coloured word with no pill or border, the way LeetCode shows difficulty.
+// It stays plain on purpose: pattern tags are the bordered chips, so a boxed
+// difficulty would read as one more tag.
+export default function DifficultyBadge({ difficulty, className = "" }: Props) {
   return (
     <span
-      className={`inline-flex items-center rounded-md border px-2.5 py-1 text-[11px] font-semibold uppercase leading-none tracking-wide ${
-        COLOR_MAP[difficulty] || "border-pb-border text-pb-text-muted"
-      }`}
+      className={`text-xs font-semibold leading-none ${COLOR_MAP[difficulty] || "text-pb-text-muted"} ${className}`}
     >
       {difficulty}
     </span>

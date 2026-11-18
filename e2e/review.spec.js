@@ -27,7 +27,8 @@ test.describe("Review Flow", () => {
     await page.getByRole("button", { name: "Done" }).click();
 
     // Verify toast shows progress
-    await expect(page.getByText(/1 of \d+ done/)).toBeVisible();
+    // The toast, not the Today goal meter, which uses the same wording.
+    await expect(page.getByRole("status").getByText(/1 of \d+ done/)).toBeVisible();
 
     // Verify confidence updated in localStorage
     const stored = await getStoredProblems(page);

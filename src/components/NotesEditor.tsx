@@ -18,12 +18,12 @@ export default function NotesEditor({ value, onChange, inputClassName }: Props) 
 
   return (
     <div>
-      <label className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
+      <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
         Notes
       </label>
       <textarea
         ref={notesRef}
-        className={`${inputClassName} min-h-[80px] resize-none overflow-hidden font-[inherit] leading-relaxed`}
+        className={`${inputClassName} min-h-[80px] resize-none overflow-hidden font-mono leading-relaxed`}
         placeholder="Key insight, approach, time/space complexity..."
         value={value}
         onChange={(e) => onChange(e.target.value)}

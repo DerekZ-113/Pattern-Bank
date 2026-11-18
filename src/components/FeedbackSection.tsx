@@ -2,6 +2,9 @@ import { useState } from "react";
 import posthog from "posthog-js";
 import { submitFeedback } from "../utils/supabaseData";
 import type { User } from "@supabase/supabase-js";
+import Icon from "./Icon";
+import { buttonClass, iconButtonClass } from "../utils/buttonStyles";
+import { fieldClass } from "../utils/fieldStyles";
 
 interface Props {
   user: User | null;
@@ -34,17 +37,25 @@ export default function FeedbackSection({ user }: Props) {
   if (!isOpen) {
     return (
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
-        className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-pb-border bg-transparent px-3.5 py-2.5 text-[13px] font-medium text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text"
+        className={`${buttonClass("outline")} w-full`}
       >
-        {status === "sent" ? "Feedback sent \u2713" : "Leave Feedback"}
+        {status === "sent" ? (
+          <>
+            Feedback sent
+            <Icon name="check" className="h-4 w-4 text-pb-success" />
+          </>
+        ) : (
+          "Leave Feedback"
+        )}
       </button>
     );
   }
 
   if (status === "sent") {
     return (
-      <div className="rounded-lg border border-pb-success/30 bg-pb-success/8 px-3.5 py-3 text-center text-[13px] text-pb-success">
+      <div className="rounded-lg border border-pb-success/30 bg-pb-success/10 px-3.5 py-3 text-center text-[13px] text-pb-success">
         Thanks for your feedback!
       </div>
     );
@@ -55,10 +66,12 @@ export default function FeedbackSection({ user }: Props) {
       <div className="mb-2 flex items-center justify-between">
         <label className="text-xs font-semibold text-pb-text-muted">What's on your mind?</label>
         <button
+          type="button"
           onClick={() => { setIsOpen(false); setMessage(""); }}
-          className="cursor-pointer border-none bg-transparent px-1 text-xs text-pb-text-dim hover:text-pb-text-muted"
+          aria-label="Close feedback"
+          className={iconButtonClass("sm")}
         >
-          ✕
+          <Icon name="close" />
         </button>
       </div>
       <textarea
@@ -67,12 +80,13 @@ export default function FeedbackSection({ user }: Props) {
         placeholder="What's working? What's not? Ideas?"
         rows={3}
         autoFocus
-        className="w-full resize-y rounded-lg border border-pb-border bg-pb-surface px-3 py-2.5 text-sm font-[inherit] leading-relaxed text-pb-text placeholder:text-pb-text-dim outline-none transition-colors duration-150 focus:border-pb-accent"
+        className={`${fieldClass({ inset: true })} resize-y leading-relaxed`}
       />
       <button
+        type="button"
         onClick={handleSubmit}
         disabled={!message.trim() || status === "sending"}
-        className="mt-2 w-full cursor-pointer rounded-lg border border-pb-border bg-transparent py-2.5 text-[13px] font-semibold text-pb-text-muted transition-all duration-150 hover:border-pb-text-muted hover:text-pb-text disabled:cursor-not-allowed disabled:opacity-40"
+        className={`${buttonClass("primary")} mt-2 w-full`}
       >
         {status === "sending" ? "Sending..." : status === "error" ? "Failed \u2014 try again" : "Send Feedback"}
       </button>

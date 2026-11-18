@@ -21,3 +21,9 @@ export function formatClockTime(timestamp: string): string {
     minute: "2-digit",
   });
 }
+
+/** What a rating schedules, shown while the user is choosing it. */
+export function formatNextReview(intervalDays: number): string {
+  if (intervalDays <= 1) return "Next review tomorrow";
+  return `Next review in ${intervalDays} days`;
+}

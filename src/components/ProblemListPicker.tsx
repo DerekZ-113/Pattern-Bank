@@ -2,6 +2,8 @@ import { useState, useMemo } from "react";
 import posthog from "posthog-js";
 import { getListSummaries, getListProblems } from "@patternbank/core";
 import type { LeetCodeProblem } from "../types";
+import Icon from "./Icon";
+import { buttonClass } from "../utils/buttonStyles";
 
 interface Props {
   existingIds: Set<number>;
@@ -32,20 +34,20 @@ export default function ProblemListPicker({ existingIds, onBulkAdd, hideLabel }:
     setSelectedId("");
   };
 
-  // Progress bar color
+  // Progress bar colour
   const getBarColor = (existing: number, total: number) => {
-    if (total === 0) return "#3fb950";
+    if (total === 0) return "bg-pb-success";
     const pct = existing / total;
-    if (pct >= 0.8) return "#3fb950";
-    if (pct >= 0.4) return "#e3b341";
-    return "#8b949e";
+    if (pct >= 0.8) return "bg-pb-success";
+    if (pct >= 0.4) return "bg-pb-warning";
+    return "bg-pb-text-dim";
   };
 
   return (
     <div>
       {!hideLabel && (
-        <label className="mb-2 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-          Import Problem List
+        <label className="mb-2 block text-[13px] font-semibold text-pb-text-muted">
+          Import problem list
         </label>
       )}
 
@@ -69,9 +71,10 @@ export default function ProblemListPicker({ existingIds, onBulkAdd, hideLabel }:
             </option>
           ))}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-pb-text-dim">
-          ▼
-        </span>
+        <Icon
+          name="chevronDown"
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-pb-text-dim"
+        />
       </div>
 
       {/* Info bar — shown when a list is selected */}
@@ -97,18 +100,16 @@ export default function ProblemListPicker({ existingIds, onBulkAdd, hideLabel }:
               {/* Progress bar */}
               <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-pb-border">
                 <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${(selected.existing / selected.total) * 100}%`,
-                    backgroundColor: getBarColor(selected.existing, selected.total),
-                  }}
+                  className={`h-full rounded-full transition-all duration-300 ${getBarColor(selected.existing, selected.total)}`}
+                  style={{ width: `${(selected.existing / selected.total) * 100}%` }}
                 />
               </div>
 
               {/* Add button */}
               <button
+                type="button"
                 onClick={handleAdd}
-                className="w-full cursor-pointer rounded-lg border-none bg-pb-accent py-2.5 text-[13px] font-semibold text-white transition-opacity duration-150 hover:opacity-85"
+                className={`${buttonClass("primary")} w-full`}
               >
                 Add {selected.newCount} Problem{selected.newCount !== 1 ? "s" : ""}
               </button>
@@ -116,7 +117,7 @@ export default function ProblemListPicker({ existingIds, onBulkAdd, hideLabel }:
           ) : (
             /* All added state */
             <div className="flex items-center gap-2 py-1">
-              <span className="text-sm text-pb-success">✓</span>
+              <Icon name="check" className="h-4 w-4 text-pb-success" />
               <span className="text-[13px] font-medium text-pb-success">
                 All {selected.total} problems already added
               </span>

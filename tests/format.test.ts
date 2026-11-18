@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatClockTime, formatLastSynced } from "../src/utils/format";
+import { formatClockTime, formatLastSynced, formatNextReview } from "../src/utils/format";
 
 describe("formatLastSynced", () => {
   it("handles a missing timestamp", () => {
@@ -38,5 +38,21 @@ describe("formatClockTime", () => {
 
   it("returns an empty string for invalid timestamps", () => {
     expect(formatClockTime("not-a-date")).toBe("");
+  });
+});
+
+describe("formatNextReview", () => {
+  it("says tomorrow for a one-day interval", () => {
+    expect(formatNextReview(1)).toBe("Next review tomorrow");
+  });
+
+  it("counts days for longer intervals", () => {
+    expect(formatNextReview(2)).toBe("Next review in 2 days");
+    expect(formatNextReview(30)).toBe("Next review in 30 days");
+    expect(formatNextReview(365)).toBe("Next review in 365 days");
+  });
+
+  it("never promises a review today or in the past", () => {
+    expect(formatNextReview(0)).toBe("Next review tomorrow");
   });
 });

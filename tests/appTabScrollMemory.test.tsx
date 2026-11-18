@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import App from "../src/App";
 import useAuth from "../src/hooks/useAuth";
@@ -17,7 +18,11 @@ vi.mock("../src/utils/storage", () => ({
   loadReviewEvents: vi.fn(() => []),
   loadReviewLog: vi.fn(() => []),
 }));
-vi.mock("../src/components/Header", () => ({ default: () => <div data-testid="header" /> }));
+// The header hosts the nav (bottom bar on phones, header tabs on desktop), so
+// the stub has to pass it through for the tab buttons to exist.
+vi.mock("../src/components/Header", () => ({
+  default: (props: { nav?: ReactNode }) => <div data-testid="header">{props.nav}</div>,
+}));
 vi.mock("../src/components/HelpModal", () => ({ default: () => null }));
 vi.mock("../src/components/ProblemModal", () => ({ default: () => null }));
 vi.mock("../src/components/SettingsModal", () => ({ default: () => null }));

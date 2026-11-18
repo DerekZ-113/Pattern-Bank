@@ -68,6 +68,10 @@ function NavIcon({ name }: { name: NavIconName }) {
   );
 }
 
+// One nav, two homes. On small screens it is the fixed bottom tab bar; from
+// `md` up it drops into the header row (Header renders it as a child) as
+// plain text tabs. It is a single element either way, so there is exactly one
+// "Today" button in the accessibility tree at every width.
 export default function NavBar({ activeTab, onTabChange }: Props) {
   const tabs: { id: ActiveTab; label: string; icon: NavIconName }[] = [
     { id: "dashboard", label: "Today", icon: "today" },
@@ -76,28 +80,38 @@ export default function NavBar({ activeTab, onTabChange }: Props) {
   ];
 
   return (
-    <nav aria-label="Primary" className="fixed bottom-0 left-0 right-0 z-[900] border-t border-pb-border bg-pb-bg/85 backdrop-blur">
-      <div className="mx-auto grid h-16 max-w-[1200px] grid-cols-3">
-      {tabs.map((tab) => {
-        const active = activeTab === tab.id;
-        return (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            aria-current={active ? "page" : undefined}
-            className={`flex flex-col items-center justify-center gap-1 border-none bg-transparent text-[11px] transition-colors duration-150 ${
-              active
-                ? "font-semibold text-pb-accent"
-                : "font-medium text-pb-text-dim hover:text-pb-text-muted"
-            } cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-pb-accent`}
-          >
-            <span aria-hidden="true" className="flex h-5 items-center justify-center leading-none">
-              <NavIcon name={tab.icon} />
-            </span>
-            {tab.label}
-          </button>
-        );
-      })}
+    <nav
+      aria-label="Primary"
+      className="fixed inset-x-0 bottom-0 z-[900] border-t border-pb-border-light bg-pb-bg/90 backdrop-blur md:static md:z-auto md:self-stretch md:border-t-0 md:bg-transparent md:backdrop-blur-none"
+    >
+      <div className="mx-auto grid h-16 max-w-[1200px] grid-cols-3 md:flex md:h-full md:max-w-none md:gap-1">
+        {tabs.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id)}
+              aria-current={active ? "page" : undefined}
+              className={`relative flex cursor-pointer flex-col items-center justify-center gap-1 border-none bg-transparent text-xs transition-colors duration-150 focus-visible:outline-offset-[-3px] md:px-3 md:text-sm ${
+                active
+                  ? "font-semibold text-pb-accent md:text-pb-text"
+                  : "font-medium text-pb-text-dim hover:text-pb-text-muted md:text-pb-text-muted md:hover:text-pb-text"
+              }`}
+            >
+              <span aria-hidden="true" className="flex h-5 items-center justify-center leading-none md:hidden">
+                <NavIcon name={tab.icon} />
+              </span>
+              {tab.label}
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-3 -bottom-px hidden h-0.5 rounded-full bg-pb-accent md:block"
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
     </nav>
   );

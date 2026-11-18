@@ -68,8 +68,8 @@ describe("AllProblemsView", () => {
   it("renders the Claude-style shell, search, filters, and results count", () => {
     renderAllProblems();
 
-    expect(screen.getByRole("heading", { name: "All Problems", level: 1 })).toBeTruthy();
-    expect(screen.getByText(/Browse and maintain your library/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Problems", level: 1 })).toBeTruthy();
+    expect(screen.queryByText(/Browse and maintain your library/)).toBeNull();
     expect(screen.getByText("3 problems")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add Problem" })).toBeTruthy();
     expect(screen.getByPlaceholderText("Search by title, number, or notes…")).toBeTruthy();
@@ -91,7 +91,7 @@ describe("AllProblemsView", () => {
     expect(difficultyFilter?.getAttribute("data-active-filter")).toBe("true");
     expect(screen.getByText(/Showing/).textContent).toContain("1");
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear filters ×" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
     expect((screen.getByLabelText("Difficulty") as HTMLSelectElement).value).toBe("all");
     expect(screen.getByText(/Showing/).textContent).toContain("3");
@@ -165,6 +165,67 @@ describe("AllProblemsView", () => {
 
     const excludedRow = screen.getByText("Word Ladder").closest("article")!;
     expect(within(excludedRow).getByText("Excluded from reviews")).toBeTruthy();
+  });
+
+  // The row opens the editor on click, but a row is not focusable: without a
+  // real control in it, keyboard users could not open a problem at all.
+  it("opens a problem from its title button, exactly once", () => {
+    const { onEdit } = renderAllProblems();
+
+    const title = screen.getByRole("button", { name: "Two Sum" });
+    // h2: rows sit directly under the page's h1.
+    expect(title.closest("h2")).not.toBeNull();
+    fireEvent.click(title);
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: "problem-1" }));
+  });
+
+  it("gives every problem its own title button", () => {
+    renderAllProblems();
+
+    for (const problem of problems) {
+      expect(screen.getByRole("button", { name: problem.title })).toBeTruthy();
+    }
+  });
+
+  // The row is one visual line (problem, confidence, status, actions), so the
+  // controls must come in that order in the DOM for Tab to follow the eye.
+  it("orders a row's controls the way they read: title, Review, then row actions", () => {
+    renderAllProblems();
+
+    const dueRow = screen.getByText("Number of Islands").closest("article")!;
+    const names = within(dueRow)
+      .getAllByRole("button")
+      .map((button) => button.getAttribute("aria-label") ?? button.textContent);
+
+    expect(names).toEqual(["Number of Islands", "Review", "Exclude from review", "Delete problem"]);
+  });
+
+  // Difficulty is a column of its own beside the stars (the way LeetCode's
+  // list shows it), not the first chip in the tag line.
+  it("gives difficulty its own cell ahead of the stars, once per row", () => {
+    renderAllProblems();
+
+    const row = screen.getByText("Two Sum").closest("article")!;
+    const difficulty = within(row).getAllByText("Easy");
+    expect(difficulty).toHaveLength(1);
+
+    const stars = within(row).getByRole("img", { name: /out of 5 stars/ });
+    expect(difficulty[0].compareDocumentPosition(stars) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const tag = within(row).getByText("Hash Table");
+    expect(tag.parentElement).not.toBe(difficulty[0].parentElement);
+    expect(difficulty[0].className).toContain("md:col-start-2");
+  });
+
+  it("keeps difficulty a plain coloured word, unlike the bordered pattern tags", () => {
+    renderAllProblems();
+
+    const row = screen.getByText("Two Sum").closest("article")!;
+    expect(within(row).getByText("Easy").className).toContain("text-pb-easy");
+    expect(within(row).getByText("Easy").className).not.toMatch(/\bborder\b|\bbg-/);
+    expect(within(row).getByText("Hash Table").className).toMatch(/\bborder\b/);
   });
 
   it("keeps card edit, exclude, and delete interactions isolated", () => {

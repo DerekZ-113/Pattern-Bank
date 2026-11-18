@@ -3,6 +3,9 @@ import type { User } from "@supabase/supabase-js";
 import type { LeetCodeConnection } from "../types";
 import { formatLastSynced } from "../utils/format";
 import InlineError from "./InlineError";
+import { buttonClass } from "../utils/buttonStyles";
+import { fieldClass } from "../utils/fieldStyles";
+import { SettingsGroup } from "./SettingsGroup";
 
 interface Props {
   user: User | null;
@@ -37,12 +40,9 @@ export default function LeetCodeActivitySection({
 
   return (
     <div>
-      <label className="mb-2 block text-[13px] font-semibold uppercase tracking-wide text-pb-text-muted">
-        LeetCode Activity
-      </label>
-
+      <SettingsGroup title="LeetCode Activity">
       {!user && (
-        <div className="rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3">
+        <div className="px-4 py-3.5">
           <div className="text-sm font-semibold text-pb-text">
             Sign in to connect LeetCode
           </div>
@@ -53,7 +53,7 @@ export default function LeetCodeActivitySection({
       )}
 
       {user && !connection && (
-        <form onSubmit={handleConnect} className="rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3">
+        <form onSubmit={handleConnect} className="px-4 py-3.5">
           <p className="mb-3 text-xs leading-relaxed text-pb-text-dim">
             Track recent accepted submissions from your public LeetCode profile.
           </p>
@@ -67,12 +67,12 @@ export default function LeetCodeActivitySection({
               onChange={(event) => setUsername(event.target.value)}
               placeholder="derek113"
               disabled={disabled}
-              className="min-w-0 flex-1 rounded-lg border border-pb-border bg-pb-surface px-3 py-2 text-sm text-pb-text outline-none transition-colors placeholder:text-pb-text-dim focus:border-pb-accent disabled:opacity-60"
+              className={`${fieldClass()} min-w-0 flex-1`}
             />
             <button
               type="submit"
               disabled={disabled || !username.trim()}
-              className="cursor-pointer rounded-lg border border-pb-accent bg-pb-accent px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className={buttonClass("primary")}
             >
               Track activity
             </button>
@@ -81,7 +81,7 @@ export default function LeetCodeActivitySection({
       )}
 
       {user && connection && (
-        <div className="rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3">
+        <div className="px-4 py-3.5">
           <div className="flex items-start justify-between gap-3 max-sm:flex-col">
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-pb-text">
@@ -96,7 +96,7 @@ export default function LeetCodeActivitySection({
                 type="button"
                 onClick={() => void onSyncNow()}
                 disabled={disabled}
-                className="cursor-pointer rounded-lg border border-pb-border bg-transparent px-3 py-1.5 text-xs font-medium text-pb-text-muted transition-colors hover:border-pb-text-muted hover:text-pb-text disabled:cursor-not-allowed disabled:opacity-50"
+                className={buttonClass("outline", "sm")}
               >
                 Sync now
               </button>
@@ -104,24 +104,25 @@ export default function LeetCodeActivitySection({
                 type="button"
                 onClick={() => void onDisconnect()}
                 disabled={disabled}
-                className="cursor-pointer rounded-lg border border-pb-border bg-transparent px-3 py-1.5 text-xs font-medium text-pb-text-muted transition-colors hover:border-pb-hard hover:text-pb-hard disabled:cursor-not-allowed disabled:opacity-50"
+                className={buttonClass("danger", "sm")}
               >
                 Disconnect
               </button>
             </div>
           </div>
           {connection.syncStatus === "no_visible_submissions" && (
-            <p className="mt-3 rounded-lg border border-pb-border bg-pb-surface px-3 py-2 text-xs leading-relaxed text-pb-text-dim">
+            <p className="mt-3 rounded-lg border border-pb-border bg-pb-bg px-3 py-2 text-xs leading-relaxed text-pb-text-dim">
               We could not see recent accepted submissions. Check that recent submissions are visible on your public LeetCode profile.
             </p>
           )}
           {connection.syncStatus === "rate_limited" && (
-            <p className="mt-3 rounded-lg border border-pb-border bg-pb-surface px-3 py-2 text-xs leading-relaxed text-pb-text-dim">
+            <p className="mt-3 rounded-lg border border-pb-border bg-pb-bg px-3 py-2 text-xs leading-relaxed text-pb-text-dim">
               LeetCode rate limited the request. Try again later.
             </p>
           )}
         </div>
       )}
+      </SettingsGroup>
 
       <InlineError message={error ?? undefined} />
     </div>

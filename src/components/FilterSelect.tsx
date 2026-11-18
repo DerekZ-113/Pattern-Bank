@@ -1,3 +1,5 @@
+import Icon from "./Icon";
+
 interface FilterOption {
   value: string;
   label: string;
@@ -21,36 +23,29 @@ export default function FilterSelect({ value, onChange, options, ariaLabel, acti
         aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`h-9 w-full cursor-pointer appearance-none rounded-lg border py-0 pr-8 pl-3 text-[13px] outline-none transition-colors duration-150 hover:border-pb-border-strong hover:bg-pb-surface-2 focus:border-pb-accent ${
+        className={`h-9 w-full cursor-pointer appearance-none rounded-lg border bg-pb-surface py-0 pr-8 pl-3 text-[13px] outline-none transition-colors duration-150 hover:border-pb-border-strong focus:border-pb-accent ${
           active
-            ? "border-pb-accent/45 bg-pb-accent-subtle text-pb-accent"
-            : "border-pb-border bg-pb-surface text-pb-text"
+            ? "border-pb-accent/60 font-medium text-pb-accent"
+            : "border-pb-border text-pb-text"
         }`}
       >
         {options.map((opt) => (
           <option
             key={opt.value}
             value={opt.value}
-            className="bg-pb-surface text-pb-text"
+            className="bg-pb-surface font-normal text-pb-text"
           >
             {opt.label}
           </option>
         ))}
       </select>
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={`pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 ${
+      <span
+        className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 ${
           active ? "text-pb-accent" : "text-pb-text-dim"
         }`}
       >
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
+        <Icon name="chevronDown" className="h-3.5 w-3.5" />
+      </span>
     </div>
   );
 }
