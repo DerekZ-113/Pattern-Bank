@@ -281,18 +281,24 @@ describe("TodayView", () => {
     expect(onUpdateNotes).toHaveBeenCalledWith("p1", "Remember the hash map");
   });
 
-  it("hides Done today when there are no rows", () => {
+  it("shows Done today as empty goal slots when nothing is done yet", () => {
     renderTodayView({ reviewEvents: [] });
 
-    expect(screen.queryByText("Done today")).toBeNull();
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).getByText("0 of 1")).toBeTruthy();
+    expect(doneSection.querySelectorAll("[data-goal-slot]").length).toBe(1);
+    expect(within(doneSection).queryByText("rated")).toBeNull();
   });
 
   it("renders Done today count and confidence rating", () => {
-    renderTodayView({ reviewEvents: [makeReviewEvent()] });
+    renderTodayView({
+      problems: [makeProblem({ lastReviewed: "2026-05-14", nextReviewDate: "2026-05-20" })],
+      reviewEvents: [makeReviewEvent()],
+    });
 
     expect(screen.getByText("Done today")).toBeTruthy();
     const doneSection = screen.getByText("Done today").closest("section")!;
-    expect(within(doneSection).getByText("1")).toBeTruthy();
+    expect(within(doneSection).getByText("Goal met · 1")).toBeTruthy();
     expect(within(doneSection).getByText("rated")).toBeTruthy();
     expect(within(doneSection).getByText("4★")).toBeTruthy();
   });
@@ -934,8 +940,11 @@ describe("TodayView earlier LeetCode activity", () => {
     });
 
     expect(screen.getByText("Earlier LeetCode activity")).toBeTruthy();
-    const doneSection = screen.queryByText("Done today");
-    expect(doneSection).toBeNull();
+    // Yesterday's solve is not something done today: Done today holds only
+    // the empty slot for the review that is due.
+    const doneSection = screen.getByText("Done today").closest("section")!;
+    expect(within(doneSection).queryByText("Two Sum")).toBeNull();
+    expect(doneSection.querySelectorAll("[data-goal-slot]").length).toBe(1);
 
     const toggle = screen.getByRole("button", { name: "Show" });
     fireEvent.click(toggle);

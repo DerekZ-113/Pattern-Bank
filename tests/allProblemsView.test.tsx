@@ -68,8 +68,8 @@ describe("AllProblemsView", () => {
   it("renders the Claude-style shell, search, filters, and results count", () => {
     renderAllProblems();
 
-    expect(screen.getByRole("heading", { name: "All Problems", level: 1 })).toBeTruthy();
-    expect(screen.getByText(/Browse and maintain your library/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Problems", level: 1 })).toBeTruthy();
+    expect(screen.queryByText(/Browse and maintain your library/)).toBeNull();
     expect(screen.getByText("3 problems")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Add Problem" })).toBeTruthy();
     expect(screen.getByPlaceholderText("Search by title, number, or notes…")).toBeTruthy();

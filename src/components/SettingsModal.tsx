@@ -1,8 +1,9 @@
 import useDialogFocus from "../hooks/useDialogFocus";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import useTheme from "../hooks/useTheme";
 import Icon from "./Icon";
 import { iconButtonClass } from "../utils/buttonStyles";
+import { SETTINGS_ROW_CLASS, SettingsDisclosure, SettingsGroup, SettingsRow, SettingsSwitchMark } from "./SettingsGroup";
 import AccountSection from "./AccountSection";
 import MobileAppSection from "./MobileAppSection";
 import DailyGoalSection from "./DailyGoalSection";
@@ -17,31 +18,6 @@ import LeetCodeActivitySection from "./LeetCodeActivitySection";
 import type { User } from "@supabase/supabase-js";
 import type { Preferences, LeetCodeProblem } from "../types";
 import type { UseLeetCodeActivityState } from "../hooks/useLeetCodeActivity";
-
-function CollapsibleSection({ title, defaultOpen = false, children }: {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
-        className="flex w-full cursor-pointer items-center justify-between rounded-lg border-none bg-transparent py-1 text-left text-[13px] font-semibold text-pb-text-muted transition-colors duration-150 hover:text-pb-text"
-      >
-        <span>{title}</span>
-        <Icon
-          name="chevronDown"
-          className={`h-4 w-4 transition-transform duration-150 ${open ? "rotate-0" : "-rotate-90"}`}
-        />
-      </button>
-      {open && <div className="mt-2">{children}</div>}
-    </div>
-  );
-}
 
 interface Props {
   isOpen: boolean;
@@ -102,12 +78,12 @@ export default function SettingsModal({
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 max-sm:p-0"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" className="outline-none w-full max-w-[420px] overflow-y-auto rounded-xl border border-pb-border bg-pb-surface max-sm:max-h-screen max-sm:max-w-full max-sm:rounded-none sm:max-h-[90vh]">
+      <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" className="outline-none w-full max-w-[440px] overflow-y-auto rounded-xl border border-pb-border bg-pb-bg max-sm:h-full max-sm:max-h-screen max-sm:max-w-full max-sm:rounded-none max-sm:border-0 sm:max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-pb-border px-6 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-pb-border-light bg-pb-bg px-5 py-3.5">
           <h2 id="settings-modal-title" className="text-base font-semibold text-pb-text">Settings</h2>
           <button
             type="button"
@@ -119,7 +95,7 @@ export default function SettingsModal({
           </button>
         </div>
 
-        <div className="flex flex-col gap-6 px-6 py-5">
+        <div className="flex flex-col gap-6 px-4 pb-6 pt-5 sm:px-5">
           <AccountSection
             user={user}
             onSignInGoogle={onSignInGoogle}
@@ -139,30 +115,27 @@ export default function SettingsModal({
             onDisconnect={leetcodeActivity.disconnect}
           />
 
-          <div>
-            <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
-              Theme
-            </label>
-            <div className="flex overflow-hidden rounded-lg border border-pb-border">
-              {(["dark", "light"] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  aria-pressed={theme === t}
-                  onClick={theme !== t ? toggleTheme : undefined}
-                  className={`flex-1 cursor-pointer border-none px-3 py-2 text-sm font-medium capitalize transition-colors duration-150 ${
-                    theme === t
-                      ? "bg-pb-accent-solid text-white"
-                      : "bg-transparent text-pb-text-muted hover:text-pb-text"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <MobileAppSection />
+          <SettingsGroup title="Appearance">
+            <SettingsRow label="Theme">
+              <div className="inline-flex rounded-lg border border-pb-border bg-pb-bg p-0.5">
+                {(["dark", "light"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-pressed={theme === t}
+                    onClick={theme !== t ? toggleTheme : undefined}
+                    className={`h-8 cursor-pointer rounded-md border-none px-3.5 text-[13px] font-medium transition-colors duration-150 ${
+                      theme === t
+                        ? "bg-pb-accent-solid text-white"
+                        : "bg-transparent text-pb-text-muted hover:text-pb-text"
+                    }`}
+                  >
+                    {t === "dark" ? "Dark" : "Light"}
+                  </button>
+                ))}
+              </div>
+            </SettingsRow>
+          </SettingsGroup>
 
           <DailyGoalSection
             preferences={preferences}
@@ -171,104 +144,95 @@ export default function SettingsModal({
             onRequestRespread={onRequestRespread}
           />
 
-          <div>
-            <label className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted">
-              Hide patterns during review
-            </label>
+          <SettingsGroup
+            title="Review"
+            footer="Test your pattern recognition — tap to reveal on each card."
+          >
             <button
               type="button"
-              aria-pressed={preferences.hidePatternsDuringReview}
+              role="switch"
+              aria-checked={preferences.hidePatternsDuringReview}
               onClick={() => onUpdatePreferences({ hidePatternsDuringReview: !preferences.hidePatternsDuringReview })}
-              className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-pb-border bg-transparent px-3 py-2.5 text-left transition-colors duration-150 hover:border-pb-border-strong"
+              className={`${SETTINGS_ROW_CLASS} cursor-pointer border-none bg-transparent text-left transition-colors duration-150 hover:bg-pb-surface-hover`}
             >
-              <span className="text-sm text-pb-text">
-                {preferences.hidePatternsDuringReview ? "On" : "Off"}
-              </span>
-              <span
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
-                  preferences.hidePatternsDuringReview ? "bg-pb-accent-solid" : "bg-pb-border-strong"
-                }`}
-              >
-                <span
-                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
-                    preferences.hidePatternsDuringReview ? "translate-x-[18px]" : "translate-x-[3px]"
-                  }`}
-                />
-              </span>
+              <span className="text-sm text-pb-text">Hide patterns during review</span>
+              <SettingsSwitchMark on={preferences.hidePatternsDuringReview} />
             </button>
-            <p className="mt-2 text-xs leading-relaxed text-pb-text-dim">
-              Test your pattern recognition — tap to reveal on each card.
-            </p>
-          </div>
+          </SettingsGroup>
 
-          <CollapsibleSection title="Additional patterns">
-            <ExtraPatternsSection
-              hideLabel
-              enabledExtraPatterns={preferences.enabledExtraPatterns}
-              onToggle={(pattern) => {
-                const current = preferences.enabledExtraPatterns;
-                const updated = current.includes(pattern)
-                  ? current.filter((p) => p !== pattern)
-                  : [...current, pattern];
-                onUpdatePreferences({ enabledExtraPatterns: updated });
-              }}
-            />
-          </CollapsibleSection>
+          <SettingsGroup footer="Enable extra pattern categories for tracking.">
+            <SettingsDisclosure title="Additional patterns">
+              <ExtraPatternsSection
+                hideLabel
+                enabledExtraPatterns={preferences.enabledExtraPatterns}
+                onToggle={(pattern) => {
+                  const current = preferences.enabledExtraPatterns;
+                  const updated = current.includes(pattern)
+                    ? current.filter((p) => p !== pattern)
+                    : [...current, pattern];
+                  onUpdatePreferences({ enabledExtraPatterns: updated });
+                }}
+              />
+            </SettingsDisclosure>
+          </SettingsGroup>
 
-          <CollapsibleSection title="Import problem list">
-            <ProblemListPicker
-              hideLabel
-              existingIds={existingProblemNumbers}
-              onBulkAdd={(problems, patternMap) => { onBulkAdd(problems, patternMap); onClose(); }}
-            />
-          </CollapsibleSection>
+          <SettingsGroup>
+            <SettingsDisclosure title="Import problem list">
+              <ProblemListPicker
+                hideLabel
+                existingIds={existingProblemNumbers}
+                onBulkAdd={(problems, patternMap) => { onBulkAdd(problems, patternMap); onClose(); }}
+              />
+            </SettingsDisclosure>
+            <SettingsDisclosure title="Bulk add">
+              <BulkAddSection
+                onBulkAdd={(problems) => { onBulkAdd(problems); onClose(); }}
+                existingIds={existingProblemNumbers}
+              />
+            </SettingsDisclosure>
+          </SettingsGroup>
 
-          <CollapsibleSection title="Bulk add">
-            <BulkAddSection
-              onBulkAdd={(problems) => { onBulkAdd(problems); onClose(); }}
-              existingIds={existingProblemNumbers}
-            />
-          </CollapsibleSection>
+          <SettingsGroup>
+            <SettingsDisclosure title="Data">
+              <DataSection
+                hideLabel
+                problemCount={problemCount}
+                onExport={onExport}
+                onImport={onImport}
+                onClose={onClose}
+              />
+            </SettingsDisclosure>
+            <SettingsDisclosure title="Feedback">
+              <FeedbackSection user={user} />
+            </SettingsDisclosure>
+          </SettingsGroup>
 
-          <CollapsibleSection title="Data">
-            <DataSection
-              hideLabel
-              problemCount={problemCount}
-              onExport={onExport}
-              onImport={onImport}
-              onClose={onClose}
-            />
-          </CollapsibleSection>
+          <MobileAppSection />
 
-          <CollapsibleSection title="Feedback">
-            <FeedbackSection user={user} />
-          </CollapsibleSection>
+          <SettingsGroup>
+            <SettingsDisclosure title="Danger zone">
+              <DangerZoneSection
+                hideLabel
+                onSetAllDue={onSetAllDue}
+                onRequestClearData={onRequestClearData}
+              />
+            </SettingsDisclosure>
+          </SettingsGroup>
 
-          <CollapsibleSection title="Danger zone">
-            <DangerZoneSection
-              hideLabel
-              onSetAllDue={onSetAllDue}
-              onRequestClearData={onRequestClearData}
-            />
-          </CollapsibleSection>
-
-          {/* Built by footer */}
-          <div className="border-t border-pb-border pt-4 text-center">
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-[13px] text-pb-text-dim">Built by Derek Zhang</span>
-              <a
-                href="https://linkedin.com/in/derekz113"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Derek Zhang on LinkedIn"
-                className={iconButtonClass("sm")}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
-              </a>
-            </div>
-          </div>
+          <SettingsGroup title="About">
+            <a
+              href="https://linkedin.com/in/derekz113"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${SETTINGS_ROW_CLASS} text-sm text-pb-text no-underline transition-colors duration-150 hover:bg-pb-surface-hover`}
+            >
+              <span>
+                Built by Derek Zhang
+                <span className="sr-only">, on LinkedIn</span>
+              </span>
+              <Icon name="external" className="h-4 w-4 shrink-0 text-pb-text-dim" />
+            </a>
+          </SettingsGroup>
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ test.describe("Navigation & Modals", () => {
   });
 
   test("tab navigation between today and all problems", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Today", exact: true })).toBeVisible();
 
     // Navigate to Problems
     await page.getByRole("button", { name: /Problems/i }).click();

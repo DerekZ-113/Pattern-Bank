@@ -8,11 +8,11 @@ export interface WhatsNewContent {
 }
 
 export const WHATS_NEW: WhatsNewContent = {
-  id: "2026-09-01",
-  title: "New: review from All Problems & a Database tag",
+  id: "2026-11-17",
+  title: "New: a redesigned PatternBank",
   bullets: [
-    "Review due problems right from All Problems — every rating counts toward your goal, streak, and Done today",
-    "Database is now an opt-in pattern — enable it under Settings › Additional Patterns",
-    "Star pickers preview as you hover, and start empty when nothing has been rated yet",
+    "A new look across the app, in dark and light",
+    "Today shows your daily goal as tiles, and each rating says when the problem returns",
+    "All Problems is now Problems: a compact list you can sort and filter",
   ],
 };

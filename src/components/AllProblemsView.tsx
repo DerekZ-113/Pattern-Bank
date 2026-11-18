@@ -105,7 +105,7 @@ export default function AllProblemsView({ problems, onEdit, onDelete, onToggleEx
   if (problems.length === 0) {
     return (
       <main className={pageClass}>
-        <h1 className="m-0 text-[32px] font-bold leading-tight tracking-tight text-pb-text">All Problems</h1>
+        <h1 className="m-0 text-[32px] font-bold leading-tight tracking-tight text-pb-text">Problems</h1>
         <div className={`${panelClass} mt-6 px-6 py-10`}>
           <h2 className="m-0 text-lg font-semibold text-pb-text">
             No problems yet
@@ -126,9 +126,9 @@ export default function AllProblemsView({ problems, onEdit, onDelete, onToggleEx
     <main className={pageClass}>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="m-0 text-[32px] font-bold leading-tight tracking-tight text-pb-text">All Problems</h1>
+          <h1 className="m-0 text-[32px] font-bold leading-tight tracking-tight text-pb-text">Problems</h1>
           <p className="mt-1 text-sm text-pb-text-muted">
-            Browse and maintain your library of <strong className="font-semibold text-pb-text">{problems.length} problem{problems.length !== 1 ? "s" : ""}</strong>.
+            {problems.length} problem{problems.length !== 1 ? "s" : ""}
           </p>
         </div>
         <button type="button" onClick={onAddClick} className={buttonClass("primary")}>

@@ -6,7 +6,7 @@ import type { Confidence } from "../types";
 import type { CSSProperties } from "react";
 
 const SNAPSHOT_LABELS = ["Now", "Day 10", "Day 20", "Day 30"];
-const BAR_HEIGHT = 240;
+const BAR_HEIGHT = 200;
 
 function getRangeTrackStyle(value: number, min: number, max: number): CSSProperties {
   const pct = ((value - min) / (max - min)) * 100;
@@ -53,7 +53,7 @@ export default function LandingProjection() {
           onChange={setDailyGoal}
         />
         <SliderControl
-          label="New / week"
+          label="New problems per week"
           value={newPerWeek}
           min={0}
           max={10}
@@ -126,16 +126,14 @@ export default function LandingProjection() {
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-sm text-pb-text-muted">
           <span>
-            4-5★: <strong className="font-semibold tabular-nums text-pb-text">{day30High}</strong>
+            Rated 4 or 5 stars:{" "}
+            <strong className="font-semibold tabular-nums text-pb-text">
+              {day30High} of {day30Total}
+            </strong>{" "}
+            ({masteryPct}%)
           </span>
           <span>
-            Total: <strong className="font-semibold tabular-nums text-pb-text">{day30Total}</strong>
-          </span>
-          <span>
-            Mastery: <strong className="font-semibold tabular-nums text-pb-text">{masteryPct}%</strong>
-          </span>
-          <span>
-            Est. time: <strong className="font-semibold tabular-nums text-pb-text">{timeEstimate} min/day</strong>
+            About <strong className="font-semibold tabular-nums text-pb-text">{timeEstimate}</strong> minutes a day
           </span>
         </div>
 

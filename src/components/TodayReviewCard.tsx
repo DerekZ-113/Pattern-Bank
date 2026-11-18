@@ -36,6 +36,8 @@ export default function TodayReviewCard({
     ? `Last reviewed ${formatRelativeDate(problem.lastReviewed).toLowerCase()}`
     : "Never reviewed";
 
+  const showsNotesButton = !notesRevealed;
+
   const handleDone = (confidence: Confidence) => {
     onReview(problem.id, confidence);
     setReviewing(false);
@@ -43,7 +45,7 @@ export default function TodayReviewCard({
   };
 
   return (
-    <article className="rounded-xl border border-pb-border-light bg-pb-surface p-4 sm:px-5">
+    <article className="@container rounded-xl border border-pb-border-light bg-pb-surface p-4 sm:px-5">
       {/* Title line: what the problem is on the left, how hard on the right. */}
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -86,26 +88,60 @@ export default function TodayReviewCard({
         )}
       </div>
 
-      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      {/* The actions follow the card's own width, because the same card is
+          drawn full width on Today and in a narrow column elsewhere:
+          - wide: one line, the actions at the right of the stars;
+          - medium: their own line, quiet actions left and the main pair right;
+          - narrow: the quiet actions, then the main pair across the card. */}
+      <div className="mt-3.5 flex flex-col gap-3 @2xl:flex-row @2xl:items-center @2xl:justify-between @2xl:gap-4">
         <div className="flex items-center gap-2.5">
           <StarPicker mode="display" size="md" value={problem.confidence} />
           <span className="text-xs text-pb-text-dim">{lastReviewedText}</span>
         </div>
-        {/* The notes toggle stays while rating: notes are what you check
-            before deciding how well you knew it. */}
-        {(!reviewing || !notesRevealed) && (
-          <div className="flex flex-wrap items-center gap-2 max-sm:w-full">
-            {!notesRevealed && (
-              <button type="button" onClick={() => setNotesRevealed(true)} className={buttonClass("ghost")}>
-                <Icon name="note" className="h-3.5 w-3.5" />
-                {problem.notes ? "Show notes" : "Add notes"}
-              </button>
-            )}
-            {!reviewing && (
-              <>
-                <button type="button" onClick={() => onDismiss(problem.id)} className={buttonClass("ghost")}>
+        {(showsNotesButton || !reviewing) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 @md:flex-nowrap @md:justify-between @2xl:justify-end @2xl:gap-x-2">
+            {/* Borderless buttons carry padding nobody can see. Pulling the
+                group left by that padding puts its first label on the same
+                edge as the title, tags and stars. The notes toggle stays
+                while rating: notes are what you check before deciding how
+                well you knew it. */}
+            <div data-card-actions="quiet" className="-ml-2.5 flex items-center gap-1 @2xl:ml-0">
+              {showsNotesButton && (
+                <button
+                  type="button"
+                  onClick={() => setNotesRevealed(true)}
+                  className={`${buttonClass("ghost")} px-2.5!`}
+                >
+                  <Icon name="note" className="h-3.5 w-3.5" />
+                  {/* Both labels are laid out and only one is shown, so the
+                      button is as wide as the longer one and Dismiss starts
+                      in the same place on every card. */}
+                  <span className="grid text-left">
+                    <span className="col-start-1 row-start-1">
+                      {problem.notes ? "Show notes" : "Add notes"}
+                    </span>
+                    <span
+                      data-reserves-width
+                      aria-hidden="true"
+                      className="invisible col-start-1 row-start-1"
+                    >
+                      {problem.notes ? "Add notes" : "Show notes"}
+                    </span>
+                  </span>
+                </button>
+              )}
+              {!reviewing && (
+                <button
+                  type="button"
+                  onClick={() => onDismiss(problem.id)}
+                  className={`${buttonClass("ghost")} px-2.5!`}
+                >
                   Dismiss
                 </button>
+              )}
+            </div>
+            {!reviewing && (
+              <div data-card-actions="main" className="flex items-center gap-2 @max-md:w-full">
                 {problem.url && (
                   <a
                     href={problem.url}
@@ -120,11 +156,11 @@ export default function TodayReviewCard({
                 <button
                   type="button"
                   onClick={() => setReviewing(true)}
-                  className={`${buttonClass("soft")} max-sm:flex-1`}
+                  className={`${buttonClass("soft")} @max-md:flex-1`}
                 >
                   Review Now
                 </button>
-              </>
+              </div>
             )}
           </div>
         )}
