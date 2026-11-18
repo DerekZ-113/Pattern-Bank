@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Preferences } from "../types";
 import Icon from "./Icon";
 import { buttonClass, iconButtonClass } from "../utils/buttonStyles";
+import { SettingsGroup, SettingsRow } from "./SettingsGroup";
 
 export interface UpcomingScheduleInfo {
   count: number;
@@ -57,14 +58,11 @@ export default function DailyGoalSection({
     upcomingScheduleInfo !== null && upcomingScheduleInfo.currentPace < goal;
 
   return (
-    <div>
-      <label
-        htmlFor="daily-goal-input"
-        className="mb-1.5 block text-[13px] font-semibold text-pb-text-muted"
-      >
-        Daily review goal
-      </label>
-      <div className="flex items-center gap-4">
+    <SettingsGroup
+      title="Daily review goal"
+      footer="Caps how many reviews appear on Today each day, and sets the pace for bulk imports — new lists are spread at this rate. You can always review more from Problems."
+    >
+      <SettingsRow label="Reviews per day">
         <button
           type="button"
           onClick={() => adjustGoal(-1)}
@@ -76,6 +74,7 @@ export default function DailyGoalSection({
         </button>
         <input
           id="daily-goal-input"
+          aria-label="Daily review goal"
           type="number"
           inputMode="numeric"
           min={MIN_GOAL}
@@ -84,7 +83,7 @@ export default function DailyGoalSection({
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commitDraft}
           onKeyDown={(e) => e.key === "Enter" && commitDraft()}
-          className="h-10 w-16 rounded-lg border border-pb-border bg-transparent text-center text-2xl font-bold text-pb-text outline-none [appearance:textfield] focus:border-pb-accent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="h-9 w-12 rounded-lg border border-pb-border bg-pb-bg text-center text-base font-semibold tabular-nums text-pb-text outline-none [appearance:textfield] focus:border-pb-accent [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <button
           type="button"
@@ -95,15 +94,10 @@ export default function DailyGoalSection({
         >
           <Icon name="plus" />
         </button>
-      </div>
-      <p className="mt-2 text-xs leading-relaxed text-pb-text-dim">
-        Caps how many reviews appear on Today each day, and sets the pace for
-        bulk imports — new lists are spread at this rate. You can always
-        review more from Problems.
-      </p>
+      </SettingsRow>
       {showRespread && (
-        <div className="mt-3 rounded-lg border border-pb-border bg-pb-bg px-3.5 py-3">
-          <p className="text-xs leading-relaxed text-pb-text-muted">
+        <div className="px-4 py-3.5">
+          <p className="m-0 text-xs leading-relaxed text-pb-text-muted">
             {upcomingScheduleInfo.count} upcoming problem
             {upcomingScheduleInfo.count !== 1 ? "s are" : " is"} paced at ~
             {upcomingScheduleInfo.currentPace}/day.
@@ -117,6 +111,6 @@ export default function DailyGoalSection({
           </button>
         </div>
       )}
-    </div>
+    </SettingsGroup>
   );
 }

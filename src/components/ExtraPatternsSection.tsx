@@ -1,4 +1,5 @@
 import { EXTRA_PATTERNS, PATTERN_COLORS } from "../utils/constants";
+import { SettingsSwitchMark } from "./SettingsGroup";
 
 interface Props {
   enabledExtraPatterns: string[];
@@ -19,7 +20,7 @@ export default function ExtraPatternsSection({ enabledExtraPatterns, onToggle, h
           </p>
         </>
       )}
-      <div className="flex flex-col gap-1.5">
+      <div className="-my-2 flex flex-col divide-y divide-pb-border-light">
         {EXTRA_PATTERNS.map((pattern) => {
           const enabled = enabledExtraPatterns.includes(pattern);
           return (
@@ -28,7 +29,7 @@ export default function ExtraPatternsSection({ enabledExtraPatterns, onToggle, h
               type="button"
               aria-pressed={enabled}
               onClick={() => onToggle(pattern)}
-              className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-pb-border bg-transparent px-3 py-2 text-left transition-colors duration-150 hover:border-pb-text-muted"
+              className="flex min-h-[44px] w-full cursor-pointer items-center justify-between gap-3 border-none bg-transparent py-2 text-left"
             >
               <span
                 className={`text-sm font-medium ${enabled ? "text-pb-text" : "text-pb-text-muted"}`}
@@ -36,17 +37,7 @@ export default function ExtraPatternsSection({ enabledExtraPatterns, onToggle, h
               >
                 {pattern}
               </span>
-              <span
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ${
-                  enabled ? "bg-pb-accent-solid" : "bg-pb-border-strong"
-                }`}
-              >
-                <span
-                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200 ${
-                    enabled ? "translate-x-[18px]" : "translate-x-[3px]"
-                  }`}
-                />
-              </span>
+              <SettingsSwitchMark on={enabled} />
             </button>
           );
         })}
